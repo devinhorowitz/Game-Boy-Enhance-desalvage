@@ -9,6 +9,12 @@ Output board: [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zi
 
 Derivative of MouseBiteLabs Game Boy Enhance (AGBM-01) and Game Boy DMG Color, CC BY-SA 4.0.
 
+> **rev B** — the module has been shifted **1.875 mm west and 0.3 mm south** of where rev A put
+> it, to get it out of the crowded `R3` / `TP114` / `TP115` / `U10` cluster on its right. Worst
+> body clearance goes from 0.25 mm to 0.55 mm and the right-hand side opens from 0.25 mm to
+> 2.13 mm. The cost is two `VDD2` plane-stitching vias, which the `R` landing now lands on and
+> which have nowhere else to go — see §6.7. All positions in this document are rev B.
+
 ---
 
 ## Overview
@@ -22,43 +28,53 @@ pattern in this ECO is measured out of those gerbers — see §4 of the
 
 This ECO places that pattern on the AGBM and wires its three button pads to `/CPU/TP2` (Select),
 `/CPU/TP9` (L) and `/CPU/TP8` (R). §§6.1–6.4 cover that core edit, where V+ and CLK stay as wires
-to pads that already exist (`P1` pad `S1` is `VDD3`, `TP80` is `CK1`). **§6.5 then extends it to a
-fully wire-free build**: three more landings for CLK / V+ / V−, their routing, and a jumper that
-keeps crystal builds unaffected by the long CLK run.
+to pads that already exist (`P1` pad `S1` is `VDD3`, `TP80` is `CK1`). **§6.5 then adds dedicated
+pads for CLK / V+ / V−** immediately outside the module body, their routing, and a jumper that
+keeps crystal builds unaffected by the long CLK run. **§6.7 is rev B** — the module shifted west
+for clearance, and the one deletion from the host design that made it possible.
 
 ## 6.1 What changed
 
-Nine edits, all in the band between the RAM and the cartridge connector.
+Every edit sits in the band between the RAM and the cartridge connector.
 
 ### Moved
 
 | Ref | From | To | Why |
 |---|---|---|---|
-| `C7` (0603, `VDD35`/`GND`) | 91.900, −41.100 rot 180 | **82.700, −40.300 rot 0** | It was the only part inside the one viable module window. Rotation zeroed so pad 1 (`VDD35`) lands on the left at 81.925, where the tie via fits. |
+| `C7` (0603, `VDD35`/`GND`) | 91.900, −41.100 rot 180 | **93.100, −37.400 rot 180** | It was the only part inside the one viable module window. The new spot is in the clear band between the module and the cartridge connector, and it puts `C7` pad 1 **2.4 mm from `P1` pad `C1`** (the cart's `VDD35` pin) instead of the 6.3 mm it started at. |
 | `FID2` (fiducial, F.Cu) | 89.000, −48.000 | **106.250, −57.250** | Inside the module outline. |
 | `FID5` (fiducial, B.Cu) | 89.000, −48.000 | **106.250, −57.250** | Moved with its pair — and it needed to move anyway, see §6.4. |
 
 `C7` had **no tracks attached** on the original board — both pads were fed by pours — so nothing
-was orphaned by the move. Its `GND` pad still lands inside the F.Cu `GND` pour at the new
-position. Its `VDD35` pad does not, so it gets an explicit tie (below).
+was orphaned by the move. At the new position its `VDD35` pad lands inside the F.Cu `VDD35` pour
+and gets a 0.4 mm stub onto the `VDD35` stitching via already at (93.500, −37.200). Its `GND` pad
+does *not* land in a `GND` pour there — `VDD35` (priority 27) wins that patch of F.Cu — so it gets
+a 1.6 mm stub and a via at (93.300, −38.700) into the `In1.Cu` and `B.Cu` ground planes.
+
+### Removed
+
+| Item | Position | Net | Why |
+|---|---|---|---|
+| stitching via | 84.400, −45.900 | `VDD2` | the `R` landing sits on top of it (§6.7) |
+| stitching via | 85.400, −45.900 | `VDD2` | same |
 
 ### Added
 
 | Item | Position | Net | Notes |
 |---|---|---|---|
-| `MOD1` footprint | 93.825, −45.250 rot 180 | — | outline 84.500…103.150 × −51.250…−39.250 (18.65 × 12.00) |
-| `MOD1` pad `1` | 89.300, −46.250 | `/CPU/TP2` | Select |
-| `MOD1` pad `2` | 86.800, −48.750 | `/CPU/TP9` | L |
-| `MOD1` pad `3` | 86.800, −46.250 | `/CPU/TP8` | R |
-| `TP82` pad | 102.000, −41.000 | `GND` | the module's V− wire pad, silkscreened `V-` |
-| via + 0.9 mm stub | via at 81.025, −40.300 | `VDD35` | ties `C7` pad 1 down to the `In2.Cu` `VDD35` pour |
-| 174 track segments, 4 vias | — | `/CPU/TP2`, `/CPU/TP8`, `/CPU/TP9` | see §6.3 |
+| `MOD1` footprint | 91.950, −44.950 rot 180 | — | outline 82.625…101.275 × −50.950…−38.950 (18.65 × 12.00) |
+| `MOD1` pad `1` | 87.425, −45.950 | `/CPU/TP2` | Select |
+| `MOD1` pad `2` | 84.925, −48.450 | `/CPU/TP9` | L |
+| `MOD1` pad `3` | 84.925, −45.950 | `/CPU/TP8` | R |
+| 0.4 mm stub | 93.875, −37.400 → 93.500, −37.200 | `VDD35` | ties `C7` pad 1 to the existing `VDD35` stitch via |
+| 1.6 mm stub + via | via at 93.300, −38.700 | `GND` | ties `C7` pad 2 into the ground planes |
+| 169 track segments, 4 vias | — | `/CPU/TP2`, `/CPU/TP8`, `/CPU/TP9` | see §6.3 |
 
 Pads are ø1.270 mm copper with 0.0635 mm mask expansion (ø1.397 mm opening) — the DMG Color's
 numbers exactly. No drills: the holes belong to the module, not the host.
 
 **Not** added *in this core edit*: V+ and CLK landings. `P1` pad `S1` (96.900, −35.200) is already
-`VDD3` and sits 3.6 mm below the module's bottom-right corner; `TP80` (48.000, −58.000) is already
+`VDD3` and sits 3.8 mm below the module's south edge; `TP80` (48.000, −58.000) is already
 `CK1`, so both work as wires exactly as on a stock GBA. §6.5 adds solder-through landings for them
 too, with the CLK run gated by a jumper so a crystal build sees no stub.
 
@@ -74,11 +90,25 @@ vias and traces is fine — the DMG Color footprint sits over a via field). Two 
   legal placement by collisions gave `82.3…100.9, −50.8…−38.8` blocked only by `C7`; the runners-up
   were "on top of `U1`" and "on top of `U2`".
 
-Within that window the footprint was then positioned to maximise pad clearance against the
-existing copper — the escape fan from `U2` and the `VDD2`/`GND`/`VDD5` stitching rows run right
-through it. Sweeping centre position and both 0°/180° orientations gives a best of
-**0.458 mm minimum pad-to-copper clearance** at centre (93.825, −45.250) rot 180, against a
-0.2 mm netclass requirement. 180° also points the button end west, toward the nets it needs.
+Within that window the position is a straight trade between two clearances that pull in opposite
+directions:
+
+- **body clearance** — how much room the 18.65 × 12 mm module has to its neighbours. This gets
+  worse to the east, where `R3`, `TP114`, `TP115` and `U10` crowd the module, and better to the
+  west, where the only thing near is `TP18`.
+- **pad clearance** — how close the three landings sit to foreign copper. This gets worse to the
+  west, because the escape fan out of `U2` and the `VDD2`/`GND`/`VDD5` stitching rows tighten up
+  there.
+
+Rev A took the pad-clearance end of that trade: centre (93.825, −45.250) rot 180, 0.458 mm minimum
+pad-to-copper but only 0.25 mm of body clearance on two sides at once. **Rev B takes the middle**:
+centre **(91.950, −44.950) rot 180**, 0.550 mm worst body clearance and 0.240 mm minimum
+pad-to-copper — both comfortably over the 0.2 mm netclass requirement, and the east side opens
+from 0.25 mm to 2.13 mm. The 0.240 mm is against *this ECO's own* escape tracks, under solder
+mask, not against anything the module's solder can reach. §6.7 covers why the module cannot go
+further west than this.
+
+180° points the button end west, toward the nets it needs.
 
 ## 6.3 Routing
 
@@ -89,18 +119,18 @@ cheapest:
 
 | Net | Length | Vias | Layers | Ends on |
 |---|---|---|---|---|
-| `/CPU/TP8` (R) | 30.5 mm | 0 | F.Cu only | existing F.Cu endpoint 61.872, −52.500 |
-| `/CPU/TP2` (SEL) | 48.7 mm | 2 | F.Cu → B.Cu → F.Cu | existing F.Cu endpoint 53.279, −48.664 |
-| `/CPU/TP9` (L) | 64.7 mm | 2 | F.Cu → B.Cu → F.Cu | existing F.Cu endpoint 54.248, −52.193 |
+| `/CPU/TP8` (R) | 28.6 mm | 0 | F.Cu only | existing F.Cu endpoint 61.872, −52.500 |
+| `/CPU/TP2` (SEL) | 46.9 mm | 2 | F.Cu → B.Cu → F.Cu | existing F.Cu endpoint 53.279, −48.664 |
+| `/CPU/TP9` (L) | 59.4 mm | 2 | F.Cu → B.Cu → F.Cu | existing F.Cu endpoint 54.248, −52.193 |
 
-Total 143.9 mm of new track and 4 vias. Each route starts exactly on its pad centre and ends
+Total 134.9 mm of new track and 4 vias. Each route starts exactly on its pad centre and ends
 exactly on an existing endpoint of its own net, so connectivity is unambiguous. The B.Cu portions
 run through the cartridge keepout, which permits tracks.
 
 These are slow button lines — already RC-filtered by the AGBM's own 15 Ω / 0.01 µF networks — so
 length is electrically irrelevant here.
 
-**They are maze-router output.** 174 short 45°/90° segments where a human would draw a dozen.
+**They are maze-router output.** 169 short 45°/90° segments where a human would draw a dozen.
 That is cosmetic; re-drawing them with KiCad's interactive router will look better and cost
 nothing.
 
@@ -150,19 +180,20 @@ edge, v from the same long edge the button rows reference):
 
 | Module pad | u | v | lands on the board at | ±  |
 |---|---|---|---|---|
-| `CLK` | ≈3.9 | ≈9.2 | 99.250, −42.050 | ±0.5 mm |
-| `V+` | ≈2.3 | ≈7.1 | 100.850, −44.150 | ±0.5 mm |
-| `V-` | ≈2.3 | ≈8.8 | 100.850, −42.450 | ±0.5 mm |
+| `CLK` | ≈3.9 | ≈9.2 | 97.375, −41.750 | ±0.5 mm |
+| `V+` | ≈2.3 | ≈7.1 | 98.975, −43.850 | ±0.5 mm |
+| `V-` | ≈2.3 | ≈8.8 | 98.975, −42.150 | ±0.5 mm |
 
-The east strip beyond the module (x 103.15…104.6) is blocked by `TP114`/`TP115` and the
-mechanical keepout, so the wire pads go in the clear pocket immediately **south** of the module
-body, in the gap between it and the cartridge connector:
+The wire pads go in the clear pocket immediately **south** of the module body, in the gap between
+it and the cartridge connector. (The east strip is a candidate too, and the shift in rev B opened
+2.1 mm of it — but three pads squeezed into a 2.1 mm slot next to `R3` are worse to solder three
+separate wires onto than three pads in open ground, for about 1 mm of total wire.)
 
 | Ref | Net | Position | Wire from the module pad |
 |---|---|---|---|
-| `TP83` | `CXC_CLK` (new net 238) | 98.600, −38.200 | **3.9 mm** |
-| `TP84` | `VDD3` | 100.900, −38.200 | **6.0 mm** |
-| `TP85` | `GND` | 103.000, −38.200 | **4.8 mm** |
+| `TP83` | `CXC_CLK` (new net 238) | 97.900, −37.950 | **3.8 mm** |
+| `TP84` | `VDD3` | 99.450, −37.950 | **5.9 mm** |
+| `TP85` | `GND` | 101.000, −37.950 | **4.7 mm** |
 
 ø1.2 mm pads, silkscreened `CLK` / `V+` / `V-`, left-to-right in the same order as the module's
 pads so the three wires do not cross. Compare with a stock GBA install, where the same three
@@ -194,13 +225,22 @@ Same default-open pattern ECO-5 used for `JP2`.
 
 ### Also in this pass
 
-- **Two GND stitching vias relocated**: (100.200, −41.500) → (100.400, −41.500) and
-  (101.000, −44.500) → (101.400, −45.300). Both had zero attached tracks — pure plane stitching,
-  confirmed before moving.
 - **New net 238 `CXC_CLK`.**
-- **Routing added**: `CXC_CLK` 73.5 mm / 2 vias, `VDD3` 7.7 mm / 2 vias from `TP84` to `P1` pad
-  `S1`, `GND` a 0.9 mm stub and a via into the ground plane. Board total is now **231.9 mm of new
-  track and 10 new vias**.
+- **Routing added**: `CXC_CLK` 73.5 mm / 2 vias, `VDD3` 7.0 mm / 2 vias from `TP84` to `P1` pad
+  `S1`, `GND` 4.6 mm / 1 via from `TP85` to the `GND` stitch via already at (100.200, −35.300),
+  and the two `C7` ties from §6.1. Board total is **225.5 mm of new track, 9 new vias, and two
+  vias removed**:
+
+| Net | Length | Vias |
+|---|---|---|
+| `CXC_CLK` (CLK run + `JP3`) | 73.5 mm | 2 |
+| `/CPU/TP9` (L) | 59.4 mm | 2 |
+| `/CPU/TP2` (SEL) | 46.9 mm | 2 |
+| `/CPU/TP8` (R) | 28.6 mm | 0 |
+| `VDD3` (`TP84` → `P1.S1`) | 7.0 mm | 2 |
+| `/CPU/CK1` (`JP3` pad 1) | 5.0 mm | 0 |
+| `GND` (`TP85` + `C7` pad 2) | 4.6 mm | 1 |
+| `VDD35` (`C7` pad 1) | 0.4 mm | 0 |
 
 ### Re-verification
 
@@ -227,6 +267,8 @@ real gerbers from KiCad.
 | `render/fab_back.png` | whole back side, mirrored so silk reads |
 | `render/fab_landings.png` | the landings, clean |
 | `render/fab_landings_fit.png` | the same, annotated — landings, wire pads and wire lengths |
+| `render/agbm01_cxc_placement.png` | placement diagram: the module window, its neighbours, `C7` before and after, the deleted stitching vias |
+| `render/agbm01_cxc_board_after6.png` | copper diff — every new track, via and pad against the original board |
 | `render/fab_fit.png` | **fit check**: the module body drawn in place, its plated holes over the `MOD1` pads, its hole-less pads ringed at ±0.5 mm with their wires, and the gap to every neighbour |
 | `render/fab_landings_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
 
@@ -235,29 +277,113 @@ little larger:
 
 | Neighbour | Gap to the module body |
 |---|---|
-| `U2` (RAM), above | 0.25 mm |
-| `R3`, right | 0.27 mm |
-| `TP114` / `TP115`, right | 0.35 mm |
-| `U10`, right | 0.47 mm |
-| `P1` (cartridge connector), below | 0.90 mm |
-| `TP18`, left | 2.80 mm |
+| `U2` (RAM), above | 0.55 mm |
+| `C7`, below | 0.82 mm |
+| `TP18`, left | 0.93 mm |
+| `P1` (cartridge connector), below | 2.05 mm |
+| `R3`, right | 2.13 mm |
+| `TP114` / `TP115`, right | 2.23 mm |
+| `U10`, right | 2.34 mm |
 
-Two things the render caught that the numbers had not:
+Rev A, for comparison, was `R3` 0.25 / `U2` 0.25 / `TP114`+`TP115` 0.35 / `U10` 0.47 /
+`P1` 2.35 / `TP18` 2.80. Every neighbour that was inside half a millimetre is now outside two,
+except `U2` — which is a package edge, not a hand-soldered joint.
+
+Two things the renders caught in rev A that the numbers had not:
 
 - **`TP84`'s `V+` silkscreen label was landing on `TP85`'s pad.** Silk over an exposed pad gets
   clipped by the fab or, worse, printed onto the land. All three landing labels moved beside their
   pads (±1.7 mm in x); `TP82`'s label moved too and changed from `V-` to `GND`, because two
   different pads were both silkscreened `V-`.
-- **The ±0.5 mm rings on the three photo-derived landings overlap each other.** At 1.7 mm spacing
-  that is what the uncertainty means in practice: if the estimate is off in the wrong direction,
-  two of these pads foul. It is the clearest argument for measuring a module before fabbing.
+- **The ±0.5 mm rings on the module's three CLK/V+/V− pads overlap each other.** `V+` and `V-`
+  are only 1.7 mm apart, so the photo-derived uncertainty is comparable to the spacing. That was
+  fatal while these were still planned as landings; now that they are wire targets it only means
+  the wires may come out a few tenths longer or shorter than the table says.
 
-## 6.7 Before you fab
+## 6.7 rev B — shifting the module west, and what it cost
+
+Rev A's placement was optimal on one metric (pad-to-copper clearance) and poor on the one you
+notice with a soldering iron in your hand: it had `R3` 0.25 mm off its right edge, `TP114`/`TP115`
+0.35 mm, `U10` 0.47 mm and `U2` 0.25 mm off its top, all at once. Moving west trades a metric
+nobody assembles against for one everybody does.
+
+### How far west it can go
+
+Two hard stops, 3.4 mm apart, and they overlap:
+
+- **`TP18` stops the body.** It is a plated ø1.0 mm test point on `VDD2` at (81.200, −46.200),
+  outside any footprint the module can sit on. The module's left edge has to clear it, so the
+  centre cannot go west of x ≈ 91.2.
+- **Two `VDD2` stitching vias stop the `R` landing.** They sit at (84.400, −45.900) and
+  (85.400, −45.900). The `R` pad tracks the centre at (cx − 7.025, −45.950), so for a ø1.27 mm pad
+  to keep 0.2 mm off a ø0.7 mm via the centre has to be east of 93.61 or west of 90.24.
+
+93.61 is 0.2 mm from where rev A already was, and 90.24 is a millimetre past where `TP18` stops
+the body. **With those vias in place, the module cannot move west at all.**
+
+### Why the vias could not be relocated
+
+They were checked first, before anything was deleted:
+
+- Neither has a single track attached — pure plane stitching between the F.Cu `VDD2` island and
+  the `In2.Cu` `VDD2` plane. (The third via of the row, (83.400, −45.900), does have a `B.Cu` stub,
+  and it stays.)
+- The whole F.Cu `VDD2` island was then swept at 0.05 mm for anywhere else a ø0.7/0.3 mm via could
+  legally sit — inside both the F.Cu and `In2.Cu` `VDD2` pours, ≥0.2 mm off every foreign net on
+  every layer, ≥0.5 mm hole-to-hole. **Best clearance available anywhere in the island: 0.166 mm.**
+  There is no legal home. The island is boxed in by a `B.Cu` `SW` trace along y = −45.22 and the
+  RAM's `B.Cu` fan-out along y = −47.14; the row at y = −45.9 is the only gap, and the landing now
+  occupies it.
+
+### Why deleting them is acceptable
+
+The lobe of F.Cu `VDD2` pour those two vias stitched **contains no `VDD2` pads**. Every `VDD2` pad
+in that island — `U1` pin 44, `C15` pad 1, `C46` pad 1 — is west of x = 79, and `U2` pins 12 and 16
+hang off the island's southern leg, which has its own stitch via at (83.227, −56.074). The lobe
+east of `TP18` is copper with nothing on it.
+
+After the deletion that lobe still has two full-stack connections to the plane: via
+(83.400, −45.900), and `TP18` itself, which is a `TestPoint_Pad_D1.0mm_VIA` — a plated ø0.4 mm
+through-hole on `VDD2`, a bigger barrel than either via that was removed. No component current
+path is shortened, lengthened or narrowed by the change.
+
+That is the honest full cost of the shift. If you would rather not touch the host's plane
+stitching at all, rev A's board is the commit before this one and is functionally identical
+otherwise — you keep 0.458 mm of pad clearance and live with 0.25 mm around the module body.
+
+### What the shift bought
+
+| | rev A | rev B |
+|---|---|---|
+| worst body clearance | 0.25 mm (`R3` and `U2`) | **0.55 mm** (`U2`) |
+| neighbours within 0.5 mm | 4 | 0 |
+| east side | 0.25 mm | **2.13 mm** |
+| min pad-to-copper | 0.458 mm | 0.240 mm |
+| `C7` pad 1 → nearest cart `VDD35` pin | 9.0 mm | **2.4 mm** |
+| new track / vias | 231.9 mm / 10 | 225.5 mm / 9, −2 |
+| new DRC violations | 0 | 0 |
+
+The `C7` line is a side effect worth calling out. On the stock board `C7` pad 1 is 6.3 mm from
+`P1` pad `C1`; rev A had to park it west of the module at 9.0 mm, nearly 3 mm worse than
+MouseBiteLabs had it. With the module out of the way, `C7` fits in the band south of it instead
+and ends up at 2.4 mm — **closer to the pin it bypasses than it was on the stock board**.
+
+### Re-verified
+
+Same differential method as §6.4, same region (x 38…114, y −70…−32), against the unmodified
+`_GBE-plus` board:
+
+```
+new violations introduced : 0
+pre-existing removed      : 3   (the FID5 overlaps from §6.4)
+```
+
+## 6.8 Before you fab
 
 1. **Open in KiCad 9, run DRC, re-pour both inner planes and the outer pours.** This ECO is a
    scripted edit verified by a scripted checker. It has not been through KiCad's DRC engine.
-2. **`MOD1` and `TP82` exist on the board only.** The fork's archive carries no schematic, so
-   these have no symbols. Running *Update PCB from Schematic* will try to delete them. Add
+2. **`MOD1`, `JP3` and `TP83`/`TP84`/`TP85` exist on the board only.** The fork's archive carries
+   no schematic, so these have no symbols. Running *Update PCB from Schematic* will try to delete them. Add
    matching symbols (or a board-only exclusion) before doing that.
 3. **Confirm the module's pad identities.** Which of the three lattice sites is Device pad 1, 2
    and 3 is inferred from MouseBiteLabs' `P10`/`P11` assignment read against insideGadgets' GBC
@@ -273,18 +399,22 @@ Two things the render caught that the numbers had not:
 5. **Depopulate `X1`, `C3`, `C4`** when building with a ClockxControl, and leave them populated
    otherwise. The footprints stay on the board deliberately: a board with the crystal fitted still
    works normally, and you keep a bring-up path that does not depend on a $23 add-on.
-6. **Re-check `C7`'s bypass duty if you care.** It moved from 6.5 mm to 8.5 mm from the cart's
-   `VDD35` pins. `C6` and `C51` (the other two on that rail) are further away still, at x 76.2.
+6. **`C7`'s bypass duty improved.** It moved from 6.3 mm to **2.4 mm** from `P1` pad `C1`, the
+   cart's `VDD35` pin — better than where MouseBiteLabs had it. `C6` and `C51` (the other two on
+   that rail) are further away still, at x 76.2, and unchanged.
+6b. **Two `VDD2` stitching vias were deleted** (§6.7). Nothing on the board connects to them by a
+   track, and the F.Cu `VDD2` lobe they stitched contains no `VDD2` pads at all, but it is a
+   deletion from the host design and you should know it happened.
 7. **Tidy the routes** if you want them to look hand-drawn. Nothing depends on it.
 
-## 6.8 Build sheet (when populating the ClockxControl)
+## 6.9 Build sheet (when populating the ClockxControl)
 
 1. Leave `X1`, `C3`, `C4` unpopulated.
 2. **Bridge `JP3`** (by the crystal, silkscreened `CXC CLK`). Without it the module gets no clock.
 3. Seat the module on the `MOD1` outline, component side up, and solder through its three plated
    button holes onto `MOD1` pads 1/2/3 — Select, L, R.
 4. Run three short wires from the module's `CLK`, `V+` and `V-` pads (which have no holes) down to
-   `TP83`, `TP84` and `TP85` in the row just below the module: about 4, 6 and 5 mm.
+   `TP83`, `TP84` and `TP85` in the row just below the module: about 3.8, 5.9 and 4.7 mm.
 5. Speed control is Select + L / Select + R; hold Select for 2 s to return to 1x. Note the
    AGBM's own hotkeys are Start + L + R + one of {Select, A, B, D-pad}, so holding
    Select + L + R and then pressing Start will drive both.
