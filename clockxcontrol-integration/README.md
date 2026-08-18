@@ -118,12 +118,20 @@ one-node change.
 - **`C3` (27 p) — do not populate.** It is the XIN load cap; with the crystal gone it is just
   27 pF hung on the module's output. Harmless if left (≈0.37 mA of extra drive current at
   4.19 MHz, more when overclocked) but there is no reason to keep it.
-- **`C4` (33 p) — do not populate.** Dangling once the crystal is gone.
-- **`R41` (2.2 k) and `R1` (1.5 M) — may stay.** `R41` is the XOUT drive-limiting resistor and
-  ends up driving nothing. `R1` is the 1.5 M bias resistor; leaving it couples the externally
+- **`C4` (33 p) — do not populate.** An earlier revision of this document said C4 is "dangling
+  once the crystal is gone." **That was wrong**, and the netlist says so plainly: `X1` pad 2, `C4`
+  pad 1 and `R41` pad 2 all sit on `Net-(C4-Pad1)`, so removing `X1` leaves C4 tied to `CK2`
+  through `R41`. It is not dangling, it is 33 pF still hanging on the CPU's XOUT node through
+  2.2 kΩ. That makes the case for depopulating it stronger, not weaker.
+- **`R41` (2.2 k) and `R1` (1.5 M) — may stay.** `R41` is the XOUT drive-limiting resistor; with
+  `X1` and `C4` both off it ends up driving nothing. `R1` is the 1.5 M bias resistor; leaving it couples the externally
   driven CK1 to the CPU's own (now unloaded) inverter output through 1.5 MΩ, which is nothing.
   insideGadgets' stock-GBA instructions only say to remove the crystal, so the caps and resistors
   staying in place is the field-proven configuration anyway.
+
+**`X1`, `C3` and `C4` are marked DNP on the board** as of ECO-7, so an assembly house will leave
+them off without needing a separate build note. That was a real gap: before ECO-7 the three parts
+shipped as ordinary fitted components.
 
 **Keep the footprints.** Deleting X1/C3/C4 from the design would mean the board cannot boot
 without a $23 add-on installed, would diverge from upstream for every builder who does not want

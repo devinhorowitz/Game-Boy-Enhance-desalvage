@@ -396,8 +396,10 @@ pre-existing removed      : 3   (the FID5 overlaps from §6.4)
    keepout MouseBiteLabs defined, and a module lying directly on the board (1.6 mm) sits *lower*
    than the field-proven stock install (1.6 mm of module on top of ~1.2 mm of RAM). Good evidence,
    not a measurement — same class of open item as ECO-5's front-shell fit.
-5. **Depopulate `X1`, `C3`, `C4`** when building with a ClockxControl, and leave them populated
-   otherwise. The footprints stay on the board deliberately: a board with the crystal fitted still
+5. **`X1`, `C3` and `C4` are marked DNP on the board** as of ECO-7 (`(attr smd dnp)`), so an
+   assembly house leaves them off. For a crystal build, clear the DNP flag on all three. Note
+   that `C4` is not dangling with `X1` removed: it stays tied to `CK2` through `R41`, which is
+   why it must come off rather than merely being harmless. The footprints stay on the board deliberately: a board with the crystal fitted still
    works normally, and you keep a bring-up path that does not depend on a $23 add-on.
 6. **`C7`'s bypass duty improved.** It moved from 6.3 mm to **2.4 mm** from `P1` pad `C1`, the
    cart's `VDD35` pin — better than where MouseBiteLabs had it. `C6` and `C51` (the other two on
