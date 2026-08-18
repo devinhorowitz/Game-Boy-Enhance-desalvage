@@ -4,285 +4,247 @@ A component-level review of MouseBiteLabs **Game Boy Enhance AGBM-01 rev 1.2** a
 asking one question: **which parts are worth upgrading, and can that win back the energy the
 ClockxControl overclock costs?**
 
-Everything below was derived from the KiCad design files in this repository or from a datasheet or
-distributor page that was actually fetched. Nothing is asserted from memory. Where a number is an
-estimate rather than a measurement, it says so.
+Everything here was derived from the KiCad design files in this repository or from a datasheet or
+distributor page that was actually fetched. Where a number is estimated rather than measured, it
+says so. Nothing has been measured on hardware.
+
+Supporting documents: the full [power budget](power-budget.md), the
+[completeness critique](completeness-critic.md), and all 101 findings with their sources and
+verification history in [`findings.json`](findings.json).
 
 ---
 
-## Short answer
+## The honest answer
 
-**Yes, but only at the PCB-revision tier.** Running the ClockxControl at 1.75x costs roughly
-**146 mW at the battery** (the module's own ~45 mW plus ~100 mW of extra console draw). Against that:
+**No. The energy the ClockxControl costs cannot be won back.**
 
-| Tier | What it takes | Recovered at 1x | Recovered at 1.75x |
+Fitting the module and running it at 1.75× costs about **159 mW at the battery**. At the maximum
+effort anyone proposed you recover about **69 mW, or 43 %** — and getting past 20 % needs a
+schematic change plus a PCB revision on the core rail of a board built around irreplaceable
+salvaged silicon.
+
+Stated as runtime, at the 792 mW representative operating point on a 6.26 Wh pack:
+
+| Configuration | Power | Runtime | vs stock |
 |---|---|---|---|
-| **Drop-in parts only** | five part swaps on existing land patterns | ~32 mW | ~40 mW |
-| **+ one PCB revision** | transplant AGBM-02's converter | +29 mW (idle) | +26 mW |
-| **+ schematic change** | switch the CPU core rail off its LDO | +22 mW (idle) | +60 mW |
-| **Total** | | ~83 mW | ~126 mW |
+| Stock, 1×, no module | 792 mW | 7 h 54 m | — |
+| **ClockxControl fitted, 1.75×, no fixes** | **951 mW** | **6 h 35 m** | **−1 h 19 m** |
+| + every drop-in fix | 919 mW | 6 h 49 m | −1 h 05 m |
+| + core-rail redesign | 885 mW | 7 h 04 m | −50 m |
+| + full front-end respin | 882 mW | 7 h 06 m | −48 m |
 
-So at full effort you win back about **86% of what the overclock costs** — and the drop-in tier
-alone, which is five parts and no board change, covers about a quarter of it.
+The overclock costs you 79 minutes. Drop-in parts buy back 14 of them. Everything short of a
+complete respin buys back 31.
 
-**But read the blockers first. The board in this fork does not currently boot.**
-
----
-
-## 1. Blockers — three defects in the fork's own board
-
-These are not upgrades. They are faults in the committed board, found by reading the `.kicad_pcb`
-files and diffing the fork against stock AGBM-01. **No board should be fabricated or sent to an
-assembly service until these are resolved.**
-
-### 1.1 The RAM's VCC pin 37 has no supply
-
-ECO-5 (the RAM desalvage) removed two VDD2 vias at (100.8, −56.6) and (100.8, −55.2) and three
-F.Cu VDD2 tracks, and added a third pin-37 pad at (100.31, −58.05). What is left:
-
-- U2 pin 37 has three F.Cu pads at (95.100, −58.050), (98.968, −58.050) and (100.310, −58.050),
-  joined only to each other by one F.Cu track.
-- **There is no VDD2 via anywhere on the board with x > 93**, so nothing ties that group to the
-  In2.Cu VDD2 plane.
-- The F.Cu VDD2 zone that appears to cover them is a **6.89 mm² orphan island** — and the zone fill
-  data is byte-identical to stock, i.e. the fork was never re-poured. On a re-pour KiCad will most
-  likely delete that island outright.
-
-Pins 12 and 16 *are* connected (they sit in the 59.68 mm² F.Cu VDD2 zone that is tied to the plane
-at (83.227, −56.074) and (83.4, −45.9)), so a built board may partly work and behave erratically —
-the worst possible failure mode on a salvaged RAM, because it looks exactly like a bad solder joint.
-
-**Fix:** restore two 0.3 mm vias at the stock coordinates (100.8, −56.6) and (100.8, −55.2) — both
-verified to lie inside the F.Cu island *and* the In2 VDD2 plane — route C8's VDD2 pad back to that
-island, and re-pour.
-
-This one is at least **documented**: the fork's own README says the VDD2 feed to U2 pin 37 and the
-ground-via re-stitching are "deliberately left for the interactive router" and warns "Do not send
-this to a board house without finishing the items."
-
-### 1.2 `Net-(Q5B-G)` is open — and this one is undocumented
-
-ECO-5 also deleted the via at (100.8, −62.15). That via was the only join between the In1.Cu run
-coming from U17 pin 1 and the B.Cu run reaching Q5 pin 3 and R66 pin 2. Both files still contain
-all ten segments of the net; only the via is missing.
-
-Consequence: U17's `/RESET` output can no longer pull Q5B's gate down, R66 (100 k to VOUT5) holds
-it permanently high, and **the low-battery LED indication is dead**.
-
-The fork's README lists "five GND stitching vias" as removed. Of the five vias actually removed,
-**only two are GND** — two are VDD2 (§1.1) and one is this signal net. The documentation
-under-reports what was cut.
-
-**Fix:** restore a 0.7/0.3 mm via at (100.8, −62.15). Better, re-route the net off In1.Cu entirely —
-it is currently 10.54 mm of signal routing *inside the ground plane*, which is both a return-path
-slot and a trap for the next person editing near U2.
-
-### 1.3 ECO-6 does not mark X1/C3/C4 as DNP
-
-Mine, and a real miss. The ClockxControl requires the crystal removed, but `X1`, `C3` and `C4` ship
-as fitted parts in the ECO-6 board, so a builder ordering assembly gets a crystal soldered onto a
-node the module is trying to drive.
-
-There is a second, subtler error in the ECO-6 write-up itself: it says C4 is left dangling with the
-crystal gone. **It is not.** C4 remains connected to CK2 through R41, so it stays loaded on the
-oscillator node whether or not X1 is fitted. Worth ~2 mW at 1.75x, and the documentation is simply
-wrong about the topology.
+**The de-duplicated drop-in ledger is about 20 mW off a 170 mW idle — 12 %** — plus 2 to 11 mW in
+use from the PPTC. That is the real answer to the question, and it required de-duplicating five
+findings that all proposed the same PPTC swap and three that all proposed the same LDO replacement.
 
 ---
 
-## 2. Where the energy actually goes
+## Two constraints that may make the question moot
 
-### The rails, computed rather than assumed
+The completeness pass found these after the eight domain reviews had finished, and they matter more
+than any component swap.
 
-The LTC3527's feedback reference is 1.20 V (datasheet 35271fc). With the dividers on this board:
+**Flash carts do not work overclocked.** insideGadgets' own page: *"GBA flash carts don't seem to
+work when trying to go faster than 1x as they crash."* Every 1.75× figure in the domain reviews was
+computed on MouseBiteLabs' 1175 mW configuration, which is *max brightness plus an Everdrive plus
+max volume*. **That configuration is not reachable.** Correcting to a genuine cartridge takes about
+112 mW off the worst case and softens two stability findings from "over the limit" to "at the
+limit."
 
-```
-VOUT5 = 1.20 x (1 + 1.78M/560k)  = 5.014 V
-VOUT3 = 1.20 x (1 + 1.78M/1.00M) = 3.336 V
-VDD2  = VAUD = 2.500 V   (NCV8164ASN250T1G, fixed)
-```
+**The screen is the binding constraint, not the power tree.** The LCD dot clock is exactly the
+crystal frequency (4 CPU cycles per dot, 308 × 228 = 280,896 cycles per frame at 16.78 MHz), so it
+scales 1:1 with the module and the kit sees **7.34 MHz at 1.75×**. insideGadgets again: *"Works with
+the FunnyPlaying laminated IPS GBA screen at speed 1.25x and below. At 1.5x, the screen fades to
+black… Not recommended with the GBA OneChip IPS screen."* The Hispeedido kit MouseBiteLabs
+benchmarked with is not on the compatibility list at all. The only series element on the entire
+display bus is `R36`, 270 Ω on the dot clock; every other line has none.
 
-Which makes both LDOs **74.87% efficient** — an arithmetic match to MouseBiteLabs' own remark that
-the audio supply is "roughly 75% efficient". That match is what confirms the whole model is right:
-the audio rail's inefficiency *is* U4's dropout, not anything exotic.
+**So before optimising anything: sweep the ratio with your actual screen kit and log the highest
+stable one.** If it is 1.25×, the whole power model needs re-running there and most of this document
+describes a configuration you cannot use.
 
-### The three structural losses
+---
 
-**The CPU core rail is linear.** U8 drops 3.336 V to 2.5 V to feed the AGB CPU's four core pins and
-the SRAM, throwing away 25.1% of every milliwatt the core draws — 25 mW at idle, ~40 mW at 1.75x.
-This is the single largest recoverable loss, and it is the one that *scales with the overclock*,
-because the overclock's extra current is core current.
+## Blockers — the board is not fabricable as committed
 
-**AGBM-01 has the wrong converter.** It idles at 170 mW against AGBM-02's 141 mW and a stock GBA's
-134 mW. The only power-path difference is the converter — both LDOs, all three load switches and all
-three supervisors are identical between the two boards. The investigation **killed my own initial
-hypothesis** that a boost near VIN≈VOUT was to blame: 2×AA never reaches 3.336 V, so the LTC3527
-always boosts. The real cause is that the LTC3527 makes **one Burst Mode decision for both
-channels**, so the ~0.7 mA 5 V rail is dragged into fixed-frequency 1.2 MHz PWM whenever the 3.3 V
-rail is loaded. About 11 of the 29 mW is attributable from published curves; the rest could not be
-separated and is honestly reported as unexplained.
+Detailed in [ECO-7](../clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md). In short:
 
-**The heavy rail is on the weak channel.** VOUT3 carries VDD2, VAUD and VDD3 — all logic, all cart,
-all audio — and it sits on LTC3527 **converter 2**, the 400 mA channel (0.50/0.60 Ω switches). The
-800 mA channel drives only the screen rail. At 1.75x, VOUT3 demands ~212 mA against a guaranteed
-capability of ~220 mA at VIN 2.4 V falling to ~178 mA at the 2.0 V supervisor cutoff. **The
-overclock consumes most of the remaining margin on nearly-flat cells.**
+- **`U2` pin 37 is the SRAM's only `VCC` pin on the CY62157, and it has no path to `VDD2`.** ECO-5
+  removed two `VDD2` vias and three tracks to make room for its third pad column and never finished
+  the replacement ties. There is no `VDD2` via anywhere with x > 93, and the F.Cu zone that appears
+  to cover the pin is an orphan island in a fill that has never been re-poured.
+- **`Net-(Q5B-G)` is open**, so the low-battery LED indication is dead. Undocumented: ECO-5's README
+  says five GND vias were removed; only two of the five actually were.
+- The review's proposed fix for both — restore the vias at stock coordinates — **would short `VDD2`
+  to two data lines**, because those coordinates are now inside ECO-5's pad column. ECO-7 documents
+  why, and why no substitute site exists.
+
+`X1`, `C3` and `C4` are now marked DNP, which ECO-7 implemented.
+
+---
+
+## Where the energy actually goes
+
+Full accounting in [power-budget.md](power-budget.md), with every line labelled measured, derived or
+estimated. The headline structure:
+
+The LTC3527's feedback reference is 1.20 V, so `VOUT3` = 1.20 × (1 + 1.78 M/1.00 M) = **3.336 V**
+and `VOUT5` = **5.014 V**. Both `NCV8164` LDOs drop that to 2.500 V, making them **74.87 %**
+efficient — an arithmetic match to MouseBiteLabs' own "roughly 75 % efficient" remark about the
+audio supply, which is what confirms the model is on the right rails.
+
+At idle, 148 of the measured 170 mW is accounted for and **22 mW is not**. That residual is almost
+certainly LTC3527 light-load overhead — it is the same energy as the measured AGBM-01/AGBM-02 gap —
+but the published curves say the converter should be doing better than the measurement shows, and
+that cannot be reconciled from datasheets alone.
+
+In use, two facts dominate:
+
+- **The backlight is 58 % of the console.** Every lever here operates on the remaining 42 %.
+- **Converter 1 is the largest single loss on the board, 60.7 mW** — more than double converter 2's,
+  because it carries 91 to 130 mA through the 0.3/0.4 Ω switch pair. It is also the channel nobody
+  proposed changing.
 
 ### What the overclock costs
 
-insideGadgets publish ~12 mA for the module plus 40–60 mA more when overclocked. The review flags
-that **the 40–60 mA is a system-level figure with no rail attribution, no speed and no measurement
-point stated** — treat it as an anchor, not a specification. Tracing it through the power tree gives
-roughly 146 mW at the battery at 1.75x.
+insideGadgets publish one sentence: *"Consumes about 12mA of additional current and when the
+GBA/GBC/DMG is overclocked, it too will use 40-60mA more."* **That is a system-level, battery-side
+figure** — no measurement point, no speed, and the identical 40–60 mA is quoted for three different
+consoles at three different ratios. Reading it as a `VOUT3` current, which several domain reviews
+did, inflates the overclock's cost by about 60 %.
 
-Two things it does *not* do: **U8 is not the bottleneck** (≈3.5x current margin and ≈4x thermal
-margin at 1.75x — 68.6 mW dissipation, 11 °C junction rise), and **the SRAM is comfortable**
-(CY62157EV30LL-45 has 2.3x timing margin at 29 MHz). Nothing on this board is thermally stressed
-overclocked or not; the largest junction rise found anywhere was ~16 °C.
+Every part of the cost lands on **LTC3527 converter 2, the 400 mA channel**: the module's supply via
+`VDD3`, the extra core current via `VDD2` (which an LDO passes 1:1 to `VOUT3`), and the cart bus.
 
----
+| | mW | share |
+|---|---|---|
+| **Useful work at the load pins** | **125.0** | 78.6 % |
+| **Conversion and series loss** | **34.3** | 21.6 % |
+| — `U8` LDO on new core current | 15.0 | 9.4 % |
+| — converter 2 extra loss | 12.0 | 7.5 % |
+| — `F1` + `PTC1` series | 7.3 | 4.6 % |
 
-## 3. Recommendations
+**Just over a fifth of the overclock's cost is loss rather than work**, and the largest single piece
+is `U8` — an LDO throwing away 0.836 V on every milliamp of new core current. That is the only loss
+the overclock *creates* rather than merely enlarges.
 
-### Tier 1 — drop-in, no board change (~32 mW at 1x, ~40 mW at 1.75x)
-
-| Change | Refs | Saving | Confidence |
-|---|---|---|---|
-| **PPTC 0805L075SLYR → 0805L150SLYR.** Same series, same 0805 land, same recommended pad layout. R₁max drops 160 → 65 mΩ. | `PTC1` | 12 mW (range 6–23) | 0.85 |
-| **Op-amp TLV9364 → TLV9064IPWR.** Pin-identical TSSOP-14, and *cheaper*. See §4.1 — this is a correctness fix first. | `U7` | ~10 mW | 0.92 |
-| **Power LED → InGaN green at 0.12 mA.** The fitted AlInGaP part burns 4.66 mW continuously; an InGaN in the same 0603 pads is brighter at a fraction of the current. | `DL1` | 4.8 mW | 0.88 |
-| **VOUT3 setpoint: R23 1.78 M → 1.69 M.** Drops VOUT3 to 3.228 V, cutting both LDOs' dropout. Floor analysis done: the binding constraint is the cart rail, not the LDOs. | `R23` | 4.1 / 10.3 mW | 0.75 |
-| **Three bias-resistor changes.** Brownout latch R15/R16 10 k → 100 k; MIC1553 CS pull-down R65 100 k → 1 M; supervisor dividers scaled 10x. | `R15 R16 R65` + | 1.2 mW | 0.80+ |
-
-Note `PTC1` also fixes a **stability** problem, not just an efficiency one — see §4.2.
-
-### Tier 2 — one PCB revision (+29 mW idle, +26 mW in use)
-
-**Transplant AGBM-02's converter.** Two TPS63802 in place of the one LTC3527, with 0.47 µH
-inductors, exactly as AGBM-02 does it (U5 → VOUT5 with 820 k/91 k, U13 → VOUT3 with 510 k/91 k at a
-500 mV reference). Note the existing 560 k and 1 M low-side resistors **violate** the TPS63802's
-≤100 kΩ requirement and must change. Delete C40/C41; AGBM-02 has no feed-forward caps.
-
-Beyond the measured 29 mW: converter 2's 400 mA ceiling disappears (4 A limit), the part is
-buck-boost so it stays in regulation above VOUT3 on fresh alkalines, each device makes its own PFM
-decision so the 5 V rail is never dragged out of power-save, and **sourcing improves markedly** —
-TPS63802DLAR is widely stocked at ~$0.62–1.74 against the LTC3527's $1.81–4.52 and backorder. That
-last point matters directly for the PCBWay plan.
-
-### Tier 3 — schematic change (+22 mW idle, +60 mW at 1.75x in-game)
-
-**Move the CPU core rail off its LDO.** A TPS62840DLC buck from VOUT3 at 2.5 V (RSET = 11.5 kΩ).
-The verifier corrected the efficiency basis upward — TI's Figure 18 is the VOUT = 2.5 V curve, ~91–93%
-between the VIN 3.0 and 3.6 V traces — so the saving is *larger* than first claimed.
-
-Honest costs, all raised by the adversarial pass:
-- U8's `PGOOD` output is **load-bearing** for the whole power-up sequence (it gates U4, U18 and U5's
-  SHDN1), so this needs a replacement supervisor, not just a swap.
-- It needs a 1.5 × 2 mm SON-8 land plus an inductor, on a board whose one component-free window is
-  now occupied by the ClockxControl.
-- A 1.8 MHz buck beating against the LTC3527's 1.2 MHz gives a 600 kHz difference tone in a console
-  whose designer went to the trouble of a dedicated LDO for the audio rail.
-- The LDO's 9 µVrms output noise is replaced by PFM ripple on a salvaged CPU's core rail.
-
-**Not recommended: class-D for the speaker.** Worth ~48 mW at max volume, but it costs a schematic
-redesign and puts a 250 kHz switcher next to the ClockxControl on a board whose selling point is
-audio quality.
-
-**Also keep U4 (VAUD) linear.** Its PSRR is worth far more than the ~4 mW it costs.
+**Fitting the module costs 45 mW before it overclocks anything**, which at idle is 26 % of the
+board's entire 170 mW. No lever in this review touches it.
 
 ---
 
-## 4. Correctness and stability findings
+## What to actually do
 
-### 4.1 U7 is running outside its datasheet
+### Drop-in, no board change — about 20 mW at idle, 32 mW at 1.75×
 
-`U7` is a **TLV9364, minimum supply 4.5 V**, running on the 2.5 V VAUD rail with its inputs at
-1.25 V — above the part's `(V+) − 2 V` common-mode ceiling. It works, but nothing about its
-behaviour is guaranteed, and it is drawing far more current than a correctly chosen part would.
+| Lever | 1× | 1.75× |
+|---|---|---|
+| **`U7` TLV9364QPWRQ1 → TLV9064IPWR** | 12.0 mW | 12.0 mW |
+| **`VOUT3` trim, `R23` 1.78 M → 1.69 M** | 6.1 | 8.2 |
+| **`DL1` → InGaN green + `R25` 3.3 k → 22 k** | 4.6 | 4.6 |
+| **`PTC1` 0805L075SLYR → 0805L110SLYR** | 2.2 | 3.2 |
+| Six resistor values in the quiescent network | 1.2 | 1.2 |
 
-The **TLV9064IPWR** is 1.8–5.5 V, true rail-to-rail input, 538 µA/amp, pin-for-pin identical in the
-same TSSOP-14, in stock, and cheaper than the part fitted. The saving was revised down from 30.6 mW
-to **~8.4–11.6 mW** by digitising TI's own IQ-vs-supply curve, because the 2.6 mA/amp figure is only
-guaranteed at ≥4.5 V and the real current at 2.5 V is unmeasured.
+**`U7` is the single best change on the board and it is not a power part.** It is a **4.5 V-minimum**
+op-amp being run on 2.5 V with its inputs above the common-mode ceiling — verified from the
+distributor page, not just claimed. The pin-identical TLV9064IPWR fixes it, is in stock, and is
+*cheaper than the part fitted*. Do it whether or not you care about runtime.
 
-**This is an upstream bug, not a fork bug.** It is worth reporting to MouseBiteLabs regardless of
-what is done here.
+### One PCB revision on the core rail — 66 mW total at 1.75×
 
-### 4.2 PTC1 trips before the overclock does
+Replace `U8` with a **TPS63802 buck-boost fed from `VCC`**, skipping the boost entirely for the core
+rail. Take this and not the buck-from-`VOUT3` alternative, for a reason worth stating: the TPS63802
+carries an open-drain PG at the same thresholds as the `NCV8164`'s PGOOD, so **`/PG_2V5` transfers
+with zero added parts**. `/PG_2V5` gates `U5` pin 1, so losing it kills the 5 V boost and the CPU
+never leaves reset. The buck alternative needs a fourth supervisor to avoid a dead board.
 
-`PTC1`'s hold current derates to 0.62 A at 40 °C and **0.47 A at 60 °C**. Peak in-use input current
-is already ~0.49 A, and the ClockxControl pushes it to roughly 0.54–0.58 A. Inside a closed shell
-with the backlight at maximum, the board is at or past its PPTC hold current *before* the overclock
-and over it after. The Tier-1 swap fixes this as well as saving power.
+**Do not sum the tiers naively.** With `U8` gone, the `VOUT3` trim collapses from 6.1 to 2.4 mW,
+because a buck's input power is set by its output power. Tier 1 + core rail, de-duplicated, is
+**48.6 mW at 1× and 65.6 mW at 1.75×**.
 
-### 4.3 The BOM contradicts itself on both protection parts
+### The converter transplant is last, not first
 
-`F1` and `PTC1` carry **three different part numbers between them**: the schematic says
-`F0805B2R00FSTR` and `0805L075SLYR`, both PCB footprints carry the stale Value `0467001.NR` — a
-0603 1 A fuse in an 0805 land — and both KiCad Description fields say `0805L050WR`. Whichever is
-authoritative, the layout's value would delete the resettable protection entirely. `R3`, `R4` and
-`R64` also differ between schematic and PCB, and `U8`/`U4` are drawn with a symbol named `MCP1824`
-while their Value is `NCV8164ASN250T1G`. **This must be resolved before any BOM goes to an
-assembler.**
+The AGBM-02 twin-TPS63802 swap is the **only measured number in the review** — 170 vs 141 mW on two
+boards with verified-identical downstream. But it is a **light-load-only gap**. At in-use currents
+the digitised curves put the two converters within about a point of each other, and a 29 mW fixed
+overhead cannot survive as 29 mW at 240 to 380 mW of rail delivery. Idle is not an operating point
+anyone plays at.
 
-### 4.4 Other stability items worth knowing
+**Revised from an earlier draft of this document, which ranked it second at 26 mW in use. That was
+wrong.** Take it only if you are respinning the front end anyway.
 
-- **`D1` is not a reverse-battery clamp that works.** It is not a Schottky, it is 7–13x under-rated
-  for the job, and it sits on the wrong side of F1 so its fault current bypasses the fuse.
-- **The SRAM has no local decoupling.** ECO-5 moved C8 7.2 mm away from pin 37 (and left its VDD2
-  terminal unconnected, per §1.1). Restore a 0.1 µF within 1.5–2 mm of pin 37. The reviewer's own
-  droop arithmetic was corrected downward — pins 12/16 sit in a pour, not a trace — but the
-  direction is not in doubt: you do not remove a decoupling cap from beside a 16-bit SRAM and then
-  clock it 75% faster.
-- **`CP1`/`CP2`/`CP3` are polarized tantalums on a symmetric MLCC land with no polarity marking
-  anywhere on the board**, and CP1 carries bidirectional AC with zero DC bias, reverse-biasing it
-  past AVX's own 1 V limit.
-- **The ClockxControl clock run is poorly referenced.** 73.5 mm GND-referenced for only 5.9 mm,
-  changing reference-plane net 15 times and crossing 5 plane slots. A series-termination land at
-  TP83 is cheap insurance for the salvaged CPU's XIN input.
+### Evaluated and declined
 
----
-
-## 5. What was checked and found fine
-
-47 of the 100 findings are negative results. They are worth as much as the positive ones, because
-they say where *not* to spend effort:
-
-- **Thermal: nothing is near a limit**, overclocked or not. Largest junction rise found: ~16 °C.
-- **VDD2 layout is fine** — under 1 mV of DC drop from U8 to the CPU core pins.
-- **VDD2 decoupling at the CPU does not need strengthening** for 7.34 MHz; it has an order of
-  magnitude in hand. (The SRAM end is a different story — §4.4.)
-- **The GND/AGND split is done correctly** — single-point tie at NT1, no signal crosses it.
-- **Capacitor derating is a non-issue** except C21 (−51% at 5.014 V). The parts are conservative:
-  25 V X5R bulk, 16/50 V X7R decoupling, C0G feed-forward, tantalum audio.
-- **No ferrite-bead resonance.** Explicitly checked and absent.
-- **SW1 carries no load current** — the whole battery current bypasses it.
-- **An eFuse/ideal-diode in place of F1+PTC1 is verifiably worse** at 1.8 V pack voltage.
-- **The load switches, EMC parts, RA1 and the pull-ups are not levers** — together under 0.35 mW.
-- **U16's HC-family choice is defensible** at 3.34 V and should be left alone.
-- **`U14` is not a power switch** — it is a 555-type RC oscillator blinking the low-battery LED.
-  (This corrects an assumption in the review's own brief.)
+A switcher on `VAUD` (costs the LDO's 85 dB PSRR on the rail that *is* the PWM DAC's reference), a
+class-D speaker amp (~25 mW, and the TPA2005D1's 2.5 V minimum sits above `VAUD`'s worst case), a
+better LDO in `U8`'s footprint (0.1 mW — any 2.5 V linear from 3.336 V is 74.9 % whatever the part),
+an eFuse in place of `F1`+`PTC1` (verifiably worse at 1.8 V pack), and the **LTC3527 channel swap,
+which inverts to −8 mW** once you use the designer's own annotated 130 mA for the 5 V rail.
 
 ---
 
-## 6. Method
+## Correctness and stability findings
 
-Eight parallel domain investigations — converter, linear rails, battery path, passives, supporting
-ICs, audio, ClockxControl, and thermal/EMC/layout — each required to verify every electrical number
-against a fetched datasheet or distributor page and to show its arithmetic against MouseBiteLabs'
-measured figures (170 mW idle, 410–1175 mW in use, taken at a 2.4 V bench supply).
+- **`U7` runs outside its datasheet** (above). Upstream bug, worth reporting to MouseBiteLabs.
+- **`D1`/`D2` are not Schottky diodes.** Verified: Rohm 1SS355VMTE-17, *standard* switching diodes,
+  80 V, 100 mA. `D1` is 7–13× under-rated for the reverse-battery clamp duty the schematic assigns
+  it, and sits on the wrong side of `F1`.
+- **`SW1`'s value is not an orderable part number** — `CSS-1310B` should be `CSS-1310TB`.
+- **`F1` and `PTC1` carry three different part numbers** across schematic, PCB Value and Description.
+- **`CP1`–`CP3` are polarized tantalums on a symmetric land with no polarity marking anywhere**, and
+  `CP1` carries bidirectional AC with no DC bias, past the manufacturer's 1 V reverse limit.
+- **The SRAM has no local decoupling** — ECO-5 moved `C8` 7.1 mm from pin 37 and left it
+  unconnected.
+- **`U14` is a 555-type oscillator**, not a power switch. This corrects the review's own brief.
 
-The investigators emitted **102 findings**. Every one then went through an adversarial pass
-instructed to **refute by default**, which re-fetched the datasheets independently rather than
-trusting the citation. That pass **refuted 2 outright and revised 55 of the surviving 100** —
-including correcting the U7 saving *down* by 3x, correcting the VDD2 buck saving *up*, and catching
-an apples-to-oranges via count that had inflated a claim 5x. A further three-lens panel (datasheet,
-systems, magnitude) on the highest-impact claims was still running when this was written; §3's
-Tier-2 and Tier-3 numbers should be treated as one-pass-verified until it lands.
+---
 
-**Confidence is per-finding and stated.** Nothing here has been measured on hardware. The single
-most valuable next step is a meter on a real board: VAUD current before and after the U7 swap, and
-the installed PPTC's resistance with a milliohm meter, since both headline drop-in savings rest on
-unmeasured anchors.
+## Read this before acting on any single finding
 
-Machine-readable findings, with sources and verification notes: [`findings.json`](findings.json).
+ECO-7 caught the review's **highest-confidence finding (0.95) recommending a change that would have
+shorted `VDD2` to two data lines.** It had been verified for zone and plane membership, correctly,
+and never checked against the pad column ECO-5 added.
+
+The deep-verification panel is the same story in miniature: all eight top findings survived, but
+**every one of the twenty-four lenses returned REVISED. Not one was confirmed as stated.**
+
+And the completeness pass documents seven contradictions inside the surviving set: five findings
+proposing the same PPTC swap with three different answers and two different parts, the same LDO
+milliwatts booked three times, two mutually exclusive `VOUT3` trims, four different values for the
+same `VAUD` current, and two incompatible efficiency models for the same rail.
+
+**Treat every finding as a lead requiring a geometry and arithmetic check, not a conclusion.**
+
+## What to put a meter on
+
+In priority order, from the completeness critique:
+
+1. **Does your screen work at 1.75× at all?** Before anything else matters.
+2. **Current into `TP16` (`VOUT3`) and `TP13` (`VOUT5`)**, min and max brightness, 1× and 1.75×.
+   This single measurement is the input to roughly fifteen findings, and one verdict *inverts* on it.
+3. **Four-wire DC drop across `F1` and `PTC1` separately** at ~500 mA, hot. Resolves five findings.
+4. **`VDD2` current at `TP18`**, 1× and 1.75×. The anchors used across the review span 25 to 82 mA.
+5. **`VAUD` at `TP22` before and after the `U7` swap.** Decides the largest drop-in lever.
+6. **Internal temperature at `PTC1`** in a closed shell after 30 minutes. At 20 °C the PPTC finding
+   is a non-issue; at 60 °C it is over its rerated hold current.
+
+---
+
+## Method
+
+Eight parallel domain investigations, each required to verify every electrical number against a
+fetched source and show its arithmetic against MouseBiteLabs' measured figures. **102 findings**,
+each then put through an adversarial pass instructed to refute by default and to re-fetch the
+datasheets independently rather than trust the citation: **2 refuted, 55 of the surviving 100
+revised.** The eight highest-impact claims then went through a three-lens panel (datasheet, systems,
+magnitude), which revised all eight. A power-budget synthesis reconciled every domain's arithmetic
+to one common anchor set, and a completeness pass swept all 235 reference designators for what the
+domains missed.
+
+**47 findings are negative results** — thermal is not a problem anywhere, `VDD2` layout and CPU
+decoupling are fine, the ground split is done correctly, capacitor derating is a non-issue except
+`C21`, and the load switches, EMC parts and pull-ups are not levers. They are recorded so nobody
+re-derives them.
