@@ -220,7 +220,34 @@ the board), the **§6.4 result still holds**: the original three-landing ECO was
 
 ---
 
-## 6.6 Before you fab
+## 6.6 Fab-view renders
+
+There is no `kicad-cli` in the environment these edits were made in, so the views in `render/`
+are produced by a renderer built against the board file directly: board outline, copper, an
+**approximate zone re-pour** (every zone clipped to the board, minus higher-priority zones, minus
+a 0.2 mm halo around every other-net track, pad, via and hole), soldermask openings, silkscreen
+and drills. It is a fab preview, not a gerber export — treat it as a visual check, and take the
+real gerbers from KiCad.
+
+| File | What |
+|---|---|
+| `render/fab_front.png` | whole front side |
+| `render/fab_back.png` | whole back side, mirrored so silk reads |
+| `render/fab_landings.png` | the landings, clean |
+| `render/fab_landings_fit.png` | the same, annotated — measured vs photo-derived, with ±0.5 mm rings |
+| `render/fab_landings_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
+
+Two things the render caught that the numbers had not:
+
+- **`TP84`'s `V+` silkscreen label was landing on `TP85`'s pad.** Silk over an exposed pad gets
+  clipped by the fab or, worse, printed onto the land. All three landing labels moved beside their
+  pads (±1.7 mm in x); `TP82`'s label moved too and changed from `V-` to `GND`, because two
+  different pads were both silkscreened `V-`.
+- **The ±0.5 mm rings on the three photo-derived landings overlap each other.** At 1.7 mm spacing
+  that is what the uncertainty means in practice: if the estimate is off in the wrong direction,
+  two of these pads foul. It is the clearest argument for measuring a module before fabbing.
+
+## 6.7 Before you fab
 
 1. **Open in KiCad 9, run DRC, re-pour both inner planes and the outer pours.** This ECO is a
    scripted edit verified by a scripted checker. It has not been through KiCad's DRC engine.
@@ -245,7 +272,7 @@ the board), the **§6.4 result still holds**: the original three-landing ECO was
    `VDD35` pins. `C6` and `C51` (the other two on that rail) are further away still, at x 76.2.
 7. **Tidy the routes** if you want them to look hand-drawn. Nothing depends on it.
 
-## 6.7 Build sheet (when populating the ClockxControl)
+## 6.8 Build sheet (when populating the ClockxControl)
 
 1. Leave `X1`, `C3`, `C4` unpopulated.
 2. **Bridge `JP3`** (by the crystal, silkscreened `CXC CLK`). Without it the module gets no clock.

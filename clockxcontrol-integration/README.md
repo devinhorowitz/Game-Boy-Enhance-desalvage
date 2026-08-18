@@ -6,7 +6,7 @@ Can the MouseBiteLabs **Game Boy Enhance (AGBM)** carry a footprint for insideGa
 **Status: analysed, and cut into the board.** The land pattern is placed, wired and
 clearance-verified on this fork's `_GBE-plus` board — see
 [ECO-6](ECO-6_clockxcontrol_footprint.md) and [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zip).
-It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.6 before
+It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.7 before
 fabbing. Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
 AGBM-01 rev 1.2b, AGBM-02 rev 1.1, AGBM-11 rev 1.3). The ClockxControl land pattern is taken
 from **MouseBiteLabs' own DMGC-CPU-01 rev 2.5 gerbers** (Game Boy DMG Color), whose v2.5
@@ -272,6 +272,12 @@ All six landings, `JP3` and the full routing (yellow pads = measured, cyan = pho
 
 ![All six landings](render/agbm01_cxc_board_after6.png)
 
+And the same area as a fab preview, with the measured landings ringed green and the photo-derived
+ones ringed blue at ±0.5 mm — `render/fab_landings_1to1_600dpi.png` is the same view at 1:1 for
+printing and laying a real module on:
+
+![Fab view of the landings](render/fab_landings_fit.png)
+
 **Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
 antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
 crystal fitted. `JP3` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
@@ -345,7 +351,7 @@ de-salvaged board's favour, not against it.
    with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
    calipers, as with ECO-5's fit item.
 5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`/`TP82` if the board
-   is ever updated from a schematic. Full list in [ECO-6 §6.6](ECO-6_clockxcontrol_footprint.md).
+   is ever updated from a schematic. Full list in [ECO-6 §6.7](ECO-6_clockxcontrol_footprint.md).
 
 ---
 
@@ -360,6 +366,11 @@ render/agbm01_cxc_placement.png               the window below the RAM and the C
 render/agbm01_cxc_board_after.png             ECO-6 core edit: footprint, three pads and their routes
 render/agbm01_cxc_board_after6.png            all six landings, JP3 and the full routing
 render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from his gerbers
+render/fab_front.png                          fab view, whole front side
+render/fab_back.png                           fab view, whole back side (mirrored)
+render/fab_landings.png                       fab view of the landings
+render/fab_landings_fit.png                   landings annotated: measured vs photo-derived, +/-0.5 mm rings
+render/fab_landings_1to1_600dpi.png           1:1 scale print sheet - print at 100% and lay a module on it
 ```
 
 ## Sources
