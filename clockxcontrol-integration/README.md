@@ -1,13 +1,14 @@
 # ClockxControl integration on the AGBM — feasibility study
 
 Can the MouseBiteLabs **Game Boy Enhance (AGBM)** carry a footprint for insideGadgets'
-**GBA ClockxControl**, and drop the stock crystal the way that mod requires?
+**GBA ClockxControl**, and drop the stock 4.194304 MHz crystal that the mod requires be removed?
 
-**Status: analysis only. No board file has been modified by this study.** Everything below
-was derived from the design files in this repository (KiCad 9 `.kicad_pcb` for AGBM-01 rev 1.2b,
-AGBM-02 rev 1.1, AGBM-11 rev 1.3) plus insideGadgets' published install sheet.
-Numbers taken from the board files are exact; anything inferred from photographs or from
-reasoning rather than measurement is flagged as such.
+**Status: analysis and a land pattern. No AGBM board file has been modified by this study.**
+Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
+AGBM-01 rev 1.2b, AGBM-02 rev 1.1, AGBM-11 rev 1.3). The ClockxControl land pattern is taken
+from **MouseBiteLabs' own DMGC-CPU-01 rev 2.5 gerbers** (Game Boy DMG Color), whose v2.5
+release note reads *"Added space for adding ClockxControl by insideGadgets"* — the first known
+host-side footprint for this module. Anything inferred rather than measured is flagged.
 
 ---
 
@@ -15,18 +16,16 @@ reasoning rather than measurement is flagged as such.
 
 | Question | Answer |
 |---|---|
-| Bring all six ClockxControl signals to one labelled place on the AGBM? | **Yes — and the board is already 4/6 of the way there.** Two new pads finish it. |
-| A true solder-down *mezzanine* footprint the module drops onto? | **No — not with the module as sold.** Its I/O pads are top-side only, and there is no 18 × 12 mm flat area on the component side of the AGBM. |
-| Delete the crystal because the mod requires removing it? | **Yes, but as a DNP build option, not a deletion.** Keep X1/C3/C4 on the board and unpopulated for ClockxControl builds. |
+| A real solder-down footprint the module mounts onto? | **Yes.** The module's I/O pads are plated through-holes: it floats flat on the host board and is fixed by dropping solder through the hole onto the pad below. MouseBiteLabs already ships this on the DMG Color CPU board. |
+| Does the AGBM have room for it? | **Almost.** One 0603 (`C7`) has to move ~12 mm. That opens an 18.65 × 12.00 mm component-free window on the front side directly below the RAM, clear of every mechanical keepout. |
+| Delete the crystal because the mod requires removing it? | **Yes, but as a DNP build option, not a deletion.** Keep X1/C3/C4 on the board, unpopulated for ClockxControl builds. |
 
-The electrical side is genuinely trivial — the AGBM's oscillator is a textbook Pierce circuit with
-a test point already sitting on the node the module drives. The mechanical side is where the
-"footprint" idea runs out of road, and it runs out for reasons that are properties of the
-ClockxControl, not of the AGBM.
+A KiCad footprint built from the extracted geometry is in
+[`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod).
 
 ---
 
-## 1. What the ClockxControl actually needs
+## 1. What the ClockxControl needs
 
 From insideGadgets' own **Installation (GBA)** tab, quoted verbatim:
 
@@ -40,10 +39,10 @@ From insideGadgets' own **Installation (GBA)** tab, quoted verbatim:
 > Device 2 to GBA TP9 (L trigger)
 > Device 3 to GBA TP8 (R trigger)
 
-Six wires. Module is **18 × 12 × 1.6 mm** (their published dimensions), draws ~12 mA of its own
-plus 40–60 mA more when the console is actually overclocked. GBA firmware offers
-0.333x / 0.5x / 0.666x / 1x / 1.25x / 1.5x / 1.75x, selected by holding **Select** and tapping
-**L** or **R**; hold Select for 2 s to return to 1x.
+Six connections. Module is **18 × 12 × 1.6 mm** published; MouseBiteLabs drew it as
+**18.65 × 12.00**. It draws ~12 mA of its own plus 40–60 mA more when the console is actually
+overclocked. GBA firmware offers 0.333x / 0.5x / 0.666x / 1x / 1.25x / 1.5x / 1.75x, selected by
+holding **Select** and tapping **L** or **R**; hold Select for 2 s to return to 1x.
 
 ### "GBA SI" is a typo for the pad silkscreened **S1**, and S1 is the 3.3 V rail
 
@@ -60,9 +59,8 @@ P1             pad S2  ->  VDD5
 P1             pad C2  ->  /CPU/IN35
 ```
 
-So: **V+ = VDD3**. On the AGBM, VDD3 comes off `U18` (TPS22917 load switch) fed from `VOUT3`,
-which means the module powers down with the console — no standby drain. Same behaviour as a
-stock GBA.
+So: **V+ = VDD3**, gated by `U18` (TPS22917) off `VOUT3`, so the module powers down with the
+console — no standby drain. Same behaviour as a stock GBA.
 
 ---
 
@@ -81,12 +79,12 @@ AGBM-11, where the `VDD3` test point is `TP16` (F.Cu, 32.30, −34.20) and a lon
 | `1` (Select) | `/CPU/TP2` | **`TP29`** (silkscreen `SEL`), also `TP2` | 57.00, −69.80 |
 | `2` (L) | `/CPU/TP9` | **`TP28`** (silkscreen `L`), also `TP9` | 51.00, −69.80 |
 | `3` (R) | `/CPU/TP8` | **`TP27`** (silkscreen `R`), also `TP8` | 54.00, −69.80 |
-| `V+` | `VDD3` | *nothing usable nearby* — `TP21` is on **B.Cu** (42.70, −42.00); `P1.S1` is at the cart connector | — |
+| `V+` | `VDD3` | **`P1` pad `S1`** — the same pad the stock instructions use | 96.90, −35.20 |
 | `V-` | `GND` | *no GND test point at all* on AGBM-01/-02 | — |
 
-That is the entire gap. **Four of six signals already have labelled front-side pads**, three of
-them (`L`, `R`, `SEL`) grouped in one row at 3 mm pitch that MouseBiteLabs put there for the
-hotkey/touch-control mods. The two that are missing are the two boring ones: 3.3 V and ground.
+Four of six signals already have labelled front-side pads, three of them (`L`, `R`, `SEL`) grouped
+in one row at 3 mm pitch that MouseBiteLabs put there for the hotkey/touch-control mods, and V+ is
+the cart connector's `S1` pad. Only GND has nothing convenient.
 
 ![AGBM-01 front, ClockxControl-relevant areas](render/agbm01_cxc_overview.png)
 
@@ -128,110 +126,137 @@ build note gets you everything and costs nothing — the same pattern ECO-5 used
 
 ---
 
-## 4. Why a real mezzanine footprint does not work
+## 4. The land pattern, extracted from DMGC-CPU-01 rev 2.5
 
-"Footprint" in the strong sense — a land pattern the module solders straight down onto — fails on
-four independent counts. Any one of them is enough.
+MouseBiteLabs' Game Boy DMG Color CPU board carries a `CLOCKXCONTROL` silkscreen outline on its
+**bottom** side with three solder-through landing pads inside it. That is the reference design;
+everything in this section is measured out of `DMGC-CPU-01_2-5` gerbers, not estimated.
 
-### 4.1 The module's pads face the wrong way
+![DMGC-CPU-01 rev 2.5, bottom side, ClockxControl footprint](render/dmgc_cpu_01_2-5_cxc_footprint.png)
 
-Every published install photo shows the module mounted **component-side up**, with wires soldered
-to pads on its **top** face: three at the left edge (`CLK`, `V-`, `V+`) and a 2 × 3 grid of six
-larger pads at the right end (`1`, `2`, `3`, each apparently doubled). There are no castellations
-and no documented bottom-side pads. To solder it face-down onto a land pattern you would need it
-to have a mating surface it does not have; face-down mounting would also put its own components
-(TSSOP, QFN, and a crystal can, ~1 mm tall) against the AGBM.
-*Inference from photographs — insideGadgets publishes no mechanical drawing. See §7.*
+### How the module mounts
 
-### 4.2 There is no 18 × 12 mm flat area on the component side of the AGBM
+The module's I/O pads are **plated through-holes**. It sits flat on the host board over the
+landing pads and is fixed by dropping solder into the hole from above, which wets down onto the
+host pad and binds the two boards. No castellations needed, no wires for those signals. The host
+pads are **plain SMD pads — the DMG Color board has no drill hits at any of them** (checked against
+`drill_1_16.xln`), so this costs the host board nothing but copper.
 
-Scripted scan of `AGBM-01_AA_1-2.kicad_pcb`: rasterise the `Edge.Cuts` outline, mask out every
-front-side footprint courtyard, then search for a free axis-aligned rectangle.
+### Body outline
 
-| Requirement | Clearance allowance | Result on `F.Cu` |
+```
+silkscreen rectangle, bottom silk, 0.2 mm line
+   (46.000, 49.500)  to  (58.000, 68.150)
+   =  12.000 mm across  x  18.650 mm along
+```
+
+### Landing pads
+
+Three pads, all identical: **ø1.270 mm copper, ø1.397 mm mask opening** (0.0635 mm mask expansion
+per side), no drill.
+
+| Board ref | Absolute (mm) | From the pad-end edge | From the reference long edge |
+|---|---|---|---|
+| `P11` | 48.500, 65.850 | 2.300 | 2.500 |
+| `P10` | 51.000, 65.850 | 2.300 | 5.000 |
+| `PSH_IN` | 51.000, 63.350 | 4.800 | 5.000 |
+
+So the module's pad field is a **2.5 mm lattice**: two columns 2.300 and 4.800 mm in from the end,
+three rows 2.500 / 5.000 / 7.500 mm in from one long edge. Six pads; the GBA/GBC firmware uses
+three of them, and the three used sites form an L.
+
+### Cross-check against insideGadgets' own install photo
+
+Independent confirmation, and it also resolves the mirror ambiguity (the DMG Color mounts the
+module on the *bottom*; the AGBM would mount it on the *front*). In insideGadgets' GBA install
+photo the three wires land on the middle row left, middle row right, and bottom row right — the
+same L. It matches the DMG Color's set exactly once the short axis is flipped, which is precisely
+the front-vs-back mirror. Two independent sources, same three sites.
+
+### Which site is which signal
+
+Inferred, not measured. insideGadgets' GBC wiring list says *Device 2 → P11, Device 3 → P10,
+Device 1 → P12*; MouseBiteLabs wired `P11` and `P10` to two of the sites and substituted his
+board's `PSH_IN` for the third. Reading those together:
+
+| Module pad | Site (from end, from reference edge) | GBA function |
 |---|---|---|
-| 18 × 12 mm | 0.3 mm | **none** |
-| 18 × 12 mm | 0.0 mm (best case, parts touching) | **none** |
-| 12 × 18 mm (rotated) | 0.0 mm | **none** |
-| 18 × 11 mm | 0.1 mm | one window, x 108.7…127.7, y −21.1…−10.1 |
+| `1` | 4.800, 5.000 | **Select** |
+| `2` | 2.300, 2.500 | **L** |
+| `3` | 2.300, 5.000 | **R** |
 
-…and that single 18 × 11 window is entirely inside the board's own mechanical keepout at
-x 108.7…137.9, y −28.7…7.7 (speaker / volume wheel). So it is not available either. The
-component side of the AGBM has nowhere to lay this module flat.
+**Confirm this with a continuity check on a physical module before committing to fab.** It is one
+beep per pad and it is the only assumption in the whole land pattern. If it turns out reversed, the
+fix is swapping which AGBM net feeds which pad — the geometry does not change.
 
-### 4.3 The back side is a hard cartridge keepout
+### What is *not* solder-through
 
-The obvious answer — "put it on the back, there's loads of room" — is wrong, and the board file
-says so explicitly. MouseBiteLabs defined a rule area on `B.Cu`:
-
-```
-keepout zone, B.Cu, x 33.1..105.1, y -54.2..-32.2   (72 x 22 mm)
-    footprints: not_allowed
-    pads:       not_allowed
-```
-
-That 72 × 22 mm rectangle is the reason the back of the board looks empty behind the CPU. It is
-where the game pak sits once inserted. Everything the free-space scan reported as "available" on
-`B.Cu` in that band is inside it. (Other mechanical keepouts on the board follow the same logic:
-the D-pad and A/B membrane areas, the speaker/volume corner, and two narrow strips along the top
-edge at y −69.1…−64.9 that read as front-shell ribs.)
-
-### 4.4 The module's pad geometry is not published
-
-insideGadgets sell an assembled unit; the hardware design is not released. A land pattern needs
-pad centres to about ±0.1 mm, and photogrammetry gets nowhere near that (§7 has my estimate, with
-±0.3 mm error bars, expressly not for fab). Anyone drawing this footprint has to measure a
-physical unit with calipers or get a drawing from insideGadgets.
-
-### Where the module *does* go
-
-On a stock GBA, insideGadgets tape it on top of the WRAM chip, immediately right of the CPU. The
-AGBM keeps its RAM (`U2`) in the same general place — body spanning roughly x 80.3…100.0,
-y −64.1…−51.5 on the front — so the stock mounting spot maps across essentially unchanged. That
-is the reference position for a build, and it is why MouseBiteLabs lists the mod as "potentially
-compatible": the button test points are in their original locations, and the RAM is in about its
-original location.
+`CLK`, `V+` and `V-` sit at the module's other end and MouseBiteLabs did **not** land them — on the
+DMG Color they are ordinary wire pads placed just outside the outline (`CLK` at 56.60, 46.55;
+`V-` at 47.61, 43.50; `V+` at 51.25, 43.50). Their positions on the module have not been
+published or measured, so this study keeps them as wire pads too. Measure a unit and all six could
+be landed.
 
 ---
 
-## 5. Recommended ECO — "CXC service pads"
+## 5. Where it goes on the AGBM
 
-Two pads. That is the whole change.
+The module lies flat, so it still needs a **component-free** area of 18.65 × 12 mm — floating over
+tented vias and traces is fine (the DMG Color footprint sits over a via field), but not over
+components. Two constraints narrow this hard:
 
-Extend the existing `TP81`/`TP80` test-point column (1.9 mm pitch, `Bucketmouse:TestPoint_Pad_D1.0mm`)
-upward by two more pads into a pocket that is verified clear on **all** variants:
+- **The back is out.** MouseBiteLabs defined a rule area on `B.Cu`, `x 33.1…105.1, y −54.2…−32.2`
+  (72 × 22 mm), `pads: not_allowed, footprints: not_allowed` — the game pak sits there. That is
+  the reason the back looks empty behind the CPU. Tracks and vias *are* allowed through it, which
+  matters for routing (below).
+- **The front has no free 18.65 × 12 window as drawn** — verified by rasterising the outline,
+  every front-side courtyard and every mechanical keepout, then searching all placements.
 
-| New ref | Net | Position | Nearest source | Notes |
-|---|---|---|---|---|
-| `TP82` | `GND` | 48.00, −59.90 | In1.Cu ground plane directly underneath | via to plane; `C3` pad 1 is 2.5 mm away as an alternative |
-| `TP83` | `VDD3` | 48.00, −61.80 | `C50` pad 1 at 50.23, −62.40 | 2.3 mm surface trace |
+But it is one part away. Ranking every legal placement by how many footprints it collides with:
 
-Resulting front-side column, top of board downwards: `3V3` (−61.8) · `GND` (−59.9) ·
-`CK1` (−58.0) · `CK2` (−56.1). Silkscreen the two new ones `3V3` and `GND` in the same style as
-the existing `L` / `R` / `SEL` labels, and add a `CXC` group label.
+| Placement (x, y) | Blocked by |
+|---|---|
+| **82.3…100.9, −50.8…−38.8** | **`C7` only** |
+| 50.8…69.4, −61.3…−49.3 | `U1` (i.e. on top of the CPU) |
+| 75.3…93.9, −62.8…−50.8 | `U2` (i.e. on top of the RAM — the stock taped position) |
+| 82.3…100.9, −45.3…−33.3 | `C7`, `P1` |
 
-**Clearance check** (footprint courtyards, all four board files — AGBM-01, AGBM-02, AGBM-11 and
-this fork's `AGBM-01_AA_1-2_GBE-plus.kicad_pcb`): the pocket x 47.0…49.4, y −63.1…−59.1 is empty
-on every one of them. Nearest neighbours are `TP80` (0.9 mm pad-to-pad), `C50` (1.0 mm to the
-right), `C3` (0.9 mm to the left) and `U1`'s courtyard (2.7 mm). Both new pad sites are covered by
-the `In1.Cu` ground plane, so the GND pad is a via drop. Neither site is inside any mechanical
-keepout.
+The winner is the gap between the RAM and the cartridge connector, and the only thing in it is
+`C7` — a 0603 0.1 µF from `VDD35` to `GND`, one of three cart-rail bypass caps (`C6`, `C51`, `C7`).
+Moving it to **(79.9, −41.1)** puts it alongside its two siblings and leaves the window clear;
+verified clear of every other front-side footprint by 0.25 mm. The same window and the same single
+blocker appear on **AGBM-01, AGBM-02 and AGBM-11**. On this fork's `_GBE-plus` board the ECO-5
+fiducial `FID2` (88.5…89.5, −48.5…−47.5) also lands inside and would need nudging.
 
-**Why here and not next to the RAM.** The tempting alternative is to put all six pads together in
-the genuinely free strip below `U2` (x 82…103, y −51.3…−42, about 21 × 9 mm and clear of
-keepouts), right where the module gets taped down. Don't — not without a jumper. That would mean
-running `CK1` about 40 mm across the board to reach it, and `CK1` is an oscillator node. On a
-board built the normal way, with the crystal fitted, that stub adds parasitic capacitance to the
-Pierce loop and degrades a circuit that currently works. If you want the pads there anyway, put a
-solder jumper in series so the stub is disconnected for crystal builds — but two pads by the
-crystal and a slightly longer wire is the cheaper answer, and long wires are what this mod uses on
-a stock GBA regardless.
+![Proposed placement on AGBM-01](render/agbm01_cxc_placement.png)
 
-**BOM change:** mark `X1`, `C3`, `C4` as *"do not populate when installing an insideGadgets
-ClockxControl"*, with a build note pointing at the four-pad column and the `L`/`R`/`SEL` row.
+### Proposed geometry
 
-After this ECO a ClockxControl install on an AGBM is: six wires, two landing groups, both
-labelled, nothing to trace out with a multimeter.
+Module outline **x 82.275…100.925, y −50.800…−38.800**, centre **(91.600, −44.800)**, rotated 180°
+so the button-pad end faces left (toward where the button nets come from) and the power end faces
+right (toward `P1.S1`).
+
+| Pad | Net | Absolute position |
+|---|---|---|
+| `1` — Select | `/CPU/TP2` | 87.075, −45.800 |
+| `2` — L | `/CPU/TP9` | 84.575, −48.300 |
+| `3` — R | `/CPU/TP8` | 84.575, −45.800 |
+| `V+` wire pad | `VDD3` | **already exists** — `P1` pad `S1` at 96.90, −35.20 |
+| `V-` wire pad | `GND` | new ø1.0 mm pad at **102.0, −41.0** (verified clear) |
+| `CLK` wire pad | `/CPU/CK1` | **already exists** — `TP80` at 48.00, −58.00 |
+
+**Do not run copper from CK1 to a pad near the module.** That would hang a ~40 mm stub on the
+oscillator node, degrading the Pierce loop on every board built the normal way with the crystal
+fitted. Run a wire from `TP80` instead — a stock GBA install uses a wire of about that length
+anyway. If a local CLK pad is wanted regardless, gate it with a series solder jumper so the stub is
+disconnected on crystal builds.
+
+### Routing the three button nets
+
+`TP2`, `TP8` and `TP9` originate around x 51…57 near the CPU, so each pad needs a 30–45 mm run.
+They are slow, already-filtered button lines (15 Ω series plus 0.01 µF on TP8/TP9), so length is
+irrelevant electrically. The easy path is across the **back** under the cartridge keepout, which
+explicitly permits tracks and vias — that region is otherwise empty copper.
 
 ---
 
@@ -265,10 +290,9 @@ reconstruction path (`U7` TLV9364 and friends), tuned around stock timing. At 0.
 stock GBA does. This is reasoning from the topology, not a measurement.
 
 **No crystal means no clock.** With `X1` unpopulated the console will not boot without the module
-fitted and working. Obvious, but it makes the module a single point of failure and makes
-bring-up testing harder — you lose the ability to check the CPU comes alive before the mod goes
-on. Building the board with the crystal, testing per the wiki, then removing `X1`/`C3`/`C4` is the
-safer order.
+fitted and working. Obvious, but it makes the module a single point of failure and makes bring-up
+testing harder. Building the board with the crystal, testing per the wiki, then removing
+`X1`/`C3`/`C4` is the safer order.
 
 **Overclocking and the RAM — the desalvage part is the *better* one here.** At 1.75x the system
 clock is ~29.4 MHz, so a 3-cycle 16-bit EWRAM access shortens from ~179 ns to ~102 ns. The
@@ -278,55 +302,46 @@ de-salvaged board's favour, not against it.
 
 ---
 
-## 7. Appendix — photo-derived module pad estimate (NOT for fab)
+## 7. Open items
 
-Scaled off insideGadgets' install photo `IMG_6317.jpg`, using the published 18 × 12 mm outline as
-the reference (≈27.9 px/mm). Origin = module's top-left corner, x right, y down.
-**Error bars are roughly ±0.3 mm** — perspective, solder blobs and eyeballed pad centres.
-Good enough to reason about the layout; useless for drawing a land pattern.
-
-| Pad | Est. position (mm) | Notes |
-|---|---|---|
-| `CLK` | 3.0, 1.1 | left edge, small round pad |
-| `V-` | 1.1, 2.7 | left edge |
-| `V+` | 1.0, 4.6 | left edge |
-| `1` (top pair) | 13.3, 3.7 and 15.9, 3.7 | large round pads, ~1.3 mm |
-| `2` (mid pair) | 13.4, 6.5 and 15.8, 6.4 | column pitch ≈2.5 mm |
-| `3` (bottom pair) | 13.3, 8.8 and 15.7, 9.0 | row pitch ≈2.6 mm |
-
-Shape of the thing: three signals at the far left edge, six big pads clustered in the right ~5 mm,
-13 mm apart. Even with exact numbers, that split means a land pattern would have to span the whole
-module length — which brings you straight back to §4.2 and the missing 18 × 12 mm of flat board.
+1. **Continuity-check a physical module** to confirm which of the three lattice sites is Device
+   pad 1, 2 and 3 (§4). One beep per pad; it is the only assumption in the land pattern.
+2. **Measure the CLK / V+ / V- trio** at the module's other end if you want all six solder-through
+   instead of three plus three wires. MouseBiteLabs did not, and the three-wire version is the
+   shipping precedent.
+3. **Confirm the 18.65 mm length.** insideGadgets publish 18 mm; MouseBiteLabs drew 18.65. The
+   footprint here uses his number, which is the conservative one for a keep-out.
+4. **Shell / screen clearance over the new window.** The area is outside every mechanical keepout
+   MouseBiteLabs defined, and a module lying directly on the board (1.6 mm) sits *lower* than the
+   stock install (1.6 mm of module on top of ~1.2 mm of RAM), which is field-proven in a GBA shell
+   with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
+   calipers, as with ECO-5's fit item.
+5. **If the ECO gets cut into the board**: relocate `C7`, place the footprint, add the `V-` pad,
+   route three button nets across the back, add the pads to the schematic so the netlist stays
+   consistent, then full DRC and re-pour.
 
 ---
 
-## 8. Open items
+## Files
 
-1. **Measure a physical ClockxControl** — pad centres, pad diameters, whether the pads are plated
-   through, and what is on the underside. Everything in §4.1 and §7 is inference until then. Or
-   ask insideGadgets for a drawing; if they will make a castellated-edge variant, a genuine
-   mezzanine footprint becomes a real option.
-2. **Shell / screen clearance for the module** on an AGBM specifically. The stock spot on top of
-   `U2` is ~1.2 mm of RAM plus 1.6 mm of module plus wires. The AGBM build guide already warns
-   that `X1` must sit flush "or you might have interference with the screen", so vertical margin
-   over there is not generous. Same class of open item as ECO-5's front-shell fit: it needs a
-   shell, a screen kit and calipers.
-3. **If the ECO in §5 gets cut into the board**, it is two pads, one 2.3 mm trace, one via and two
-   silkscreen strings — but it still needs KiCad DRC, a re-pour, and the pads adding to the
-   schematic so the netlist stays consistent.
-
----
+```
+footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern built from the DMG Color geometry
+render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
+render/agbm01_cxc_placement.png               proposed footprint placement and the C7 move
+render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from his gerbers
+```
 
 ## Sources
 
-- insideGadgets, [GBA/GBC/DMG ClockxControl](https://shop.insidegadgets.com/product/gba-clockxcontrol/) — install wiring, dimensions, firmware speeds, current draw, screen/cart compatibility, and the install photos referenced in §1 and §7.
-- MouseBiteLabs, [Game Boy Enhance wiki — Mod Compatibility](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Mod-Compatibility) — lists ClockxControl as potentially compatible and notes the button test points kept their original locations.
-- MouseBiteLabs, [AGBM-01 (AA) Build/Test Order](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/AGBM-01-%28AA%29-Build-Test-Order) — the X1 flush-mounting / screen interference warning.
-- This repository: `AGBM-01 (AA Batteries)/AGBM-01_Design Files.zip`, `AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip`, `AGBM-11 (Lithium-ion)/AGBM-11 Design Files.zip`, and `agbm-01-ram-desalvage.zip` (ECO-5).
+- insideGadgets, [GBA/GBC/DMG ClockxControl](https://shop.insidegadgets.com/product/gba-clockxcontrol/) — install wiring, dimensions, firmware speeds, current draw, screen/cart compatibility, and the install photos referenced in §1 and §4.
+- MouseBiteLabs, [Game Boy DMG Color](https://github.com/MouseBiteLabs/Game-Boy-DMG-Color) — `DMGC-CPU-01` rev 2.5, *"Added space for adding ClockxControl by insideGadgets"*. Land pattern in §4 extracted from that board's gerbers.
+- MouseBiteLabs, [Game Boy Enhance wiki — Mod Compatibility](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Mod-Compatibility) and [AGBM-01 (AA) Build/Test Order](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/AGBM-01-%28AA%29-Build-Test-Order).
+- This repository: the AGBM-01 / -02 / -11 design-file archives, and `agbm-01-ram-desalvage.zip` (ECO-5).
 
 ## License & attribution
 
-Derivative analysis of the **MouseBiteLabs Game Boy Enhance (AGBM)**, licensed
-**CC BY-SA 4.0** — https://github.com/MouseBiteLabs/Game-Boy-Enhance. This document and the
-rendering in `render/` are released under the same licence. The ClockxControl is a product of
-insideGadgets; no part of their design is reproduced here.
+Derivative analysis of the **MouseBiteLabs Game Boy Enhance (AGBM)** and **Game Boy DMG Color**,
+both licensed **CC BY-SA 4.0**. This document, the renderings in `render/`, and the footprint in
+`footprint/` are released under the same licence. The ClockxControl is a product of insideGadgets;
+no part of their design is reproduced here — the land pattern is the *host-side* pattern published
+by MouseBiteLabs under CC BY-SA.
