@@ -34,11 +34,11 @@ In short, when using eneloop pro NiMH batteries, you can expect anywhere from 5 
 | FP ITA         | 15h30m   | 8h       |
 | Hispeedido IPS | 11h      | 5h20m    |
 
-[View this wiki page for more information.](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Power-Draw-and-Battery-Curves#agbm-01)
+[View this wiki page for more information.](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Power-Draw-and-Battery-Curves#agbm-01-agbm-02)
 
 ## Bill of Materials (BOM)
 
-**[Here's a pre-made Digikey shopping cart.](https://www.digikey.com/short/tdfpt2h0)**
+**[Here's a pre-made Digikey shopping cart.](https://www.digikey.com/short/m02hd371)** Be prepared to have to purchase some parts from other distributors, like Mouser. I tried to pick parts that were plentiful but that was not possible in all situations.
 
 | Reference | Value/Part Number   | Package       | Description                       | Salvagable from GBA? | Source                                                                           |
 | --------- | ------------------- | ------------- | --------------------------------- | -------------------- | -------------------------------------------------------------------------------- |
@@ -166,9 +166,9 @@ In short, when using eneloop pro NiMH batteries, you can expect anywhere from 5 
 | R22       | 560k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/3t5fhht8                                           |
 | R23       | 1.78M               | 0603          | Resistor                          |                      | https://www.digikey.com/short/mt3hp154                                           |
 | R24       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
-| R25       | 3.3k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/w0t24jpv                                           |
+| R25       | 3.3k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/7h8fhdzr                                           |
 | R26       | 33k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/t0dpzzp1                                           |
-| R29       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/1rfwtcff                                           |
+| R29       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/92dm08md                                           |
 | R30       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R31       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R34       | 5.1k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/qqj3r2v5                                           |
@@ -185,25 +185,25 @@ In short, when using eneloop pro NiMH batteries, you can expect anywhere from 5 
 | R45       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R46       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R47       | 20k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/38d0p2b4                                           |
-| R48       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/1rfwtcff                                           |
+| R48       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/92dm08md                                           |
 | R49       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R50       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R51       | 7.5k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/vn4221jt                                           |
 | R52       | 20k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/38d0p2b4                                           |
 | R53       | 5.1k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/qqj3r2v5                                           |
-| R54       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/1rfwtcff                                           |
+| R54       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/92dm08md                                           |
 | R55       | 1M                  | 0603          | Resistor                          |                      | https://www.digikey.com/short/pwjt9n2j                                           |
 | R56       | 20k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/38d0p2b4                                           |
 | R57       | 20k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/38d0p2b4                                           |
 | R58       | 5.1k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/qqj3r2v5                                           |
 | R63       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
-| R64       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
+| R64       | 200k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/n8h0010f                                           |
 | R65       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R66       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R67       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R68       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | RA1       | 330                 | 1206          | Resistor Array                    |                      | https://www.digikey.com/short/m8cr1b0n                                           |
-| SP1       | Speaker             |               | 8 Ohm Speaker                     | Yes                  | https://tinyurl.com/yxxmec4w                                                     |
+| SP1       | Speaker             |               | 8 Ohm Speaker                     | Yes                  | SEE NOTE!                                                                        |
 | SW1       | CSS-1310B           |               | Power Switch                      |                      | https://www.digikey.com/short/0ww37f47                                           |
 | SW2       | 1825027-5           |               | SPST-NO                           | Yes                  | https://tinyurl.com/36tap2xj                                                     |
 | SW3       | 1825027-5           |               | SPST-NO                           | Yes                  | https://tinyurl.com/36tap2xj                                                     |
@@ -229,7 +229,7 @@ In short, when using eneloop pro NiMH batteries, you can expect anywhere from 5 
 | U18       | TPS22917DBV         | SOT-23-6      | Load Switch                       |                      | https://www.digikey.com/short/b880z8t8                                           |
 | VR1       | 3313J-2-503E        |               | Trim Pot, 50k                     | Yes                  | [https://www.digikey.com/short/p8zptq5h](https://www.digikey.com/short/p8zptq5h) |
 | VR2       | RK10J12R0A0B        |               | Volume Thumbwheel, 10k, Dual      |                      | https://www.digikey.com/short/zh4rmq4h                                           |
-| X1        | 4.194304MHz         | HC-49         | Crystal Oscillator                | Yes                  | https://www.digikey.com/short/5t5j99c2                                           |
+| X1        | 4.194304MHz         | HC-49         | Crystal Oscillator                | Yes (SEE NOTE)       | https://www.digikey.com/short/5t5j99c2                                           |
 | Z57       | 100p // 0 ohm       | 0603          | Capacitor (MLCC) // Jumper        |                      | Capacitor: https://www.digikey.com/short/h34j0h9q                                |
 | Z58       | 100p // 0 ohm       | 0603          | Capacitor (MLCC) // Jumper        |                      | Jumper: https://www.digikey.com/short/9q3qp9bv                                 |
 | Z70       | 27p // 100k         | 0603          | Capacitor (MLCC) // Resistor      |                      | Capacitor: https://www.digikey.com/short/3dr3j004                                |
@@ -246,6 +246,14 @@ This part has been going in and out of stock at various places for the past few 
 - [Octopart](https://octopart.com/search?autosugg_idx=test&currency=USD&specs=0&full_query=ltc3527+&q=ltc3527&nq=ltc3527&s=1&inferred_category_id=4305&inference=1) lists a lot of different distributors and their stock levels
 
 As a last resort, AliExpress seems to have a decent bit of them. (Order at your own risk!)
+
+### Crystal Oscillator
+
+You might have an easier time with fitment if you use the donor crystal oscillator instead of the new part.
+
+### Speaker Options
+
+Usually people order speakers from Game Boy aftermarket parts sellers, [like this](https://tinyurl.com/yxxmec4w). But, if you would rather get a speaker from Digikey, there is one that fits perfectly in the system: [CMS-2207-18SP](https://www.digikey.com/short/1q4nr8tm).
 
 ## Revision History
 

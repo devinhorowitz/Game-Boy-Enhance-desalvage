@@ -1,10 +1,72 @@
-# AGBM-11 (Coming Soon)
+# AGBM-11
+
+[**Reference the Wiki for more information on how to use this circuit board!**](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/How-to-Use-this-Wiki)
+
+<img width="4080" height="3072" alt="image" src="https://github.com/user-attachments/assets/cbc3d955-231f-4109-95c1-8ccbb3809a26" />
+
+<img width="4080" height="3072" alt="image" src="https://github.com/user-attachments/assets/de2dd395-6a55-42f8-8aa2-9a2cecfa1171" />
+
+## Mandatory Reading About Battery Safety
+
+![image](https://github.com/MouseBiteLabs/Pocket-Protector-Power-Board/assets/97127539/e5de26d0-6b67-4bbc-820b-3a5d9aa0e80e)
+
+"Bucket Mouse, all my devices have lithium ion batteries in them, and they're not dangerous. Why are you fear mongering?"
+
+I am but one hobbyist, making things in my room. The batteries and battery management systems you use in devices every day are created by engineering teams and produced by corporations who do rigorous testing on products they sell (or, at least, they are supposed to). 
+
+Therefore, for projects you assemble yourself, it is 100% up to *you* to safely manage these batteries, and know what you are doing, and know what to look out for with the batteries you purchase. This circuit board works for me, but as I am only one person, I have blind spots and I may have missed something (please tell me if I have). Also, I am confident in my soldering abilities - I am inherently *not* confident in yours. So, please, understand these risks and proceed at your own peril.
+
+Read this article before continuing down this path: https://batteryuniversity.com/article/lithium-ion-safety-concerns
+
+Also, I **highly recommend against using unbranded/no-name batteries, or batteries that do not come with a datasheet**. I work with batteries as part of my full-time job, and while I am not a battery expert myself, a few of my co-workers are. It is highly suspected that no-name batteries, especially those from AliExpress, are actually quality control *rejects* from other companies. So there's a high chance you're getting a battery that has failed quality controls when you get them from random sellers, or even reputable ones if they don't provide a datasheet. Stick only to **name-brand batteries** as they are much likelier to be safe.
+
+Or... just make an [AA version](https://github.com/MouseBiteLabs/Game-Boy-Enhance/tree/main/AGBM-01%20(AA%20Batteries)) instead. They will get you longer battery life without the chance for exploding batteries. And also won't require annoying shell cuts.
+
+![image](https://github.com/MouseBiteLabs/Pocket-Protector-Power-Board/assets/97127539/e5de26d0-6b67-4bbc-820b-3a5d9aa0e80e)
+
+## Board Characteristics and Order Information
+
+The zipped folder contains all the gerber files for this board. The following options must be chosen when ordering boards for yourself.
+
+- Thickness: 1.0mm
+- Layers: 4
+- Surface Finish: ENIG (HASL is acceptable **ONLY IF** you are using tactile switches for the buttons)
+
+**I sell this blank circuit board on Etsy, so you don't have to buy a bunch of multiples if you don't want to.** (Click the banner!)
+
+<a href="https://mousebitelabs.etsy.com/listing/4520511265"><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/97127539/239718536-5c9aefe3-0628-4434-b8d8-55ff80ac3bbc.png" alt="PCB from Etsy" /></a> 
+
+You can use the zipped folder at any board fabricator you like. You may also buy the board from PCBWay using this link (disclosure: I receive 10% of the sale value to go towards future PCB orders of my own):
+
+<a href="https://www.pcbway.com/project/shareproject/Game_Boy_Enhance_AGBM_11_707bfaf5.html"><img src="https://www.pcbway.com/project/img/images/frompcbway-1220.png" alt="PCB from PCBWay" /></a>
+
+## Shell Cutting Requirements
+
+This board requires heavy modification of the GBA shell in order to fit the USB-C charge port and the lithium-ion battery. [Please view the shell cut guide before beginning the project.](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Shell-Cuts-%28for-LiPo%29)
+
+## Assembly and Testing Instructions
+
+[View the wiki for more information!](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/AGBM-11-%28LiPo%29-Build-Test-Order)
+
+## Battery Life Estimation
+
+In short, when using the linked Jauch lithium-ion battery, you can expect anywhere from 5 hours to 13 and a half hours - this is heavily dependent on the type of screen kit you select and the brightness.
+
+| Screen Kit     | Max Time | Min Time |
+| -------------- | -------- | -------- |
+| FP IPS Max     | 10h      | 5h       |
+| FP ITA         | 13h30m   | 7h       |
+| Hispeedido IPS | 10h      | 5h       |
+
+[View this wiki page for more information.](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Power-Draw-and-Battery-Curves#agbm-11)
 
 ## Bill of Materials (BOM)
 
+**[Here's a pre-made Digikey shopping cart.](https://www.digikey.com/short/wj532wvh)** Be prepared to have to purchase some parts from other distributors, like Mouser. I tried to pick parts that were plentiful but that was not possible in all situations.
+
 | Reference | Value/Part Number   | Package       | Description                       | Salvagable from GBA? | Source                                                                           |
 | --------- | ------------------- | ------------- | --------------------------------- | -------------------- | -------------------------------------------------------------------------------- |
-| C1        | 22u                 | 0805          | Capacitor (MLCC)                  |                      | [https://www.digikey.com/short/3mhhrd2f](https://www.digikey.com/short/3mhhrd2f) |
+| C1        | 22u                 | 0805          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/z1rp0q17                                           |
 | C2        | 10u                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/qd4q4f1m                                           |
 | C3        | 27p                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/3dr3j004                                           |
 | C4        | 33p                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/q8jbrfqj                                           |
@@ -24,7 +86,7 @@
 | C18       | 100p                | 0603          | Capacitor (MLCC)                  |                      | [https://www.digikey.com/short/h34j0h9q](https://www.digikey.com/short/h34j0h9q) |
 | C19       | 100p                | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/h34j0h9q                                           |
 | C20       | 100p                | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/h34j0h9q                                           |
-| C21       | 22u                 | 0805          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/3mhhrd2f                                           |
+| C21       | 22u                 | 0805          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/z1rp0q17                                           |
 | C22       | 10u                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/qd4q4f1m                                           |
 | C23       | 10u                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/qd4q4f1m                                           |
 | C24       | 1000p               | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/377h8558                                           |
@@ -45,7 +107,7 @@
 | C39       | 0.1u                | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/m958w3z3                                           |
 | C40       | 15p                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/q58vhz49                                           |
 | C41       | 15p                 | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/q58vhz49                                           |
-| C42       | 22u                 | 0805          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/3mhhrd2f                                           |
+| C42       | 22u                 | 0805          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/z1rp0q17                                           |
 | C43       | 0.1u                | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/m958w3z3                                           |
 | C44       | 1u                  | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/2ppmm3vt                                           |
 | C45       | 1u                  | 0603          | Capacitor (MLCC)                  |                      | https://www.digikey.com/short/2ppmm3vt                                           |
@@ -88,7 +150,7 @@
 | EM3       | MH1608-601Y         | 0603          | Ferrite Bead                      |                      | https://www.digikey.com/short/c329ffdd                                           |
 | EM7       | MH1608-601Y         | 0603          | Ferrite Bead                      |                      | https://www.digikey.com/short/c329ffdd                                           |
 | F1        | F0805B2R00FSTR      | 0805          | Fuse, 2A                          |                      | https://www.digikey.com/short/98cdp3tv                                           |
-| F1        | F0805B2R00FSTR      | 0805          | Fuse, 2A                          |                      | https://www.digikey.com/short/98cdp3tv                                           |
+| F2        | F0805B2R00FSTR      | 0805          | Fuse, 2A                          |                      | https://www.digikey.com/short/98cdp3tv                                           |
 | J1        | JST-SH              | 1mm Spacing   | JST SH Connector                  |                      | [https://www.digikey.com/short/j8rp8493](https://www.digikey.com/short/j8rp8493) |
 | L1        | 4.7uH               | 1212          | Inductor (LSXND3030QKT4R7MNG)     |                      | https://www.digikey.com/short/m9hwf8cw                                           |
 | L2        | 4.7uH               | 1212          | Inductor (LSXND3030QKT4R7MNG)     |                      | https://www.digikey.com/short/m9hwf8cw                                           |
@@ -101,6 +163,7 @@
 | Q1        | 2N3904              | SOT-23        | NPN BJT                           |                      | https://www.digikey.com/short/5j230h4f                                           |
 | Q2        | NDC7002N            | SOT-23-6      | Dual N-Channel MOSFETs            |                      | https://www.digikey.com/short/28n9329f                                           |
 | Q3        | 2N3906              | SOT-23        | PNP BJT                           |                      | https://www.digikey.com/short/hhdhqzd8                                           |
+| Q4*       | EXB-34VR000V        | 2x 0603       | Resistor Array                    |                      | https://www.digikey.com/short/8m2c88mh                                           |
 | Q5        | NDC7002N            | SOT-23-6      | Dual N-Channel MOSFETs            |                      | https://www.digikey.com/short/28n9329f                                           |
 | Q6        | 2N7002              | SOT-23        | N-Channel MOSFET                  |                      | https://www.digikey.com/short/vbm0z4md                                           |
 | Q7        | NDC7002N            | SOT-23-6      | Dual N-Channel MOSFETs            |                      | https://www.digikey.com/short/28n9329f                                           |
@@ -133,7 +196,7 @@
 | R24       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
 | R25       | 3.3k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/w0t24jpv                                           |
 | R26       | 33k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/t0dpzzp1                                           |
-| R27       | 10k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/t130htj0                                           |
+| R27       | 3.3k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/w0t24jpv                                           |
 | R28       | 2.49k               | 0603          | Resistor                          |                      | [https://www.digikey.com/short/crrrfpbn](https://www.digikey.com/short/crrrfpbn) |
 | R29       | 18k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/1rfwtcff                                           |
 | R30       | 100k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/rpz9t4md                                           |
@@ -165,6 +228,7 @@
 | R56       | 20k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/38d0p2b4                                           |
 | R57       | 20k                 | 0603          | Resistor                          |                      | https://www.digikey.com/short/38d0p2b4                                           |
 | R58       | 470                 | 0603          | Resistor                          |                      | [https://www.digikey.com/short/qw9vn9hr](https://www.digikey.com/short/qw9vn9hr) |
+| R60*      | 0                   | 0603          | Resistor                          |                      | https://www.digikey.com/short/9q3qp9bv                                           |
 | R61       | 5.1k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/qqj3r2v5                                           |
 | R62       | 5.1k                | 0603          | Resistor                          |                      | https://www.digikey.com/short/qqj3r2v5                                           |
 | R63       | 15k                 | 0603          | Resistor                          |                      | [https://www.digikey.com/short/b4mcvwnd](https://www.digikey.com/short/b4mcvwnd) |
@@ -200,11 +264,17 @@
 | U19       | MCP73871-2CAI/ML    | QFN-20        | Battery Charge IC                 |                      | [https://www.digikey.com/short/2fq0m95z](https://www.digikey.com/short/2fq0m95z) |
 | VR1       | 3313J-2-503E        |               | Trim Pot, 50k                     | Yes                  | [https://www.digikey.com/short/p8zptq5h](https://www.digikey.com/short/p8zptq5h) |
 | VR2       | RK10J12R0A0B        |               | Volume Thumbwheel, 10k, Dual      |                      | https://www.digikey.com/short/zh4rmq4h                                           |
-| X1        | 4.194304MHz         | HC-49         | Crystal Oscillator                | Yes                  | https://www.digikey.com/short/5t5j99c2                                           |
+| X1        | 4.194304MHz         | HC-49         | Crystal Oscillator                | Yes (SEE NOTE)       | https://www.digikey.com/short/5t5j99c2                                           |
 | Z57       | 100p // 0 ohm       | 0603          | Capacitor (MLCC) // Jumper        |                      | Capacitor: https://www.digikey.com/short/h34j0h9q                                |
 | Z58       | 100p // 0 ohm       | 0603          | Capacitor (MLCC) // Jumper        |                      | Resistor: https://www.digikey.com/short/9q3qp9bv                                 |
 | Z70       | 27p // 100k         | 0603          | Capacitor (MLCC) // Resistor      |                      | Capacitor: https://www.digikey.com/short/3dr3j004                                |
 | Z71       | 27p // 100k         | 0603          | Capacitor (MLCC) // Resistor      |                      | Resistor: https://www.digikey.com/short/rpz9t4md                                 |
+
+### Note about Q4 and R60
+
+These parts are only found on AGBM-11 boards that were produced in mid-May of '26 (that have the following date code). You can ignore them if you have any other version.
+
+<img width="424" height="249" alt="image" src="https://github.com/user-attachments/assets/506f5b07-3798-4394-8dcb-26e2c6b79324" />
 
 ### Note about LTC3527
 
@@ -218,7 +288,13 @@ This part has been going in and out of stock at various places for the past few 
 
 As a last resort, AliExpress seems to have a decent bit of them. (Order at your own risk!)
 
+### Crystal Oscillator
+
+You might have an easier time with fitment if you use the donor crystal oscillator instead of the new part.
+
 ## Lithium-ion Battery Supplies
+
+**DANGER:** Any lithium-ion battery you select for this mod **MUST** have overcharge/overdischarge protection as part of the pouch cell. **THE AGBM DOES NOT PROVIDE THESE PROTECTIONS**. The cell I link below has the proper safety circuitry.
 
 Use these parts and follow the instructions on the wiki page [LiPo Wire Preparation](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/LiPo-Wire-Preparation).
 
@@ -231,6 +307,9 @@ Connector: [SHR-02V-S-B](https://www.digikey.com/short/0rzqt7nc)
 Heatshrink: [V2-1.5-0-SP-SM](https://www.digikey.com/short/p5q77jq0)
 
 ## Revision History
+
+### Late June '26
+- Removed duplicate battery management components that was interfering with pouch cell protection circuitry
 
 ### Early June '26
 - Change BATT to VAUD on silkscreen
