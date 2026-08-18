@@ -282,6 +282,12 @@ laying a real module on:
 
 ![Fab view of the landings](render/fab_landings_fit.png)
 
+And the fit check with the module body drawn in place — its three plated holes over the `MOD1`
+landings, its three hole-less pads ringed at ±0.5 mm with their wires, and the gap to every
+neighbour:
+
+![Fit check](render/fab_fit.png)
+
 **Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
 antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
 crystal fitted. `JP3` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
@@ -373,6 +379,7 @@ render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rend
 render/fab_front.png                          fab view, whole front side
 render/fab_back.png                           fab view, whole back side (mirrored)
 render/fab_landings.png                       fab view of the landings
+render/fab_fit.png                            fit check: module body drawn in place, holes, wires, clearances
 render/fab_landings_fit.png                   annotated: solder-through landings, wire pads and wire lengths
 render/fab_landings_1to1_600dpi.png           1:1 scale print sheet - print at 100% and lay a module on it
 ```

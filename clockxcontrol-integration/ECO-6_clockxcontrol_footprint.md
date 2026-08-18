@@ -226,8 +226,21 @@ real gerbers from KiCad.
 | `render/fab_front.png` | whole front side |
 | `render/fab_back.png` | whole back side, mirrored so silk reads |
 | `render/fab_landings.png` | the landings, clean |
-| `render/fab_landings_fit.png` | the same, annotated — measured vs photo-derived, with ±0.5 mm rings |
+| `render/fab_landings_fit.png` | the same, annotated — landings, wire pads and wire lengths |
+| `render/fab_fit.png` | **fit check**: the module body drawn in place, its plated holes over the `MOD1` pads, its hole-less pads ringed at ±0.5 mm with their wires, and the gap to every neighbour |
 | `render/fab_landings_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
+
+Body clearances, from `fab_fit.png` — courtyard gaps, so the real body-to-body figures are a
+little larger:
+
+| Neighbour | Gap to the module body |
+|---|---|
+| `U2` (RAM), above | 0.25 mm |
+| `R3`, right | 0.27 mm |
+| `TP114` / `TP115`, right | 0.35 mm |
+| `U10`, right | 0.47 mm |
+| `P1` (cartridge connector), below | 0.90 mm |
+| `TP18`, left | 2.80 mm |
 
 Two things the render caught that the numbers had not:
 
