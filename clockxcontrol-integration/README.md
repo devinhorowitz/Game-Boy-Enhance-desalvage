@@ -3,8 +3,11 @@
 Can the MouseBiteLabs **Game Boy Enhance (AGBM)** carry a footprint for insideGadgets'
 **GBA ClockxControl**, and drop the stock 4.194304 MHz crystal that the mod requires be removed?
 
-**Status: analysis and a land pattern. No AGBM board file has been modified by this study.**
-Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
+**Status: analysed, and cut into the board.** The land pattern is placed, wired and
+clearance-verified on this fork's `_GBE-plus` board — see
+[ECO-6](ECO-6_clockxcontrol_footprint.md) and [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zip).
+It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.5 before
+fabbing. Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
 AGBM-01 rev 1.2b, AGBM-02 rev 1.1, AGBM-11 rev 1.3). The ClockxControl land pattern is taken
 from **MouseBiteLabs' own DMGC-CPU-01 rev 2.5 gerbers** (Game Boy DMG Color), whose v2.5
 release note reads *"Added space for adding ClockxControl by insideGadgets"* — the first known
@@ -17,11 +20,13 @@ host-side footprint for this module. Anything inferred rather than measured is f
 | Question | Answer |
 |---|---|
 | A real solder-down footprint the module mounts onto? | **Yes.** The module's I/O pads are plated through-holes: it floats flat on the host board and is fixed by dropping solder through the hole onto the pad below. MouseBiteLabs already ships this on the DMG Color CPU board. |
-| Does the AGBM have room for it? | **Almost.** One 0603 (`C7`) has to move ~12 mm. That opens an 18.65 × 12.00 mm component-free window on the front side directly below the RAM, clear of every mechanical keepout. |
+| Does the AGBM have room for it? | **Yes, once one 0603 moves.** Relocating `C7` opens an 18.65 × 12.00 mm component-free window on the front side directly below the RAM, clear of every mechanical keepout. Done in ECO-6. |
 | Delete the crystal because the mod requires removing it? | **Yes, but as a DNP build option, not a deletion.** Keep X1/C3/C4 on the board, unpopulated for ClockxControl builds. |
 
 A KiCad footprint built from the extracted geometry is in
-[`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod).
+[`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod), and the
+modified board is in [`board/`](board/). The engineering record for the board edit is
+[ECO-6](ECO-6_clockxcontrol_footprint.md).
 
 ---
 
@@ -230,20 +235,28 @@ fiducial `FID2` (88.5…89.5, −48.5…−47.5) also lands inside and would nee
 
 ![Proposed placement on AGBM-01](render/agbm01_cxc_placement.png)
 
-### Proposed geometry
+### As built in ECO-6
 
-Module outline **x 82.275…100.925, y −50.800…−38.800**, centre **(91.600, −44.800)**, rotated 180°
-so the button-pad end faces left (toward where the button nets come from) and the power end faces
-right (toward `P1.S1`).
+The window has ~2.5 mm of horizontal and 0.65 mm of vertical slack, and the copper inside it is
+dense (the `U2` escape fan plus `VDD2`/`GND`/`VDD5` stitching rows), so the footprint was placed
+by sweeping every position and both orientations for maximum pad clearance. Best is
+**centre (93.825, −45.250), rot 180**, giving 0.458 mm minimum pad-to-copper against a 0.2 mm
+requirement, with the button end facing west toward the nets it needs.
 
 | Pad | Net | Absolute position |
 |---|---|---|
-| `1` — Select | `/CPU/TP2` | 87.075, −45.800 |
-| `2` — L | `/CPU/TP9` | 84.575, −48.300 |
-| `3` — R | `/CPU/TP8` | 84.575, −45.800 |
+| `1` — Select | `/CPU/TP2` | 89.300, −46.250 |
+| `2` — L | `/CPU/TP9` | 86.800, −48.750 |
+| `3` — R | `/CPU/TP8` | 86.800, −46.250 |
 | `V+` wire pad | `VDD3` | **already exists** — `P1` pad `S1` at 96.90, −35.20 |
-| `V-` wire pad | `GND` | new ø1.0 mm pad at **102.0, −41.0** (verified clear) |
+| `V-` wire pad | `GND` | new pad `TP82` at **102.000, −41.000** |
 | `CLK` wire pad | `/CPU/CK1` | **already exists** — `TP80` at 48.00, −58.00 |
+
+`C7` moves to **(82.700, −40.300)** and is tied back to `VDD35` through a 0.9 mm stub and a via
+into the `In2.Cu` `VDD35` pour. The ECO-5 fiducial pair `FID2`/`FID5` moves to (106.250, −57.250) —
+which incidentally fixes three pre-existing shorts, see ECO-6 §6.4.
+
+![ECO-6 as cut into the board](render/agbm01_cxc_board_after.png)
 
 **Do not run copper from CK1 to a pad near the module.** That would hang a ~40 mm stub on the
 oscillator node, degrading the Pierce loop on every board built the normal way with the crystal
@@ -253,10 +266,10 @@ disconnected on crystal builds.
 
 ### Routing the three button nets
 
-`TP2`, `TP8` and `TP9` originate around x 51…57 near the CPU, so each pad needs a 30–45 mm run.
+`TP2`, `TP8` and `TP9` originate around x 51…57 near the CPU, so each pad needs a 26–36 mm run.
 They are slow, already-filtered button lines (15 Ω series plus 0.01 µF on TP8/TP9), so length is
-irrelevant electrically. The easy path is across the **back** under the cartridge keepout, which
-explicitly permits tracks and vias — that region is otherwise empty copper.
+irrelevant electrically. ECO-6 routes all three — 143.9 mm of track and 4 vias in total, with the
+B.Cu portions running through the cartridge keepout, which explicitly permits tracks and vias.
 
 ---
 
@@ -316,18 +329,20 @@ de-salvaged board's favour, not against it.
    stock install (1.6 mm of module on top of ~1.2 mm of RAM), which is field-proven in a GBA shell
    with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
    calipers, as with ECO-5's fit item.
-5. **If the ECO gets cut into the board**: relocate `C7`, place the footprint, add the `V-` pad,
-   route three button nets across the back, add the pads to the schematic so the netlist stays
-   consistent, then full DRC and re-pour.
+5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`/`TP82` if the board
+   is ever updated from a schematic. Full list in [ECO-6 §6.5](ECO-6_clockxcontrol_footprint.md).
 
 ---
 
 ## Files
 
 ```
+ECO-6_clockxcontrol_footprint.md              engineering record for the board edit
+board/agbm-01-clockxcontrol.zip               the modified board: AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb
 footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern built from the DMG Color geometry
 render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
-render/agbm01_cxc_placement.png               proposed footprint placement and the C7 move
+render/agbm01_cxc_placement.png               the window below the RAM and the C7 move
+render/agbm01_cxc_board_after.png             ECO-6 as cut in: footprint, pads and the three routes
 render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from his gerbers
 ```
 
