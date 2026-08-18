@@ -1,27 +1,404 @@
 {
  "resolved_utc": "2026-08-18",
- "method": "Digi-Key short-links from the AGBM-01 schematic Source property, resolved through WebFetch (curl gets HTTP 403 from Digi-Key bot protection).",
+ "method": "Digi-Key short-links from the AGBM-01 schematic Source property, resolved through WebFetch (curl gets HTTP 403 from Digi-Key bot protection). ECO-8 additions and replacements re-verified 2026-08-18 against manufacturer datasheets (TI SBOS839N/SBOSAD6B, Littelfuse Low Rho rev GD 03/06/25, Wurth 150060GS75000/150060VS75000) and Digi-Key keyword search.",
  "entries": [
-  {"refs":["F1"],"value":"F0805B2R00FSTR","mpn":"F0805B2R00FSTR","mfr":"KYOCERA AVX","desc":"Fuse, fast blow, 2 A, 63 VDC, 0.08 ohm cold resistance, Accu-Guard II","pkg":"0805","status":"Active"},
-  {"refs":["PTC1"],"value":"0805L075SLYR","mpn":"0805L075SLYR","mfr":"Littelfuse","desc":"PPTC resettable fuse, Ihold 750 mA, Itrip 1.5 A, 6 V, R 40 mohm min / 160 mohm max","pkg":"0805","status":"Active"},
-  {"refs":["U7"],"value":"TLV9364","mpn":"TLV9364QPWRQ1","mfr":"Texas Instruments","desc":"Quad op-amp, SUPPLY RANGE 4.5 V TO 40 V, AEC-Q100, GBW 10.6 MHz","pkg":"TSSOP-14","status":"Active","flag":"OUT OF SPEC: fitted on the 2.5 V VAUD rail"},
-  {"refs":["L1","L2"],"value":"4.7uH","mpn":"LSXND3030QKT4R7MNG","mfr":"Taiyo Yuden","desc":"4.7 uH, DCR 144 mohm max, Isat 1.02 A, Irms 1.04 A","pkg":"3.00 x 3.00 x 1.50 mm (1212/3030)","status":"Active","flag":"footprint is named L_Taiyo-Yuden_NR-20xx (2.0 x 2.0 mm); land is 4.00 x 2.00 mm. Verify against the part's recommended land pattern."},
-  {"refs":["CP1","CP2","CP3"],"value":"100u","mpn":"TPSB107K010R0400","mfr":"KYOCERA AVX","desc":"100 uF 10 V molded TANTALUM, POLARIZED, ESR 400 mohm at 100 kHz","pkg":"1411/3528 metric (3.50 x 2.80 x 2.10 mm)","status":"Active","flag":"POLARIZED part on a footprint named C_1210_3225Metric with no polarity marking; land is 4.10 x 2.70 mm. Placement-orientation risk for machine assembly."},
-  {"refs":["C1","C21","C42"],"value":"22u","mpn":"GRM21BR61E226ME44L","mfr":"Murata","desc":"22 uF 25 V X5R +/-20%","pkg":"0805","status":"Active","flag":"OUT OF STOCK at Digi-Key, 17-week standard lead time"},
-  {"refs":["C2","C12","C23","C37","C59","C60","C68"],"value":"10u","mpn":"GRM188R61E106KA73J","mfr":"Murata","desc":"10 uF 25 V X5R +/-10%","pkg":"0603","status":"Active","flag":"OUT OF STOCK at Digi-Key, 10,000 expected 28 Dec 2026"},
-  {"refs":["C5","C6","C7","C8","C10","C13","C14","C15","C16","C17","C34","C39","C43","C52","C53","C72"],"value":"0.1u","mpn":"C0603C104K5RACTU","mfr":"KEMET","desc":"0.1 uF 50 V X7R","pkg":"0603","status":"Active"},
-  {"refs":["U5"],"value":"LTC3527","mpn":"LTC3527EUD#PBF","mfr":"Analog Devices","desc":"Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz","pkg":"16-WFQFN 3x3","status":"Active","flag":"$8.78 qty 1, only 119 in stock. Cost and availability both argue for the TPS63802 transplant."},
-  {"refs":["U4","U8"],"value":"NCV8164ASN250T1G","mpn":"NCV8164ASN250T1G","mfr":"onsemi","desc":"LDO, fixed 2.5 V, 300 mA","pkg":"SOT-23-5 / TSOP-5","status":"Active","stock":"5008","price_qty1":"0.56"},
-  {"refs":["U6"],"value":"LM4853","mpn":"LM4853MM/NOPB","mfr":"Texas Instruments","desc":"Class-AB audio amp, 2.4-5.5 V, 1.9 W into 3 ohm or 300 mW x2 into 8 ohm, depop and shutdown","pkg":"MSOP-10 / VSSOP-10","status":"Active","stock":"2861","price_qty1":"2.92"},
-  {"refs":["U14"],"value":"MIC1553","mpn":"MIC1553YM5-TR","mfr":"Microchip","desc":"555-type timer/oscillator, 500 kHz","pkg":"SOT-23-5","status":"Active","price_qty1":"0.11","flag":"0 IN STOCK, 3,000 expected 14 Sep 2026. Confirms this is an oscillator, not a power switch."},
-  {"refs":["U3","U10","U17"],"value":"TPS3840DL20","mpn":"TPS3840DL20DBVR","mfr":"Texas Instruments","desc":"Supervisor, 2.0 V threshold, open-drain active-low reset, 619 ms timeout","pkg":"SOT-23-5","status":"Active","stock":"91662"},
-  {"refs":["U11","U12","U18"],"value":"TPS22917DBV","mpn":"TPS22917DBVR","mfr":"Texas Instruments","desc":"Load switch, Ron 80 mohm typ","pkg":"SOT-23-6","status":"Active","flag":"OUT OF STOCK, 3,000 expected 6 Oct 2026. TPS22917DBVT is the same part on a different reel, 10,916 in stock."},
-  {"refs":["Q2","Q5","Q7","Q9","Q10"],"value":"NDC7002N","mpn":"NDC7002N","mfr":"onsemi","desc":"Dual N-channel MOSFET, 50 V, 510 mA, RDS(on) 2 ohm at 10 V, VGS(th) up to 2.5 V","pkg":"TSOT-23-6 / SuperSOT-6","status":"Active","stock":"23776","flag":"VGS(th) max 2.5 V is the basis of the review's brownout-latch gate-drive concern"},
-  {"refs":["D1","D2"],"value":"1SS355VMTE-17","mpn":"1SS355VMTE-17","mfr":"Rohm","desc":"STANDARD switching diode (NOT Schottky), 80 V, 100 mA, trr 4 ns, Vf 1.2 V at 100 mA","pkg":"SOD-323F / SC-90","status":"Active","flag":"Schematic Description calls it a Schottky. It is not, and 100 mA is far under a reverse-battery clamp duty."},
-  {"refs":["SW1"],"value":"CSS-1310B","mpn":"CSS-1310TB","mfr":"Nidec Components","desc":"Slide switch SP3T, 100 mA at 12 VDC, SMD right-angle gull wing, 10,000 cycles","pkg":"SMD right angle","status":"Active","stock":"17509","flag":"Schematic value 'CSS-1310B' is an incomplete ordering code. The orderable part is CSS-1310TB."},
-  {"refs":["X1"],"value":"4.194304MHz","mpn":"ABLS-4.194304MHZ-B4-T","mfr":"Abracon","desc":"4.194304 MHz crystal, 18 pF load","pkg":"HC-49/US, 11.40 x 4.70 x 4.20 mm","status":"Active","stock":"2299","flag":"marked DNP by ECO-7 for ClockxControl builds"},
-  {"refs":["P2"],"value":"FFC CONNECTOR","mpn":"62684-402100ALF","mfr":"Amphenol ICC (FCI)","desc":"FFC/FPC connector, 40 positions, 0.50 mm pitch, top contacts, SMD right angle","pkg":"SMD","status":"Active","stock":"94873"},
-  {"refs":["DL1"],"value":"150060VS75000","mpn":"150060VS75000","mfr":"Wurth Elektronik","desc":"Green LED, Vf 2 V, 40 mcd at 20 mA","pkg":"0603","status":"Active","stock":"388630"},
-  {"refs":["DL2"],"value":"150060RS75000","mpn":"150060RS75000","mfr":"Wurth Elektronik","desc":"Red LED, Vf 2 V, 250 mcd at 20 mA","pkg":"0603","status":"Active"}
+  {
+   "refs": [
+    "F1"
+   ],
+   "value": "F0805B2R00FSTR",
+   "mpn": "F0805B2R00FSTR",
+   "mfr": "KYOCERA AVX",
+   "desc": "Fuse, fast blow, 2 A, 63 VDC, 0.08 ohm cold resistance, Accu-Guard II",
+   "pkg": "0805",
+   "status": "Active",
+   "eco": "ECO-8: PCB Value corrected from the stale \"0467001.NR\" (a Littelfuse 467-series 0603 1 A fuse) to match the schematic. No electrical change."
+  },
+  {
+   "refs": [
+    "PTC1"
+   ],
+   "value": "0805L110SLYR",
+   "mpn": "0805L110SLYR",
+   "mfr": "Littelfuse",
+   "desc": "PPTC resettable fuse, Low Rho series, Ihold 1.10 A, Itrip 1.80 A, 6 Vdc, Imax 50 A, R_min 30 mohm / R_1max 120 mohm (datasheet rev GD 03/06/25; Digi-Key parametric lists 30/130)",
+   "pkg": "0805 (2012 Metric), Concave",
+   "status": "Active",
+   "stock": "16,066 at Digi-Key, $2.26/1 down to $0.80/4000 (2026-08-18)",
+   "eco": "ECO-8: replaces 0805L075SLYR. Fitted part derates to 0.55 A hold at 40 C and 0.40 A at 60 C, below the realistic worst-case 585 mA input current.",
+   "alternate": "0805L150SLYR if nuisance trips are seen at 1.75x and max brightness - saves ~3x more but raises Itrip to 3.00 A, above F1's useful band"
+  },
+  {
+   "refs": [
+    "U7"
+   ],
+   "value": "TLV9064IPWR",
+   "mpn": "TLV9064IPWR",
+   "mfr": "Texas Instruments",
+   "desc": "Quad op-amp, 1.8 V to 5.5 V, true rail-to-rail in and out, IQ 538 uA/amp typ (750 uA max), GBW 10 MHz",
+   "pkg": "TSSOP-14 (PW), 5.00 x 4.40 mm",
+   "status": "Active",
+   "stock": "1,433 at Digi-Key, $1.62/1 cut tape (2026-08-18)",
+   "eco": "ECO-8: replaces TLV9364QPWRQ1, which is specified 4.5 V to 40 V and was fitted on the 2.5 V VAUD rail with its inputs 0.75 V above the common-mode ceiling. Pin-for-pin identical on the 14-pin TSSOP land. Cheaper than the part it replaces."
+  },
+  {
+   "refs": [
+    "L1",
+    "L2"
+   ],
+   "value": "4.7uH",
+   "mpn": "LSXND3030QKT4R7MNG",
+   "mfr": "Taiyo Yuden",
+   "desc": "4.7 uH, DCR 144 mohm max, Isat 1.02 A, Irms 1.04 A",
+   "pkg": "3.00 x 3.00 x 1.50 mm (1212/3030)",
+   "status": "Active",
+   "flag": "footprint is named L_Taiyo-Yuden_NR-20xx (2.0 x 2.0 mm); land is 4.00 x 2.00 mm. Verify against the part's recommended land pattern."
+  },
+  {
+   "refs": [
+    "CP1",
+    "CP2",
+    "CP3"
+   ],
+   "value": "100u",
+   "mpn": "TPSB107K010R0400",
+   "mfr": "KYOCERA AVX",
+   "desc": "100 uF 10 V molded TANTALUM, POLARIZED, ESR 400 mohm at 100 kHz",
+   "pkg": "1411/3528 metric (3.50 x 2.80 x 2.10 mm)",
+   "status": "Active",
+   "flag": "POLARIZED part on a footprint named C_1210_3225Metric with no polarity marking; land is 4.10 x 2.70 mm. Placement-orientation risk for machine assembly."
+  },
+  {
+   "refs": [
+    "C1",
+    "C21",
+    "C42"
+   ],
+   "value": "22u",
+   "mpn": "GRM21BR61E226ME44L",
+   "mfr": "Murata",
+   "desc": "22 uF 25 V X5R +/-20%",
+   "pkg": "0805",
+   "status": "Active",
+   "flag": "OUT OF STOCK at Digi-Key, 17-week standard lead time"
+  },
+  {
+   "refs": [
+    "C2",
+    "C12",
+    "C23",
+    "C37",
+    "C59",
+    "C60",
+    "C68"
+   ],
+   "value": "10u",
+   "mpn": "GRM188R61E106KA73J",
+   "mfr": "Murata",
+   "desc": "10 uF 25 V X5R +/-10%",
+   "pkg": "0603",
+   "status": "Active",
+   "flag": "OUT OF STOCK at Digi-Key, 10,000 expected 28 Dec 2026"
+  },
+  {
+   "refs": [
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C10",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C34",
+    "C39",
+    "C43",
+    "C52",
+    "C53",
+    "C72"
+   ],
+   "value": "0.1u",
+   "mpn": "C0603C104K5RACTU",
+   "mfr": "KEMET",
+   "desc": "0.1 uF 50 V X7R",
+   "pkg": "0603",
+   "status": "Active"
+  },
+  {
+   "refs": [
+    "U5"
+   ],
+   "value": "LTC3527",
+   "mpn": "LTC3527EUD#PBF",
+   "mfr": "Analog Devices",
+   "desc": "Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz",
+   "pkg": "16-WFQFN 3x3",
+   "status": "Active",
+   "flag": "$8.78 qty 1, only 119 in stock. Cost and availability both argue for the TPS63802 transplant."
+  },
+  {
+   "refs": [
+    "U4",
+    "U8"
+   ],
+   "value": "NCV8164ASN250T1G",
+   "mpn": "NCV8164ASN250T1G",
+   "mfr": "onsemi",
+   "desc": "LDO, fixed 2.5 V, 300 mA",
+   "pkg": "SOT-23-5 / TSOP-5",
+   "status": "Active",
+   "stock": "5008",
+   "price_qty1": "0.56"
+  },
+  {
+   "refs": [
+    "U6"
+   ],
+   "value": "LM4853",
+   "mpn": "LM4853MM/NOPB",
+   "mfr": "Texas Instruments",
+   "desc": "Class-AB audio amp, 2.4-5.5 V, 1.9 W into 3 ohm or 300 mW x2 into 8 ohm, depop and shutdown",
+   "pkg": "MSOP-10 / VSSOP-10",
+   "status": "Active",
+   "stock": "2861",
+   "price_qty1": "2.92"
+  },
+  {
+   "refs": [
+    "U14"
+   ],
+   "value": "MIC1553",
+   "mpn": "MIC1553YM5-TR",
+   "mfr": "Microchip",
+   "desc": "555-type timer/oscillator, 500 kHz",
+   "pkg": "SOT-23-5",
+   "status": "Active",
+   "price_qty1": "0.11",
+   "flag": "0 IN STOCK, 3,000 expected 14 Sep 2026. Confirms this is an oscillator, not a power switch."
+  },
+  {
+   "refs": [
+    "U3",
+    "U10",
+    "U17"
+   ],
+   "value": "TPS3840DL20",
+   "mpn": "TPS3840DL20DBVR",
+   "mfr": "Texas Instruments",
+   "desc": "Supervisor, 2.0 V threshold, open-drain active-low reset, 619 ms timeout",
+   "pkg": "SOT-23-5",
+   "status": "Active",
+   "stock": "91662"
+  },
+  {
+   "refs": [
+    "U11",
+    "U12",
+    "U18"
+   ],
+   "value": "TPS22917DBV",
+   "mpn": "TPS22917DBVR",
+   "mfr": "Texas Instruments",
+   "desc": "Load switch, Ron 80 mohm typ",
+   "pkg": "SOT-23-6",
+   "status": "Active",
+   "flag": "OUT OF STOCK, 3,000 expected 6 Oct 2026. TPS22917DBVT is the same part on a different reel, 10,916 in stock."
+  },
+  {
+   "refs": [
+    "Q2",
+    "Q5",
+    "Q7",
+    "Q9",
+    "Q10"
+   ],
+   "value": "NDC7002N",
+   "mpn": "NDC7002N",
+   "mfr": "onsemi",
+   "desc": "Dual N-channel MOSFET, 50 V, 510 mA, RDS(on) 2 ohm at 10 V, VGS(th) up to 2.5 V",
+   "pkg": "TSOT-23-6 / SuperSOT-6",
+   "status": "Active",
+   "stock": "23776",
+   "flag": "VGS(th) max 2.5 V is the basis of the review's brownout-latch gate-drive concern"
+  },
+  {
+   "refs": [
+    "D1",
+    "D2"
+   ],
+   "value": "1SS355VMTE-17",
+   "mpn": "1SS355VMTE-17",
+   "mfr": "Rohm",
+   "desc": "STANDARD switching diode (NOT Schottky), 80 V, 100 mA, trr 4 ns, Vf 1.2 V at 100 mA",
+   "pkg": "SOD-323F / SC-90",
+   "status": "Active",
+   "flag": "Schematic Description calls it a Schottky. It is not, and 100 mA is far under a reverse-battery clamp duty."
+  },
+  {
+   "refs": [
+    "SW1"
+   ],
+   "value": "CSS-1310B",
+   "mpn": "CSS-1310TB",
+   "mfr": "Nidec Components",
+   "desc": "Slide switch SP3T, 100 mA at 12 VDC, SMD right-angle gull wing, 10,000 cycles",
+   "pkg": "SMD right angle",
+   "status": "Active",
+   "stock": "17509",
+   "flag": "Schematic value 'CSS-1310B' is an incomplete ordering code. The orderable part is CSS-1310TB."
+  },
+  {
+   "refs": [
+    "X1"
+   ],
+   "value": "4.194304MHz",
+   "mpn": "ABLS-4.194304MHZ-B4-T",
+   "mfr": "Abracon",
+   "desc": "4.194304 MHz crystal, 18 pF load",
+   "pkg": "HC-49/US, 11.40 x 4.70 x 4.20 mm",
+   "status": "Active",
+   "stock": "2299",
+   "flag": "marked DNP by ECO-7 for ClockxControl builds"
+  },
+  {
+   "refs": [
+    "P2"
+   ],
+   "value": "FFC CONNECTOR",
+   "mpn": "62684-402100ALF",
+   "mfr": "Amphenol ICC (FCI)",
+   "desc": "FFC/FPC connector, 40 positions, 0.50 mm pitch, top contacts, SMD right angle",
+   "pkg": "SMD",
+   "status": "Active",
+   "stock": "94873"
+  },
+  {
+   "refs": [
+    "DL1"
+   ],
+   "value": "150060GS75000",
+   "mpn": "150060GS75000",
+   "mfr": "Wurth Elektronik",
+   "desc": "WL-SMCW chip LED, InGaN green, lambda_dom 525 nm, IV 220-430 mcd at 20 mA, 0603",
+   "pkg": "0603",
+   "status": "Valid (Wurth), Active",
+   "stock": "388630",
+   "eco": "ECO-8: replaces 150060VS75000 (AlInGaP, 570 nm, 12-40 mcd). Identical body and identical recommended land pattern 0.8/0.8/2.4 mm, same polarity (pin 1 = K). With R25 = 22k it runs at 0.124 mA and is brighter than the incumbent is today at 0.93 mA."
+  },
+  {
+   "refs": [
+    "DL2"
+   ],
+   "value": "150060RS75000",
+   "mpn": "150060RS75000",
+   "mfr": "Wurth Elektronik",
+   "desc": "Red LED, Vf 2 V, 250 mcd at 20 mA",
+   "pkg": "0603",
+   "status": "Active"
+  },
+  {
+   "refs": [
+    "R23"
+   ],
+   "value": "1.69M",
+   "mpn": "RC0603FR-071M69L",
+   "mfr": "YAGEO",
+   "desc": "1.69 Mohm +/-1%, 0.1 W, +/-100 ppm/C, thick film",
+   "pkg": "0603 (1608 Metric)",
+   "status": "Active",
+   "stock": "8,855 at Digi-Key, from $0.10/1 (2026-08-18)",
+   "eco": "ECO-8: replaces RC0603FR-071M78L (1.78 M). Sets VOUT3 = 1.20 x (1 + 1.69/1.00) = 3.228 V instead of 3.336 V; worst case 3.12 V, still 0.12 V above the 3.0 V at which onsemi specify the NCV8164 LDOs."
+  },
+  {
+   "refs": [
+    "R25"
+   ],
+   "value": "22k",
+   "mpn": "RC0603FR-0722KL",
+   "mfr": "YAGEO",
+   "desc": "22 kohm +/-1%, 0.1 W, +/-100 ppm/C, thick film",
+   "pkg": "0603 (1608 Metric)",
+   "status": "Active",
+   "eco": "ECO-8: replaces 3.3k. Pairs with the DL1 swap."
+  },
+  {
+   "refs": [
+    "R15",
+    "R16"
+   ],
+   "value": "100k",
+   "mpn": "RC0603FR-07100KL",
+   "mfr": "YAGEO",
+   "desc": "100 kohm +/-1%, 0.1 W, +/-100 ppm/C, thick film",
+   "pkg": "0603 (1608 Metric)",
+   "status": "Active",
+   "eco": "ECO-8: replaces 10k on both. Cuts the statically-biased brownout-latch current from 389 uA to 81 uA off VBATT. Forced beta stays at 2.4 against hFE minima of 60 (2N3906) and 40 (2N3904). Same part as R12/R17/R64, already on the BOM."
+  },
+  {
+   "refs": [
+    "R11"
+   ],
+   "value": "10k",
+   "mpn": "RC0603FR-0710KL",
+   "mfr": "YAGEO",
+   "desc": "10 kohm +/-1%, 0.1 W, +/-100 ppm/C, thick film",
+   "pkg": "0603 (1608 Metric)",
+   "status": "Active",
+   "eco": "ECO-8: replaces 1k. Cuts the post-brownout latched-off drain from 2.40 mA to 240 uA. Must be paired with R24 = 1M, otherwise /EN falls from 0.990 x SW to 0.909 x SW and Q10B's already-marginal gate drive gets worse."
+  },
+  {
+   "refs": [
+    "R24"
+   ],
+   "value": "1M",
+   "mpn": "RC0603FR-071ML",
+   "mfr": "YAGEO",
+   "desc": "1 Mohm +/-1%, 0.1 W, +/-100 ppm/C, thick film",
+   "pkg": "0603 (1608 Metric)",
+   "status": "Active",
+   "eco": "ECO-8: replaces 100k. Restores the /EN divider ratio alongside R11 = 10k. Verified against the LTC3527 SHDN input current (1 uA typ / 2 uA max): /EN = 2.356 V at SW = 2.4 V and 1.762 V at SW = 1.8 V, both far above the 0.88 V VIH."
+  },
+  {
+   "refs": [
+    "R65"
+   ],
+   "value": "470k",
+   "mpn": "RC0603FR-07470KL",
+   "mfr": "YAGEO",
+   "desc": "470 kohm +/-1%, 0.1 W, +/-100 ppm/C, thick film",
+   "pkg": "0603 (1608 Metric)",
+   "status": "Active",
+   "stock": "backordered at Digi-Key, 132,700 at LCSC (2026-08-18)",
+   "eco": "ECO-8: replaces 100k on the MIC1553 CS pull-up. 470k not the 1M the review proposed: the MIC1553 datasheet gives no numeric CS leakage spec and warns that a floating CS is unpredictable, and the worst-case CS-high threshold is 0.72 x VS = 3.61 V, not the nominal 2/3."
+  },
+  {
+   "refs": [
+    "C24",
+    "C32"
+   ],
+   "value": "1000p",
+   "mpn": "C0603C102J5GACTU",
+   "mfr": "KEMET",
+   "desc": "1000 pF, 50 V, C0G/NP0, +/-5%",
+   "pkg": "0603",
+   "status": "Active",
+   "eco": "ECO-8 (BOM-only, not expressible in a KiCad Value field): replaces C0603C102K5RACTU (X7R, +/-10%). These are the Sallen-Key FEEDBACK caps, i.e. the ones that set Q, and their partners C26/C31 are already C0G. X7R drifts +/-15% over temperature against C0G's +/-30 ppm/C, so a handheld warming in the hand detunes half of each filter section."
+  },
+  {
+   "refs": [
+    "C28",
+    "C35"
+   ],
+   "value": "3300p",
+   "mpn": "C0603C332J5GACTU",
+   "mfr": "KEMET",
+   "desc": "3300 pF, 50 V, C0G/NP0, +/-5%",
+   "pkg": "0603",
+   "status": "Active",
+   "stock": "26,340 at Digi-Key, $0.41/1, $0.157/100",
+   "eco": "ECO-8 (BOM-only): replaces C0603C332K5RACTU (X7R, +/-10%). Same reasoning as C24/C32."
+  }
  ]
 }

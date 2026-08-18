@@ -53,11 +53,15 @@ but they are **Digi-Key short-links**, not part numbers: 68 unique links, 62 of 
 `curl` gets **HTTP 403** from Digi-Key (their bot protection, not the egress proxy, which reports no
 relay failures). WebFetch resolves them.
 
-**21 lines resolved so far, covering 57 reference designators** —
+**29 lines resolved so far, covering 65 reference designators** —
 [`resolved-mpns.json`](resolved-mpns.json). Priority went to the actives, the disputed parts, and
-anything the component review flagged. The ~41 unresolved links are almost all generic 0603
+anything the component review flagged. The ~35 unresolved links are almost all generic 0603
 resistor and capacitor values, which are trivially substitutable and carry no sourcing risk; they
 still need resolving before an order, but they are not where the problems are.
+
+Every part [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md) introduces is in that file
+with its datasheet numbers, its Digi-Key stock as of 2026-08-18, and a note saying what it replaced
+and why. All of them are 0603/0805/TSSOP-14 drop-ins on lands that are already on the board.
 
 ## 4. What the resolution turned up, and why this is not ready to order
 
@@ -88,11 +92,13 @@ efficiency.
 - **`D1`/`D2` are described as Schottky diodes and are not.** `1SS355VMTE-17` is a Rohm *standard*
   switching diode, 80 V, 100 mA. The review separately found `D1` is under-rated for the
   reverse-battery clamp duty the schematic assigns it.
-- **`F1` and `PTC1` disagree across three places.** The schematic says `F0805B2R00FSTR` (KYOCERA AVX
-  2 A fuse, 0.08 Ω) and `0805L075SLYR` (Littelfuse PPTC); both PCB footprints carry the stale Value
-  `0467001.NR`; both Description fields say `0805L050WR`. Both resolved parts are correct and in
-  production, so **the schematic is authoritative and the PCB Value fields are stale** — but a BOM
-  generated from the layout would order the wrong parts.
+- ~~**`F1` and `PTC1` disagree across three places.**~~ **Fixed by
+  [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md).** The schematic said
+  `F0805B2R00FSTR` (KYOCERA AVX 2 A fuse, 0.08 Ω) and `0805L075SLYR` (Littelfuse PPTC); both PCB
+  footprints carried the stale Value `0467001.NR` — a Littelfuse 467-series *0603 1 A* fuse — and
+  both Description fields said `0805L050WR`, a third part again. A BOM generated from the layout
+  would have ordered two wrong parts and deleted the resettable protection entirely. The PCB now
+  reads `F0805B2R00FSTR` and `0805L110SLYR`, with accurate Descriptions.
 
 ### Two possible footprint / package mismatches
 
@@ -127,7 +133,9 @@ rework and a re-pour. **No assembly order should be placed until that is closed.
 1. Resolve the remaining ~41 Digi-Key short-links to MPNs.
 2. Choose in-stock equivalents for the five problem lines, deliberately, with the review's derating
    findings in hand.
-3. Fix the three BOM defects and the two footprint mismatches; add tantalum polarity marking.
+3. Fix the remaining two BOM defects (`SW1`'s ordering code, the `D1`/`D2` Schottky
+   mis-description) and the two footprint mismatches; add tantalum polarity marking. The
+   `F1`/`PTC1` defect is closed by ECO-8.
 4. Close the ECO-7 board defects and re-pour.
 5. Generate the fab and assembly package: gerbers, drill, **CPL/centroid for both sides with the
    rotation convention PCBWay expects**, the BOM in PCBWay's format, and a fab/assembly note sheet

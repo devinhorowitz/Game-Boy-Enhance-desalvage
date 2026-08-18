@@ -26,8 +26,15 @@ host-side footprint for this module. Anything inferred rather than measured is f
 
 A KiCad footprint built from the extracted geometry is in
 [`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod), and the
-modified board is in [`board/`](board/). The engineering record for the board edit is
-[ECO-6](ECO-6_clockxcontrol_footprint.md).
+modified board is in [`board/`](board/).
+
+The engineering record, in order:
+
+| | What |
+|---|---|
+| [ECO-6](ECO-6_clockxcontrol_footprint.md) | the land pattern, the `C7` relocation, the wire pads, `JP3`, and the rev B shift west |
+| [ECO-7](ECO-7_u2_supply_and_dnp.md) | `X1`/`C3`/`C4` marked DNP; the `U2` pin-37 and `Net-(Q5B-G)` blockers, and why the review's fix for them must not be applied |
+| [ECO-8](ECO-8_component_swaps.md) | thirteen part swaps from the [power review](../power-review/README.md) — `U7` off a rail it is not specified for, `PTC1` off a hold current it is under, and ~26 mW |
 
 ---
 

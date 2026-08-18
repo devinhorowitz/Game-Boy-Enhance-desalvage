@@ -30,6 +30,7 @@ Stated as runtime, at the 792 mW representative operating point on a 6.26 Wh pac
 | Stock, 1×, no module | 792 mW | 7 h 54 m | — |
 | **ClockxControl fitted, 1.75×, no fixes** | **951 mW** | **6 h 35 m** | **−1 h 19 m** |
 | + every drop-in fix | 919 mW | 6 h 49 m | −1 h 05 m |
+| ↳ *as actually implemented in ECO-8* | *922 mW* | *6 h 47 m* | *−1 h 07 m* |
 | + core-rail redesign | 885 mW | 7 h 04 m | −50 m |
 | + full front-end respin | 882 mW | 7 h 06 m | −48 m |
 
@@ -138,19 +139,42 @@ board's entire 170 mW. No lever in this review touches it.
 
 ## What to actually do
 
-### Drop-in, no board change — about 20 mW at idle, 32 mW at 1.75×
+### Drop-in, no board change — **implemented, see [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md)**
 
-| Lever | 1× | 1.75× |
-|---|---|---|
-| **`U7` TLV9364QPWRQ1 → TLV9064IPWR** | 12.0 mW | 12.0 mW |
-| **`VOUT3` trim, `R23` 1.78 M → 1.69 M** | 6.1 | 8.2 |
-| **`DL1` → InGaN green + `R25` 3.3 k → 22 k** | 4.6 | 4.6 |
-| **`PTC1` 0805L075SLYR → 0805L110SLYR** | 2.2 | 3.2 |
-| Six resistor values in the quiescent network | 1.2 | 1.2 |
+| Lever | 1× | 1.75× | In the board? |
+|---|---|---|---|
+| **`U7` TLV9364QPWRQ1 → TLV9064IPWR** | 12.0 mW | 12.0 mW | yes |
+| **`VOUT3` trim, `R23` 1.78 M → 1.69 M** | 6.1 | 8.2 | yes |
+| **`DL1` → InGaN green + `R25` 3.3 k → 22 k** | 4.6 | 4.6 | yes |
+| **`PTC1` 0805L075SLYR → 0805L110SLYR** | 2.2 | 3.2 | yes |
+| `R15`, `R16` 10 k → 100 k (brownout latch) | 0.74 | 0.73 | yes |
+| `R65` 100 k → 470 k (MIC1553 `CS`) | 0.25 | 0.25 | yes |
+| `R11` 1 k → 10 k **with** `R24` 100 k → 1 M | 0.05 | 0.05 | yes |
+| `R3`/`R4`/`R58`/`R63` supervisor dividers | 0.19 | 0.19 | **no** — see below |
+| `R12` 100 k → 470 k | 0.04 | 0.04 | **no** |
+| **Total implemented** | **25.9 mW** | **29.0 mW** | |
+
+ECO-8 is thirteen `Value`/`Description` edits and no copper: a 26-line diff against the ECO-7 board,
+geometry byte-identical. At idle the implemented set is **21.8 mW off 170 mW, 12.8 %**; at 1.75× it
+is 29.0 mW off 951 mW, taking runtime from 6 h 35 m to **6 h 47 m**. It also cuts the post-brownout
+latched-off drain from 6.90 mW to 0.98 mW.
+
+Two levers were left out. The **supervisor dividers** cannot be scaled while `R3` and `R4` have
+different values in the schematic (5.1 k / 33 k) and in the PCB (1 k / 10 k) — scaling a disputed
+baseline sets a battery-warning threshold nobody can predict. **`R12`** is 44 µW, below the
+resolution of this entire model, on the one node where leakage would silently disarm the brownout
+latch.
+
+ECO-8 also **corrects the review's `PTC1` derating figures**. The findings quote 0.62 A at 40 °C and
+0.47 A at 60 °C for the fitted part; the Littelfuse Low Rho datasheet (rev GD 03/06/25) says
+**0.55 A and 0.40 A**, and there is no 50 °C column at all. The real derating is worse than the
+review claimed, so the case for the swap is stronger, not weaker. ECO-8 also records the one thing
+this change set makes worse — the `R25` = 22 k / InGaN pairing narrows the `Q9B` gate margin on the
+low-battery LED — with the arithmetic showing it still works.
 
 **`U7` is the single best change on the board and it is not a power part.** It is a **4.5 V-minimum**
-op-amp being run on 2.5 V with its inputs above the common-mode ceiling — verified from the
-distributor page, not just claimed. The pin-identical TLV9064IPWR fixes it, is in stock, and is
+op-amp being run on 2.5 V with its inputs above the common-mode ceiling — verified against TI's own
+datasheet text, not just claimed. The pin-identical TLV9064IPWR fixes it, is in stock, and is
 *cheaper than the part fitted*. Do it whether or not you care about runtime.
 
 ### One PCB revision on the core rail — 66 mW total at 1.75×
@@ -193,7 +217,8 @@ which inverts to −8 mW** once you use the designer's own annotated 130 mA for 
   80 V, 100 mA. `D1` is 7–13× under-rated for the reverse-battery clamp duty the schematic assigns
   it, and sits on the wrong side of `F1`.
 - **`SW1`'s value is not an orderable part number** — `CSS-1310B` should be `CSS-1310TB`.
-- **`F1` and `PTC1` carry three different part numbers** across schematic, PCB Value and Description.
+- ~~**`F1` and `PTC1` carry three different part numbers**~~ — fixed in
+  [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md).
 - **`CP1`–`CP3` are polarized tantalums on a symmetric land with no polarity marking anywhere**, and
   `CP1` carries bidirectional AC with no DC bias, past the manufacturer's 1 V reverse limit.
 - **The SRAM has no local decoupling** — ECO-5 moved `C8` 7.1 mm from pin 37 and left it
