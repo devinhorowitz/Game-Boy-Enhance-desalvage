@@ -128,85 +128,79 @@ router avoid more, never less — and the *difference* between the two boards is
 Zone pours were not re-filled: new copper inside another net's pour is resolved when KiCad
 re-pours, which is a required step below.
 
-## 6.5 All six landings — the wireless build
+## 6.5 The other three: CLK, V+ and V−
 
-The three button pads above are geometry taken from a shipping board. `CLK`, `V+` and `V-` are
-not: MouseBiteLabs left them as wire pads, and insideGadgets publish nothing. To make the
-integration wire-free anyway, this ECO adds three more landings **at a photo-derived estimate**,
-with their nets assigned and routed, as individually-draggable single-pad footprints so the final
-positions can be corrected by hand.
+**Only the six button pads on the module are plated through-holes.** `CLK`, `V+` and `V-` are
+plain top-side pads with no hole — confirmed against a stock unit. So those three cannot be
+solder-through landings at any position: there is nothing to drop solder into. They need wires,
+and that is a property of the module, not of this board.
 
-### The estimate and how it was made
+That also explains MouseBiteLabs' DMG Color layout, which lands exactly three pads and puts
+`CLK`/`V+`/`V-` on ordinary wire pads outside the outline. He was not being conservative about
+geometry — he was working with what the module has.
 
-The install photo was calibrated against the lattice that *is* known. The three silkscreen capsule
-outlines around the button pads pin the v axis exactly — rows 2.5 / 5.0 / 7.5 mm land at image
-y 1249 / 1174.5 / 1100 px, giving **29.9 px/mm** and putting the reference long edge (v = 0) at
-image y 1324.5, under the kapton where it cannot be read directly. The pad columns fix the u axis
-the same way. Reading the three left-end pads through that transform gives, in module coordinates
-(u from the CLK-end short edge, v from the same long edge the button rows reference):
+So the goal for these three is not *no wires*, it is **the shortest possible wires**, landing on
+labelled pads immediately outside the module body.
 
-| Module pad | u | v | **Uncertainty** |
+### Where they are
+
+The module's `CLK`/`V+`/`V-` pads sit at the far end from the buttons, which — with `MOD1` at rot
+180 — is the **east** end. Their positions on the module are photo-derived (u from the CLK-end
+edge, v from the same long edge the button rows reference):
+
+| Module pad | u | v | lands on the board at | ±  |
+|---|---|---|---|---|
+| `CLK` | ≈3.9 | ≈9.2 | 99.250, −42.050 | ±0.5 mm |
+| `V+` | ≈2.3 | ≈7.1 | 100.850, −44.150 | ±0.5 mm |
+| `V-` | ≈2.3 | ≈8.8 | 100.850, −42.450 | ±0.5 mm |
+
+The east strip beyond the module (x 103.15…104.6) is blocked by `TP114`/`TP115` and the
+mechanical keepout, so the wire pads go in the clear pocket immediately **south** of the module
+body, in the gap between it and the cartridge connector:
+
+| Ref | Net | Position | Wire from the module pad |
 |---|---|---|---|
-| `CLK` | ≈3.9 | ≈9.2 | **±0.5 mm** |
-| `V+` | ≈2.3 | ≈7.1 | **±0.5 mm** |
-| `V-` | ≈2.3 | ≈8.8 | **±0.5 mm** |
+| `TP83` | `CXC_CLK` (new net 238) | 98.600, −38.200 | **3.9 mm** |
+| `TP84` | `VDD3` | 100.900, −38.200 | **6.0 mm** |
+| `TP85` | `GND` | 103.000, −38.200 | **4.8 mm** |
 
-The u ≈ 2.3 for `V+`/`V-` is suggestive — it is the same 2.3 mm inset the button columns use from
-the other end — but that is a pattern, not a measurement. Treat all three as provisional.
+ø1.2 mm pads, silkscreened `CLK` / `V+` / `V-`, left-to-right in the same order as the module's
+pads so the three wires do not cross. Compare with a stock GBA install, where the same three
+connections are 40–60 mm of flying wire.
 
-### As placed
+A useful consequence: the ±0.5 mm uncertainty in the module pad positions now only changes **wire
+length**, not whether anything mates. Nothing has to be re-measured before fabbing on account of
+these three — measure if you want the wires trimmed exactly, not because the board depends on it.
 
-| Ref | Net | Position | Pad |
-|---|---|---|---|
-| `TP83` | `CXC_CLK` (new net 238) | 99.250, −42.050 | ø1.4 mm, silk `CLK` |
-| `TP84` | `VDD3` | 100.850, −44.150 | ø1.4 mm, silk `V+` |
-| `TP85` | `GND` | 100.850, −42.450 | ø1.4 mm, silk `V-` |
-
-ø1.4 mm rather than the ø1.27 mm of the measured three: slightly oversized to absorb some of the
-error, and as large as the ~1.7 mm spacing between them allows. They are separate footprints, not
-pads inside `MOD1`, precisely so each can be dragged on its own in the PCB editor with its track
-rubber-banding along.
-
-**To correct them after measuring a module**, the mapping is direct — `MOD1` sits at
-(93.825, −45.250) rot 180, so the module's CLK-end edge is at x = 103.150 and its reference long
-edge at y = −51.250:
-
-```
-x = 103.150 − u        y = −51.250 + v
-```
-
-Measure each pad's centre from those two edges, plug in, done.
-
-`TP82` (the original V− wire pad at 102.000, −41.000) is left in place as a fallback: if the `V-`
-landing does not line up on a real module, a short wire to `TP82` still gets you there.
+`TP82`, the earlier spare GND wire pad, is **removed**: it sat under the module body, where it was
+no use for a wire either.
 
 ### `JP3` — CK1 isolation jumper
 
-Making the build wire-free means `CK1` has to reach the module on copper: **75.8 mm** of it, mostly
-on `B.Cu` through the cartridge keepout. On a board built the normal way, with the crystal fitted
-and no module, that track would be a dead stub hanging off the oscillator's high-impedance XIN
-node — roughly 5 pF of added load (about 40 ppm of frequency error) plus a 75 mm antenna for
-crosstalk into the one node on the board that must not be disturbed.
+Getting `CK1` to the module means 73.5 mm of copper, mostly on `B.Cu` through the cartridge
+keepout. On a board built the normal way, with the crystal fitted and no module, that would be a
+dead stub on the oscillator's high-impedance XIN node — roughly 5 pF of added load (about 40 ppm
+of frequency error) plus a 73 mm antenna into the one node that must not be disturbed.
 
 So the run is gated. `JP3` is a 2-pad open solder jumper at **(45.000, −64.200)**, 6.9 mm from
 `TP80`, pads ø1.05 mm at 1.3 mm pitch:
 
 - pad 1 → `/CPU/CK1` (5.0 mm of new track back to the existing CK1 copper)
-- pad 2 → `CXC_CLK`, the new net that carries the run to `TP83`
+- pad 2 → `CXC_CLK`, the net that carries the run to `TP83`
 
-**Open by default.** A crystal build is then electrically identical to the board without this ECO —
-the stub is disconnected, and all that remains on CK1 is the 5 mm to `JP3` pad 1. Bridge it only
-when populating the ClockxControl. This is the same default-open pattern ECO-5 used for `JP2`.
+**Open by default**, so a crystal build is electrically identical to the board without this ECO;
+all that remains on CK1 is the 5 mm to `JP3` pad 1. Bridge it only when populating the module.
+Same default-open pattern ECO-5 used for `JP2`.
 
 ### Also in this pass
 
-- **Two GND stitching vias relocated** to clear the new landings: (100.200, −41.500) →
-  (100.400, −41.500) and (101.000, −44.500) → (101.400, −45.300). Both had zero attached tracks —
-  pure plane stitching, confirmed before moving.
+- **Two GND stitching vias relocated**: (100.200, −41.500) → (100.400, −41.500) and
+  (101.000, −44.500) → (101.400, −45.300). Both had zero attached tracks — pure plane stitching,
+  confirmed before moving.
 - **New net 238 `CXC_CLK`.**
-- **Routing added**: `CXC_CLK` 75.8 mm / 2 vias, `VDD3` 12.4 mm / 2 vias to `P1` pad `S1`,
-  `GND` 2.8 mm / 1 via, `CK1` 5.0 mm. Board total is now **240.9 mm of new track and 10 new
-  vias**.
+- **Routing added**: `CXC_CLK` 73.5 mm / 2 vias, `VDD3` 7.7 mm / 2 vias from `TP84` to `P1` pad
+  `S1`, `GND` a 0.9 mm stub and a via into the ground plane. Board total is now **231.9 mm of new
+  track and 10 new vias**.
 
 ### Re-verification
 
@@ -216,9 +210,7 @@ Same differential method as §6.4, over a widened region (x 38…114, y −70…
 While extending the check I found and fixed a defect in the checker itself: its pad parser used a
 rigid regex that silently dropped 83 pads across 29 footprints — every through-hole pad, including
 all 36 of the cartridge connector `P1`. Rebuilt with brace-matched parsing (940 pads now, matching
-the board), the **§6.4 result still holds**: the original three-landing ECO was and remains clean.
-
----
+the board), the **§6.4 result still holds**.
 
 ## 6.6 Fab-view renders
 
@@ -258,9 +250,9 @@ Two things the render caught that the numbers had not:
    and 3 is inferred from MouseBiteLabs' `P10`/`P11` assignment read against insideGadgets' GBC
    wiring list. It is one continuity beep per pad on a physical module. If it comes out different,
    swap which net feeds which pad — the geometry does not change.
-3b. **Measure and correct `TP83`/`TP84`/`TP85`** (§6.5). Their positions are photo-derived to about
-   ±0.5 mm and are the one genuinely provisional thing in this ECO. Do not fab without checking
-   them against a physical module.
+3b. **`TP83`/`TP84`/`TP85` are wire pads, not landings** (§6.5). The module's CLK/V+/V− pads have
+   no holes. Their positions on the module are photo-derived to about ±0.5 mm, but that now only
+   affects how long the three wires are, so it does not gate a fab run.
 4. **Check the shell and screen fit over the module.** The area is outside every mechanical
    keepout MouseBiteLabs defined, and a module lying directly on the board (1.6 mm) sits *lower*
    than the field-proven stock install (1.6 mm of module on top of ~1.2 mm of RAM). Good evidence,
@@ -276,10 +268,10 @@ Two things the render caught that the numbers had not:
 
 1. Leave `X1`, `C3`, `C4` unpopulated.
 2. **Bridge `JP3`** (by the crystal, silkscreened `CXC CLK`). Without it the module gets no clock.
-3. Seat the module on the `MOD1` outline, component side up, and solder through all six pad holes:
-   `MOD1` pads 1/2/3 for Select/L/R, and `TP83`/`TP84`/`TP85` for CLK/V+/V−.
-4. If `TP83`/`TP84`/`TP85` do not line up on your module, fall back to wires — `TP82` for V−,
-   `P1` pad `S1` for V+, `TP80` for CLK — and fix the pad positions for the next spin.
+3. Seat the module on the `MOD1` outline, component side up, and solder through its three plated
+   button holes onto `MOD1` pads 1/2/3 — Select, L, R.
+4. Run three short wires from the module's `CLK`, `V+` and `V-` pads (which have no holes) down to
+   `TP83`, `TP84` and `TP85` in the row just below the module: about 4, 6 and 5 mm.
 5. Speed control is Select + L / Select + R; hold Select for 2 s to return to 1x. Note the
    AGBM's own hotkeys are Start + L + R + one of {Select, A, B, D-pad}, so holding
    Select + L + R and then pressing Start will drive both.

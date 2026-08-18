@@ -19,7 +19,8 @@ host-side footprint for this module. Anything inferred rather than measured is f
 
 | Question | Answer |
 |---|---|
-| A real solder-down footprint the module mounts onto? | **Yes.** The module's I/O pads are plated through-holes: it floats flat on the host board and is fixed by dropping solder through the hole onto the pad below. MouseBiteLabs already ships this on the DMG Color CPU board. |
+| A real solder-down footprint the module mounts onto? | **Yes, for the three button pads.** Those are plated through-holes: the module lies flat and is fixed by dropping solder through the hole onto the pad below. MouseBiteLabs already ships this on the DMG Color CPU board. |
+| And CLK / V+ / V−? | **Wires — the module has no holes there**, they are plain top-side pads. So those three get labelled wire pads immediately outside the module body: **3.9, 6.0 and 4.8 mm** of wire, against 40–60 mm on a stock install. |
 | Does the AGBM have room for it? | **Yes, once one 0603 moves.** Relocating `C7` opens an 18.65 × 12.00 mm component-free window on the front side directly below the RAM, clear of every mechanical keepout. Done in ECO-6. |
 | Delete the crystal because the mod requires removing it? | **Yes, but as a DNP build option, not a deletion.** Keep X1/C3/C4 on the board, unpopulated for ClockxControl builds. |
 
@@ -248,15 +249,16 @@ requirement, with the button end facing west toward the nets it needs.
 | `1` — Select | `/CPU/TP2` | 89.300, −46.250 |
 | `2` — L | `/CPU/TP9` | 86.800, −48.750 |
 | `3` — R | `/CPU/TP8` | 86.800, −46.250 |
-| `4` — CLK | `CXC_CLK` (new net) | `TP83` at 99.250, −42.050 — **photo-derived, ±0.5 mm** |
-| `5` — V+ | `VDD3` | `TP84` at 100.850, −44.150 — **photo-derived, ±0.5 mm** |
-| `6` — V− | `GND` | `TP85` at 100.850, −42.450 — **photo-derived, ±0.5 mm** |
+| `TP83` — CLK wire pad | `CXC_CLK` (new net) | 98.600, −38.200 — 3.9 mm of wire |
+| `TP84` — V+ wire pad | `VDD3` | 100.900, −38.200 — 6.0 mm of wire |
+| `TP85` — V− wire pad | `GND` | 103.000, −38.200 — 4.8 mm of wire |
 
-All six land solder-through, so the build needs no wires. The first three are measured geometry
-from a shipping board; the last three are an estimate calibrated against that lattice and are the
-one provisional thing here — they are separate single-pad footprints so each can be dragged in the
-PCB editor once a real module is measured. Wire fallbacks stay available: `P1` pad `S1` (`VDD3`),
-`TP82` (`GND`) and `TP80` (`CK1`).
+The first three are solder-through, on measured geometry from a shipping board. The last three
+have to be wires: **on the module, `CLK`, `V+` and `V-` are plain top-side pads with no hole**, so
+there is nothing to solder into. They sit in the clear pocket immediately south of the module body,
+left-to-right in the same order as the module's own pads so the wires do not cross. Where those
+module pads land is photo-derived to ±0.5 mm, but that now only changes wire length — nothing has
+to be re-measured before a fab run.
 
 `JP3`, a default-open solder jumper 6.9 mm from `TP80`, gates the 75.8 mm CLK run so a board built
 with the crystal never sees that stub on its oscillator node. Bridge it only when populating the
@@ -268,13 +270,15 @@ which incidentally fixes three pre-existing shorts, see ECO-6 §6.4.
 
 ![ECO-6 as cut into the board](render/agbm01_cxc_board_after.png)
 
-All six landings, `JP3` and the full routing (yellow pads = measured, cyan = photo-derived):
+The layout: three solder-through landings (yellow), the module’s hole-less CLK/V+/V− pads (orange
+rings) wired down to the three wire pads (cyan), `JP3` and the routing:
 
-![All six landings](render/agbm01_cxc_board_after6.png)
+![ECO-6 layout](render/agbm01_cxc_board_after6.png)
 
-And the same area as a fab preview, with the measured landings ringed green and the photo-derived
-ones ringed blue at ±0.5 mm — `render/fab_landings_1to1_600dpi.png` is the same view at 1:1 for
-printing and laying a real module on:
+And the same area as a fab preview — green rings are the solder-through landings, orange rings show
+where the module's hole-less CLK/V+/V− pads land (±0.5 mm), and the red lines are the three wires
+to the pads below. `render/fab_landings_1to1_600dpi.png` is the same view at 1:1 for printing and
+laying a real module on:
 
 ![Fab view of the landings](render/fab_landings_fit.png)
 
@@ -369,7 +373,7 @@ render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rend
 render/fab_front.png                          fab view, whole front side
 render/fab_back.png                           fab view, whole back side (mirrored)
 render/fab_landings.png                       fab view of the landings
-render/fab_landings_fit.png                   landings annotated: measured vs photo-derived, +/-0.5 mm rings
+render/fab_landings_fit.png                   annotated: solder-through landings, wire pads and wire lengths
 render/fab_landings_1to1_600dpi.png           1:1 scale print sheet - print at 100% and lay a module on it
 ```
 
