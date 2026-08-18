@@ -6,7 +6,7 @@ Can the MouseBiteLabs **Game Boy Enhance (AGBM)** carry a footprint for insideGa
 **Status: analysed, and cut into the board.** The land pattern is placed, wired and
 clearance-verified on this fork's `_GBE-plus` board — see
 [ECO-6](ECO-6_clockxcontrol_footprint.md) and [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zip).
-It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.5 before
+It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.6 before
 fabbing. Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
 AGBM-01 rev 1.2b, AGBM-02 rev 1.1, AGBM-11 rev 1.3). The ClockxControl land pattern is taken
 from **MouseBiteLabs' own DMGC-CPU-01 rev 2.5 gerbers** (Game Boy DMG Color), whose v2.5
@@ -248,9 +248,19 @@ requirement, with the button end facing west toward the nets it needs.
 | `1` — Select | `/CPU/TP2` | 89.300, −46.250 |
 | `2` — L | `/CPU/TP9` | 86.800, −48.750 |
 | `3` — R | `/CPU/TP8` | 86.800, −46.250 |
-| `V+` wire pad | `VDD3` | **already exists** — `P1` pad `S1` at 96.90, −35.20 |
-| `V-` wire pad | `GND` | new pad `TP82` at **102.000, −41.000** |
-| `CLK` wire pad | `/CPU/CK1` | **already exists** — `TP80` at 48.00, −58.00 |
+| `4` — CLK | `CXC_CLK` (new net) | `TP83` at 99.250, −42.050 — **photo-derived, ±0.5 mm** |
+| `5` — V+ | `VDD3` | `TP84` at 100.850, −44.150 — **photo-derived, ±0.5 mm** |
+| `6` — V− | `GND` | `TP85` at 100.850, −42.450 — **photo-derived, ±0.5 mm** |
+
+All six land solder-through, so the build needs no wires. The first three are measured geometry
+from a shipping board; the last three are an estimate calibrated against that lattice and are the
+one provisional thing here — they are separate single-pad footprints so each can be dragged in the
+PCB editor once a real module is measured. Wire fallbacks stay available: `P1` pad `S1` (`VDD3`),
+`TP82` (`GND`) and `TP80` (`CK1`).
+
+`JP3`, a default-open solder jumper 6.9 mm from `TP80`, gates the 75.8 mm CLK run so a board built
+with the crystal never sees that stub on its oscillator node. Bridge it only when populating the
+module.
 
 `C7` moves to **(82.700, −40.300)** and is tied back to `VDD35` through a 0.9 mm stub and a via
 into the `In2.Cu` `VDD35` pour. The ECO-5 fiducial pair `FID2`/`FID5` moves to (106.250, −57.250) —
@@ -258,18 +268,23 @@ which incidentally fixes three pre-existing shorts, see ECO-6 §6.4.
 
 ![ECO-6 as cut into the board](render/agbm01_cxc_board_after.png)
 
-**Do not run copper from CK1 to a pad near the module.** That would hang a ~40 mm stub on the
-oscillator node, degrading the Pierce loop on every board built the normal way with the crystal
-fitted. Run a wire from `TP80` instead — a stock GBA install uses a wire of about that length
-anyway. If a local CLK pad is wanted regardless, gate it with a series solder jumper so the stub is
-disconnected on crystal builds.
+All six landings, `JP3` and the full routing (yellow pads = measured, cyan = photo-derived):
+
+![All six landings](render/agbm01_cxc_board_after6.png)
+
+**Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
+antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
+crystal fitted. `JP3` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
+electrically identical to the board without this ECO. Same default-open pattern ECO-5 used for
+`JP2`.
 
 ### Routing the three button nets
 
 `TP2`, `TP8` and `TP9` originate around x 51…57 near the CPU, so each pad needs a 26–36 mm run.
 They are slow, already-filtered button lines (15 Ω series plus 0.01 µF on TP8/TP9), so length is
-irrelevant electrically. ECO-6 routes all three — 143.9 mm of track and 4 vias in total, with the
-B.Cu portions running through the cartridge keepout, which explicitly permits tracks and vias.
+irrelevant electrically. ECO-6 routes all three — and with the CLK, V+ and V− landings added, the
+board carries **240.9 mm of new track and 10 new vias** in total, with the B.Cu portions running
+through the cartridge keepout, which explicitly permits tracks and vias.
 
 ---
 
@@ -330,7 +345,7 @@ de-salvaged board's favour, not against it.
    with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
    calipers, as with ECO-5's fit item.
 5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`/`TP82` if the board
-   is ever updated from a schematic. Full list in [ECO-6 §6.5](ECO-6_clockxcontrol_footprint.md).
+   is ever updated from a schematic. Full list in [ECO-6 §6.6](ECO-6_clockxcontrol_footprint.md).
 
 ---
 
@@ -342,7 +357,8 @@ board/agbm-01-clockxcontrol.zip               the modified board: AGBM-01_AA_1-2
 footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern built from the DMG Color geometry
 render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
 render/agbm01_cxc_placement.png               the window below the RAM and the C7 move
-render/agbm01_cxc_board_after.png             ECO-6 as cut in: footprint, pads and the three routes
+render/agbm01_cxc_board_after.png             ECO-6 core edit: footprint, three pads and their routes
+render/agbm01_cxc_board_after6.png            all six landings, JP3 and the full routing
 render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from his gerbers
 ```
 
