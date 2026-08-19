@@ -26,8 +26,8 @@ import build_board                                               # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CXC = os.path.join(ROOT, "clockxcontrol-integration")
-ZIP = os.path.join(CXC, "board", "agbm-01-clockxcontrol.zip")
-STEM = "agbm-01-clockxcontrol"
+ZIP = os.path.join(CXC, "board", "agbm-02-clockxcontrol.zip")
+STEM = "agbm-02-clockxcontrol"
 # A fixed DOS timestamp. Anything constant does; this is the ECO-6 landing date.
 FIXED = (2026, 8, 18, 0, 0, 0)
 
@@ -41,6 +41,7 @@ MEMBERS = [
     ("ECO-10_precision_pass.md", "ECO-10_precision_pass.md"),
     ("ECO-11_gate_drive_and_D1.md", "ECO-11_gate_drive_and_D1.md"),
     ("ECO-12_wiki_audit_corrections.md", "ECO-12_wiki_audit_corrections.md"),
+    ("ECO-13_rebase_onto_agbm02.md", "ECO-13_rebase_onto_agbm02.md"),
 ]
 
 
@@ -54,7 +55,7 @@ def contents():
         if name.endswith(".png"):
             out[f"{STEM}/render/{name}"] = open(os.path.join(rdir, name), "rb").read()
     board, _st = build_board.build()
-    out[f"{STEM}/AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb"] = board.encode("utf-8")
+    out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"] = board.encode("utf-8")
     return out
 
 

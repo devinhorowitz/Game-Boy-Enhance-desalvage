@@ -5,7 +5,7 @@ Can the MouseBiteLabs **Game Boy Enhance (AGBM)** carry a footprint for insideGa
 
 **Status: analysed, and cut into the board.** The land pattern is placed, wired and
 clearance-verified on this fork's `_GBE-plus` board — see
-[ECO-6](ECO-6_clockxcontrol_footprint.md) and [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zip).
+[ECO-6](ECO-6_clockxcontrol_footprint.md) and [`board/agbm-02-clockxcontrol.zip`](board/agbm-02-clockxcontrol.zip).
 It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.7 before
 fabbing. Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
 AGBM-01 rev 1.2b, AGBM-02 rev 1.1, AGBM-11 rev 1.3). The ClockxControl land pattern is taken
@@ -39,6 +39,7 @@ The engineering record, in order:
 | [ECO-10](ECO-10_precision_pass.md) | the precision and longevity pass — and the finding that the converter's own feedback current was moving the rails more than the resistors were |
 | [ECO-11](ECO-11_gate_drive_and_D1.md) | `Q9`/`Q10` to a logic-level FET, because the brownout latch was not guaranteed to arm — and why the `D1` finding was refused |
 | [ECO-12](ECO-12_wiki_audit_corrections.md) | the [wiki audit](../wiki-audit/README.md)'s two board changes — the stale `R3`/`R4`/`R64` annotation this fork was ordering, and giving `VOUT3` back the 108 mV ECO-8 trimmed |
+| [ECO-13](ECO-13_rebase_onto_agbm02.md) | **the base board is now MouseBiteLabs' AGBM-02.** ECO-5 culled, both ECO-7 blockers closed, `U2` becomes an orderable part — a build needs one donor chip, not two |
 
 ---
 
@@ -147,7 +148,8 @@ shipped as ordinary fitted components.
 **Keep the footprints.** Deleting X1/C3/C4 from the design would mean the board cannot boot
 without a $23 add-on installed, would diverge from upstream for every builder who does not want
 the mod, and would remove the fallback if the module ever fails. A DNP line in the BOM plus a
-build note gets you everything and costs nothing — the same pattern ECO-5 used for `JP2`.
+build note gets you everything and costs nothing — the same default-open pattern MouseBiteLabs
+uses for `JP2` and `JP3`, the `MA17` and `/BYTE` straps.
 
 ---
 
@@ -289,7 +291,7 @@ module.
 `C7` moves to **(93.100, −37.400)**, in the band between the module and the cartridge connector,
 with a 0.4 mm stub onto the `VDD35` stitch via next to it and a stub-and-via down to the ground
 planes. That lands its `VDD35` pad **2.4 mm from `P1` pad `C1`**, the cart's `VDD35` pin — closer
-than the 6.3 mm it had on the stock board. The ECO-5 fiducial pair `FID2`/`FID5` moves to
+than the 6.3 mm it had on the stock board. Since ECO-13 the fiducial pair `FID2`/`FID5` is placed at
 (106.250, −57.250) — which incidentally fixes three pre-existing shorts, see ECO-6 §6.4.
 
 The layout: three solder-through landings (yellow), the module’s hole-less CLK/V+/V− pads (orange
@@ -314,7 +316,7 @@ neighbour:
 **Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
 antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
 crystal fitted. `JP3` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
-electrically identical to the board without this ECO. Same default-open pattern ECO-5 used for
+electrically identical to the board without this ECO. Same default-open pattern MouseBiteLabs uses for
 `JP2`.
 
 ### Routing the three button nets
@@ -363,7 +365,7 @@ testing harder. Building the board with the crystal, testing per the wiki, then 
 
 **Overclocking and the RAM — the desalvage part is the *better* one here.** At 1.75x the system
 clock is ~29.4 MHz, so a 3-cycle 16-bit EWRAM access shortens from ~179 ns to ~102 ns. The
-CY62157EV30LL-45Z from ECO-5 still has better than 2x margin at that speed. A salvaged original
+the CY62157EV30LL-45Z still has better than 2x margin at that speed. A salvaged original
 GBA WRAM has less headroom. If this fork ends up carrying both mods, that is a point in the
 de-salvaged board's favour, not against it.
 
@@ -382,7 +384,7 @@ de-salvaged board's favour, not against it.
    MouseBiteLabs defined, and a module lying directly on the board (1.6 mm) sits *lower* than the
    stock install (1.6 mm of module on top of ~1.2 mm of RAM), which is field-proven in a GBA shell
    with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
-   calipers, as with ECO-5's fit item.
+   calipers.
 5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`, `JP3` and
    `TP83`/`TP84`/`TP85` if the board is ever updated from a schematic. Full list in
    [ECO-6 §6.8](ECO-6_clockxcontrol_footprint.md).
@@ -397,7 +399,7 @@ de-salvaged board's favour, not against it.
 
 ```
 ECO-6_clockxcontrol_footprint.md              engineering record for the board edit
-board/agbm-01-clockxcontrol.zip               the modified board: AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb
+board/agbm-02-clockxcontrol.zip               the modified board: AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb
 footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern built from the DMG Color geometry
 render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
 render/agbm01_cxc_placement.png               the window below the RAM, the C7 move and the deleted vias
@@ -416,7 +418,9 @@ render/fab_landings_1to1_600dpi.png           1:1 scale print sheet - print at 1
 - insideGadgets, [GBA/GBC/DMG ClockxControl](https://shop.insidegadgets.com/product/gba-clockxcontrol/) — install wiring, dimensions, firmware speeds, current draw, screen/cart compatibility, and the install photos referenced in §1 and §4.
 - MouseBiteLabs, [Game Boy DMG Color](https://github.com/MouseBiteLabs/Game-Boy-DMG-Color) — `DMGC-CPU-01` rev 2.5, *"Added space for adding ClockxControl by insideGadgets"*. Land pattern in §4 extracted from that board's gerbers.
 - MouseBiteLabs, [Game Boy Enhance wiki — Mod Compatibility](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Mod-Compatibility) and [AGBM-01 (AA) Build/Test Order](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/AGBM-01-%28AA%29-Build-Test-Order).
-- This repository: the AGBM-01 / -02 / -11 design-file archives, and `agbm-01-ram-desalvage.zip` (ECO-5).
+- This repository: the AGBM-01 / -02 / -11 design-file archives. The base board is AGBM-02's,
+  unmodified — see [ECO-13](ECO-13_rebase_onto_agbm02.md). ECO-5's `agbm-01-ram-desalvage.zip` was
+  culled by that rebase and survives only in git history.
 
 ## License & attribution
 

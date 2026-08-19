@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check_consistency.py -- drift guard for the AGBM-01 ClockxControl fork.
+"""check_consistency.py -- drift guard for the AGBM-02 ClockxControl fork.
 
     python3 scripts/check_consistency.py          # run every check
     python3 scripts/check_consistency.py -v       # also print what each check saw
@@ -25,8 +25,8 @@ not mirrored in the other fails loudly instead of rotting.
   [9]  MODULE WINDOW  -- the component-free window ECO-6 exists to create is still
                          component-free, and the parts it moved are where it put them.
                                                                             [ERROR]
-  [10] BLOCKER LEDGER -- the two ECO-7 blockers are still open, exactly as documented.
-                         GOES RED WHEN THEY ARE FIXED -- see the check.     [ERROR]
+  [10] BLOCKER LEDGER -- both former ECO-7 blockers are CLOSED by the ECO-13 rebase.
+                         GOES RED IF EITHER COMES BACK -- see the check.    [ERROR]
   [11] STRUCTURE      -- the board parses, parens balance, no duplicate refdes. [ERROR]
   [12] ASSEMBLY SPLIT -- nothing reaches the pick-and-place without a BOM line to buy it,
                          nothing is on both buy documents, and the generated buy documents
@@ -65,9 +65,9 @@ import kisexp                                                    # noqa: E402
 import build_board                                               # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board", "agbm-01-clockxcontrol.zip")
-ZIP_ROOT = "agbm-01-clockxcontrol"
-BOARD_MEMBER = f"{ZIP_ROOT}/AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb"
+ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board", "agbm-02-clockxcontrol.zip")
+ZIP_ROOT = "agbm-02-clockxcontrol"
+BOARD_MEMBER = f"{ZIP_ROOT}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"
 MPNS = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
 ECO8_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-8_component_swaps.md")
 ECO10_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-10_precision_pass.md")
@@ -192,10 +192,16 @@ def check_package_parity():
 # =====================================================================================
 def check_eco8_ledger():
     """Every ECO whose table names a Value change is held to the generator and the board."""
+    # ECO-10 and ECO-12 changed only Values that the LTC3527 or the stale AGBM-01
+    # annotation carried, and neither exists on the AGBM-02 base -- their generator lists
+    # are empty and their documents no longer hold a swap table. ECO-13 section 13.4 is
+    # the record of why. They are asserted empty here so that adding a row to either
+    # without re-listing it below fails loudly instead of going unchecked.
+    for label, gen in (("ECO-10", build_board.ECO10), ("ECO-12", build_board.ECO12)):
+        if gen:
+            err(f"{label} has Value swaps again but is not in check [3]'s list -- add it")
     for label, doc_path, gen in (("ECO-8", ECO8_DOC, build_board.ECO8),
-                                 ("ECO-10", ECO10_DOC, build_board.ECO10),
-                                 ("ECO-11", ECO11_DOC, build_board.ECO11),
-                                 ("ECO-12", ECO12_DOC, build_board.ECO12)):
+                                 ("ECO-11", ECO11_DOC, build_board.ECO11)):
         _check_one_eco(label, doc_path, gen)
 
 
@@ -206,7 +212,7 @@ def check_eco8_ledger():
 def _eco_chain_final():
     out = {}
     for lst in (build_board.ECO8, build_board.ECO10, build_board.ECO11,
-                build_board.ECO12):
+                build_board.ECO12):  # 10 and 12 are empty on the AGBM-02 base
         for ref, field, _o, n in lst:
             if field == "Value":
                 out[ref] = n
@@ -273,7 +279,8 @@ DNP_ADDED = {
           "2.2k, so it loads the CPU's XOUT node. ECO-6 said 'dangling' and was wrong; "
           "the real reason is stronger",
 }
-BASE_ZIP_REF = "agbm-01-ram-desalvage.zip::agbm-01-ram-desalvage/AGBM-01_AA_1-2_GBE-plus.kicad_pcb"
+BASE_ZIP_REF = ("AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip"
+                "::AGBM-02 Design Files/AGBM-02_AA_1-1.kicad_pcb")
 
 
 def check_dnp_ledger():
@@ -352,7 +359,16 @@ VALUE_IS_NOT_MPN = {
     r"^\d+(\.\d+)?uH$": "bare inductance",
     r"^\d+\.\d+MHz$": "bare frequency",
     r"^FFC CONNECTOR$": "generic description in the Value field",
-    r"^AGB-(SRAM|CPU)$": "salvaged part, no orderable number",
+    r"^AGB-(SRAM|CPU)$": "the AGB-CPU is salvaged and has no orderable number; the "
+                         "AGB-SRAM land takes either a donor chip or, since ECO-13, a "
+                         "CY62157EV30LL that the MPN names",
+    # ECO-13: AGBM-02 states the CHOICE in the Value field rather than picking for you.
+    # Z57/Z58 read "100p or 0 ohm" because the hotkey pair is configurable -- capacitors
+    # make L+R+Start+A/B fake a screen kit's touch input, resistors or jumpers make them
+    # act as button inputs for an external mod. MouseBiteLabs' Feature Configurations page
+    # is the instruction; this fork does not get to decide it for the builder, so the BOM
+    # buys the capacitor and pcbway-assembly/README.md carries it as a build decision.
+    r"^100p or 0 ohm$": "configurable hotkey part -- see ECO-13 and Feature Configurations",
 }
 
 # Pairs where the Value and the MPN deliberately differ AND the difference is a KNOWN,
@@ -439,12 +455,31 @@ EXPECTED_ABSENT = {
         "not loose in the tree. ECO-8 section 8.5 cites it as the file to edit, which is "
         "correct: you unzip it, edit it, and the fork keeps shipping a .kicad_pcb",
     "Audio.kicad_sch": "same archive -- the audio sheet the U7 and VR2 sourcing came from",
-    "AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb":
+    "AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb":
         "the deliverable board -- inside clockxcontrol-integration/board/"
-        "agbm-01-clockxcontrol.zip, and rebuildable with scripts/build_board.py. Cited by "
+        "agbm-02-clockxcontrol.zip, and rebuildable with scripts/build_board.py. Cited by "
         "basename throughout the ECOs because that is its name inside the package",
+    "AGBM-02_AA_1-1.kicad_pcb":
+        "the base board -- inside 'AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip', "
+        "MouseBiteLabs' own file, unmodified since ECO-13",
+    # ECO-13 culled these. They are cited only to say what was removed, which is a
+    # sentence the history rule already allows -- but they are named in TABLES, where
+    # there is no prose to carry the explanation, so they are ledgered here instead.
+    "AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb":
+        "the PREVIOUS deliverable board, on the AGBM-01 base. Culled by ECO-13; in git "
+        "history only. Named in ECO-13's was/now table",
     "AGBM-01_AA_1-2_GBE-plus.kicad_pcb":
-        "the ECO-5 base board -- inside agbm-01-ram-desalvage.zip at the repo root",
+        "the ECO-5 base board. Culled by ECO-13 -- ECO-5 was our own footprint work, "
+        "superseded by MouseBiteLabs' AGBM-02. Git history only",
+    "agbm-01-ram-desalvage.zip":
+        "ECO-5's package. Culled by ECO-13; git history only",
+    "agbm-01-clockxcontrol.zip":
+        "the PREVIOUS output package, on the AGBM-01 base. Culled by ECO-13; git history "
+        "only",
+    "Files.zip":
+        "a false positive -- the bare-path regex clips "
+        "'AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip' at its last space. The real "
+        "archive is in the tree; only this fragment is not",
     "patch5.py": "the pre-ECO-8 generator, superseded by scripts/build_board.py",
     # power-review/completeness-critic.md cites the session's own working captures as
     # PROVENANCE -- "read from the local capture at /tmp/.../cxc.txt". Naming a scratch
@@ -558,8 +593,14 @@ WINDOW_OCCUPANTS = {"MOD1"}          # the module itself, and nothing else
 # the same commit -- the exclusion-ledger shape.
 PLACED = {
     "C7":   (93.1, -37.4, "moved out of the window; pad 1 (VDD35) now lands on the left"),
-    "FID2": (106.25, -57.25, "fiducial pair moved out from under the module"),
-    "FID5": (106.25, -57.25, "same pair"),
+    "FID1": (26.0, -8.0, "fiducial, front. ECO-13: fiducials are OURS -- neither of "
+                         "MouseBiteLabs' boards carries one, because he hand-builds"),
+    "FID4": (26.0, -8.0, "same spot, back"),
+    "FID3": (33.0, -69.0, "fiducial, front"),
+    "FID6": (33.0, -69.0, "same spot, back"),
+    "FID2": (106.25, -57.25, "fiducial, front -- placed clear of the module rather than "
+                             "moved out from under it, as it was on the ECO-5 base"),
+    "FID5": (106.25, -57.25, "same spot, back"),
     "MOD1": (91.95, -44.95, "module centre, rev B -- shifted west out of the R3/TP114 "
                             "cluster; ECO-6 section 6.7 is what that cost"),
     "TP83": (97.9, -37.95, "CLK wire pad. y is -37.95 and not -38.6: KiCad's y grows "
@@ -567,7 +608,7 @@ PLACED = {
                            "body by 0.25 mm at its radius"),
     "TP84": (99.45, -37.95, "V+ wire pad"),
     "TP85": (101.0, -37.95, "V- wire pad"),
-    "JP3":  (45.0, -64.2, "CK1 isolation jumper -- OPEN for a crystal build, BRIDGED for "
+    "JP4":  (45.0, -64.2, "CK1 isolation jumper -- OPEN for a crystal build, BRIDGED for "
                           "a ClockxControl build"),
 }
 
@@ -626,75 +667,74 @@ BROKEN_NET = "Net-(Q5B-G)"
 BROKEN_ISLANDS = [["U17.1"], ["Q5.3", "R66.2"]]
 MISSING_VIA = (100.8, -62.15)
 BLOCKER_DOCS = ("clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md",
-                "clockxcontrol-integration/ECO-8_component_swaps.md",
-                "power-review/README.md",
-                "pcbway-assembly/README.md")
-STOCK_REF = ("AGBM-01 (AA Batteries)/AGBM-01_Design Files.zip", "AGBM-01_AA_1-2.kicad_pcb")
+                "clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md")
 
 
+# =====================================================================================
+# [10] BOTH ECO-7 BLOCKERS ARE CLOSED. RED MEANS ONE CAME BACK.
+# =====================================================================================
+# This check used to assert the OPPOSITE: that both blockers were still open, and it went
+# red if either got fixed, so that four documents claiming "not fabricable" could not
+# quietly become wrong. On 2026-08-19 it fired, on both, for the best possible reason --
+# ECO-13 rebased the fork onto MouseBiteLabs' AGBM-02 and BOTH BLOCKERS WERE ECO-5's OWN
+# DAMAGE. ECO-5 is gone, so they are gone.
+#
+# The check is kept, inverted, rather than deleted. What it guards now is that nothing
+# re-introduces them: a future ECO that starts deleting vias around U2 to make room for
+# something will trip it, which is exactly how they arose the first time.
 def check_blockers():
-    print("[10] the two ECO-7 blockers are still open (RED means they were FIXED)")
+    print("[10] both former ECO-7 blockers are CLOSED (RED means one came back)")
     b = board()
     nets = kisexp.net_table(b)
-    if nets.get(VDD2_NET) != "VDD2":
-        err(f"net {VDD2_NET} is {nets.get(VDD2_NET)!r}, not VDD2 -- this check's "
-            f"assumption moved; re-derive it before trusting anything below")
+    vdd2 = next((n for n, nm in nets.items() if nm == "VDD2"), None)
+    if vdd2 is None:
+        err("the board has no VDD2 net -- this check cannot verify U2's supply")
         return
 
-    # --- blocker 1: U2 pin 37 has no path to VDD2 ---------------------------------
-    east = [(x, y) for x, y, n in kisexp.vias(b) if n == VDD2_NET and x > VDD2_EAST_LIMIT]
+    # --- former blocker 1: U2 pin 37's VDD2 supply --------------------------------
+    # On the ECO-5 base there was NO VDD2 via anywhere east of x=93, because ECO-5 had
+    # deleted two of them to clear its third pad column. On AGBM-02 pin 37 lands on the
+    # x=10.97 column -- a stock column the OEM RAM uses too -- and the vias are present.
+    east = [(x, y) for x, y, n in kisexp.vias(b) if n == vdd2 and x > VDD2_EAST_LIMIT]
     if east:
-        err(f"U2 PIN 37 MAY NOW HAVE A SUPPLY: {len(east)} VDD2 via(s) east of "
-            f"x={VDD2_EAST_LIMIT} ({', '.join(f'({x},{y})' for x, y in east[:4])}). ECO-7 "
-            f"says there are none. If you routed it, that is good news -- now correct the "
-            f"blocker sections in: " + ", ".join(BLOCKER_DOCS))
+        ok(f"U2 pin 37's supply is back: {len(east)} VDD2 via(s) east of "
+           f"x={VDD2_EAST_LIMIT} ({', '.join(f'({x},{y})' for x, y in east[:4])})")
     else:
-        ok(f"U2 pin 37 still unsupplied -- no VDD2 via east of x={VDD2_EAST_LIMIT}")
+        err(f"U2 PIN 37 HAS LOST ITS SUPPLY AGAIN -- no VDD2 via east of "
+            f"x={VDD2_EAST_LIMIT}. This was ECO-5's defect and the rebase closed it; if an "
+            f"ECO has re-opened it, say so in: " + ", ".join(BLOCKER_DOCS))
 
-    # --- blocker 2: Net-(Q5B-G) is routed, but in two pieces ----------------------
+    # --- former blocker 2: Net-(Q5B-G) whole --------------------------------------
     num = next((n for n, nm in nets.items() if nm == BROKEN_NET), None)
     if num is None:
         err(f"{BROKEN_NET} is not in the board's net table any more -- ECO-7 describes it")
         return
-    islands = sorted(kisexp.net_islands(b, num), key=len)
-    if islands == sorted(BROKEN_ISLANDS, key=len):
-        ok(f"{BROKEN_NET} still broken into {len(islands)} islands "
-           f"({' | '.join(', '.join(i) for i in islands)}) -- the via at "
-           f"{MISSING_VIA} is still absent")
-    elif len(islands) == 1:
-        err(f"{BROKEN_NET} IS NOW WHOLE ({', '.join(islands[0])}). ECO-7 says the "
-            f"supervisor cannot reach Q5B's gate and the low-battery LED is dead. If you "
-            f"fixed it, correct the blocker sections in: " + ", ".join(BLOCKER_DOCS))
+    islands = kisexp.net_islands(b, num)
+    if len(islands) == 1:
+        ok(f"{BROKEN_NET} is whole ({', '.join(sorted(islands[0]))}) -- the supervisor "
+           f"reaches Q5B's gate and the low-battery LED works")
     else:
-        err(f"{BROKEN_NET} is broken differently than ECO-7 records: "
-            f"{[list(i) for i in islands]} instead of {BROKEN_ISLANDS}. Re-derive the "
-            f"blocker before trusting the documents.")
+        err(f"{BROKEN_NET} IS BROKEN INTO {len(islands)} ISLANDS AGAIN "
+            f"({' | '.join(', '.join(sorted(i)) for i in islands)}). On the ECO-5 base this "
+            f"was caused by a deleted via at {MISSING_VIA}; the low-battery LED is dead "
+            f"while it holds. Record it in: " + ", ".join(BLOCKER_DOCS))
 
-    # The reference this fork diverged from. Diffing against it is what turned "the net
-    # is open" into "ECO-5 deleted one via at a known coordinate", so the check keeps the
-    # comparison rather than trusting the conclusion.
-    zpath = os.path.join(ROOT, STOCK_REF[0])
-    if not os.path.exists(zpath):
-        warn(f"stock board not in the tree ({STOCK_REF[0]}) -- the divergence half of "
-             f"this check did not run")
-        return
+    # The base this fork sits on. Diffing against it is what proved the break was ECO-5's
+    # and not MouseBiteLabs', so the check keeps comparing rather than trusting a memory.
     try:
-        stock = kisexp.load(f"{zpath}::{STOCK_REF[1]}")
-        s_num = next(n for n, nm in kisexp.net_table(stock).items() if nm == BROKEN_NET)
-        s_islands = kisexp.net_islands(stock, s_num)
-        s_vias = [(x, y) for x, y, n in kisexp.vias(stock) if n == s_num]
+        base = kisexp.load(os.path.join(ROOT, BASE_ZIP_REF.split("::")[0])
+                           + "::" + BASE_ZIP_REF.split("::")[1])
+        s_num = next(n for n, nm in kisexp.net_table(base).items() if nm == BROKEN_NET)
+        s_islands = kisexp.net_islands(base, s_num)
     except Exception as e:                                        # noqa: BLE001
-        warn(f"could not read the stock board: {type(e).__name__}: {e}")
+        warn(f"could not read the base board: {type(e).__name__}: {e}")
         return
-    if len(s_islands) != 1:
-        err(f"the STOCK MouseBiteLabs board also has {BROKEN_NET} in {len(s_islands)} "
-            f"pieces -- ECO-7 blames ECO-5 for the break, and that would be wrong")
-    elif MISSING_VIA not in [(round(x, 4), round(y, 4)) for x, y in s_vias]:
-        err(f"the stock board has no via at {MISSING_VIA} either -- the documented cause "
-            f"of the break does not hold; re-derive it")
+    if len(s_islands) == 1:
+        ok(f"MouseBiteLabs' AGBM-02 has {BROKEN_NET} whole too -- this fork inherits a "
+           f"good net rather than repairing a bad one")
     else:
-        ok(f"stock board has {BROKEN_NET} whole with a via at {MISSING_VIA}; this fork "
-           f"does not -- the break is ECO-5's, exactly as ECO-7 records")
+        err(f"the BASE AGBM-02 board has {BROKEN_NET} in {len(s_islands)} pieces. That is "
+            f"upstream's, not ours, and every document here assumes otherwise.")
 
 
 # =====================================================================================

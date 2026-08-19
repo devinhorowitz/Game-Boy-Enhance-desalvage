@@ -11,10 +11,10 @@ order — see §4.**
 
 | | |
 |---|---|
-| `agbm-01-cxc-pcbway-assembly.csv` | **61 lines, 172 parts** — what PCBWay buys and places |
-| `agbm-01-cxc-cpl.csv` | **172 placements** — the position file for those, and only those |
-| `agbm-01-cxc-handbuy.csv` / `.md` | **8 lines** — what you buy and solder, each with its reason |
-| `agbm-01-cxc-not-populated.csv` | **58 lines, 67 footprints** — DNP, fiducials, jumpers, test pads |
+| `agbm-02-cxc-pcbway-assembly.csv` | **61 lines, 172 parts** — what PCBWay buys and places |
+| `agbm-02-cxc-cpl.csv` | **172 placements** — the position file for those, and only those |
+| `agbm-02-cxc-handbuy.csv` / `.md` | **8 lines** — what you buy and solder, each with its reason |
+| `agbm-02-cxc-not-populated.csv` | **58 lines, 67 footprints** — DNP, fiducials, jumpers, test pads |
 
 **Do not edit them.** A part moves between the two buy lists by changing the *design* —
 see [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) — and consistency check
@@ -44,7 +44,7 @@ for ClockxControl builds, bringing it to 52.
 ## 2. Consigned / hand-solder set
 
 **As of [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) this table is
-generated, not maintained** — `generated/agbm-01-cxc-handbuy.md` is the live version, and
+generated, not maintained** — `generated/agbm-02-cxc-handbuy.md` is the live version, and
 the board's own `exclude_from_bom` flag is what puts a part on it. The prose below is kept
 because it records *why* each one was picked, and because it was the source the ECO-9 rule
 was checked against.
@@ -231,57 +231,51 @@ manufacturer's own 1 V limit regardless of orientation.
 
 **Add polarity silkscreen before ordering assembly.**
 
-## 5. Blocked on the board itself
+## 5. The board-level blockers are closed
 
-Independent of sourcing, the board is not fabricable as committed. See
-[`ECO-7`](../clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md): `U2` pin 37 is the SRAM's only
-`VCC` pin on the CY62157 and it has no path to `VDD2`, and `Net-(Q5B-G)` is severed at one deleted
-via. Both need KiCad
-rework and a re-pour. **No assembly order should be placed until that is closed.**
+**[ECO-13](../clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md) rebased this fork
+onto MouseBiteLabs' AGBM-02.** Both defects that made the previous board un-fabricable were
+ECO-5's own damage, and both closed with it:
 
-### And a third, found by the wiki audit: `U2`'s land goes the wrong way
+| Was | Now |
+|---|---|
+| `U2` pin 37 — the SRAM's only `VCC` on a CY62157 — had no path to `VDD2` | **closed.** Pin 37 lands on a stock column that already carries `VDD2`; both vias ECO-5 deleted are present. |
+| `Net-(Q5B-G)` severed at one deleted via, leaving the low-battery LED dead | **closed.** Whole on AGBM-02, one island, and whole on the base too. |
+| `U2`'s land extended 1.55 mm further into the front-shell rim than the placement Nick fitted | **closed.** The board carries **his** `Bucketmouse:AGB-SRAM_2`, with the shell fit he verified. |
 
-MouseBiteLabs has **shipped** the CY62157EV30LL — on AGBM-02 and AGBM-12, documented on the wiki's
-*Feature Configurations* and *Required Parts* pages. The AGBM-02 design-files archive committed in this repository
-contains his land, and it is not ours. Both are 96-pad supersets of the stock salvage footprint at
-the same origin `(88.0, −57.8)`, both keep the same pin ordering — but **he extended the pad field
-toward −x and ECO-5 extended it toward +x**, putting our package body **1.55 mm further +x** than
-the one he physically fitted in a shell:
+Consistency check [10] now asserts all of that and goes red if any of it regresses.
 
-| | added column | pad-row span | body centre |
-|---|---|---|---|
-| **AGBM-02** `AGB-SRAM_2` | x = **−8.45** | 19.42 mm | x = **+1.26** |
-| **ours** (ECO-5) | x = **+12.31** | 19.00 mm | x = **+2.81** |
+### What is still open before an order
 
-The obstruction Nick named was the front shell's plastic screen rim, and ECO-5's own README says
-front-shell fit is **unverified**. His is the land with a physical fit behind it.
+1. **Run DRC in KiCad, and re-pour.** The ECO-6 copper is generated from
+   `scripts/routes.json`, not laid out interactively, and has never been through DRC. The
+   zone fill is still MouseBiteLabs' stock fill.
+2. **Verify the ClockxControl landing geometry against a physical module** — it is
+   photo-derived, and it is now the largest unverified thing in the package.
+3. **Verify the CPL rotation convention** against PCBWay's per-package zero reference. A
+   wrong convention puts every polarised part in backwards.
 
-**But it cannot be adopted as a footprint swap onto this layout, and that was tested.** On
-AGBM-01 the channel west of `U2`'s left pad column carries the entire RAM address-bus fanout — 37
-F.Cu segments on `MA_1`…`MA_15`, `~WE_RAM`, `~LB`, `~UB`, GND. Placing his pad field there
-**shorts 15 of the 24 new pads across 12 nets**. Nick could put the column there on AGBM-02
-because he re-routed the fanout; ECO-5 went east because east was comparatively empty.
+### Two hand steps the machine will not do
 
-**The remedy is to rebase this fork onto AGBM-02**, which already carries the land, the straps and
-the shell fit — and whose layout is byte-identical to AGBM-01 at 217 of 230 shared footprints.
-That would also close both blockers above, since both are ECO-5's damage. Full comparison and the
-cost of the rebase in [`wiki-audit/README.md`](../wiki-audit/README.md) §D and §D2. **Until that
-decision is made, this board's `U2` land remains ECO-5's and its shell fit remains unverified.**
+Both concern `U2`, and both are MouseBiteLabs' jumpers with his numbering — see his
+*Feature Configurations* wiki page. **Only if you populate the CY62157EV30LL**; leave both
+**open** for a salvaged OEM AGB-SRAM, which the land still accepts:
 
-**Two manual steps no assembly line performs**, for whichever land ends up on the board — record
-them in the build notes rather than expecting PCBWay to do them. Both apply *only* if you populate
-a CY62157EV30LL, and both must be left open for a salvaged OEM chip:
+* bridge **`JP2`** — ties `U2` pin 17 (`MA17`) to GND
+* bridge **`JP3`** — ties `U2` pin 47 (`/BYTE`) to `VDD2` for ×16 word mode
 
-* bridge **`JP2`** — ties `U2` pin 47 (`/BYTE`) to `VDD2` for ×16 word mode;
-* solder-bridge **`U2` pins 16 to 17** — ties `MA17` to `VDD2`. Zero copper by design; verified
-  adjacent on 0.5 mm pitch at `(−6.69, 1.75)` and `(−6.69, 2.25)`.
+**Our ClockxControl clock jumper is `JP4`**, not `JP3`. It was `JP3` on the AGBM-01 base,
+where nothing else claimed the name; on AGBM-02 that collided with his `/BYTE` strap, so
+ECO-13 renamed ours. His instructions now read correctly against this board.
 
-**Do not follow the wiki's `JP2`/`JP3` instruction literally on this board.** Nick's *Feature
-Configurations* says to bridge `JP2` **and** `JP3` for a new RAM chip, because on AGBM-02 those are
-the `MA17`→GND and `/BYTE`→`VDD2` straps. On this fork **`JP3` is ECO-6's ClockxControl clock
-jumper** (`/CPU/CK1` ↔ `CXC_CLK`) and has nothing to do with the RAM. Bridging it is harmless — on
-a module build it is the configuration you want — but it is not the RAM strap, and `MA17` is the
-pin-16-to-17 bridge instead.
+### One build decision the board deliberately leaves to you
+
+`Z57`/`Z58` carry the Value **`100p or 0 ohm`** — MouseBiteLabs states the choice in the
+field rather than picking for you. Capacitors make the `L+R+Start+A/B` hotkeys fake a screen
+kit's touch input; resistors or jumpers make them plain button inputs for an external mod.
+**The generated BOM buys the capacitor.** If you want button inputs, change it before
+ordering. His own note is worth reading first — of three units he built, only one could
+reliably fake the touch input.
 
 ## 6. Still to do
 

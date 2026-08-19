@@ -4,8 +4,8 @@ Cuts the insideGadgets **GBA ClockxControl** landing pattern into
 `AGBM-01_AA_1-2_GBE-plus.kicad_pcb` (the ECO-5 de-salvage board), so the module solders
 directly to the AGBM instead of being taped down and wired to six scattered points.
 
-Output board: [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zip) →
-`AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb`.
+Output board: [`board/agbm-02-clockxcontrol.zip`](board/agbm-02-clockxcontrol.zip) →
+`AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb`.
 
 Derivative of MouseBiteLabs Game Boy Enhance (AGBM-01) and Game Boy DMG Color, CC BY-SA 4.0.
 

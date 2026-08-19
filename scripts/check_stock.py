@@ -56,7 +56,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OVERRIDES = os.path.join(ROOT, "scripts", "mpn_overrides.json")
 LINKMAP = os.path.join(ROOT, "scripts", "link_mpn.json")
 OUT = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
-SCHEMATIC_ZIP = os.path.join(ROOT, "AGBM-01 (AA Batteries)", "AGBM-01_Design Files.zip")
+# ECO-13: the schematic whose own Digi-Key links resolve the generic values is AGBM-02's
+# now, matching the board. AGBM-01's links buy an LTC3527 front end this board does not
+# have, and three resistors whose stale values ECO-12 had to correct by hand.
+SCHEMATIC_ZIP = os.path.join(ROOT, "AGBM-02 (AA Batteries)", "AGBM-02 Design Files.zip")
 
 DK_TOKEN_URL = "https://api.digikey.com/v1/oauth2/token"
 DK_SEARCH_URL = "https://api.digikey.com/products/v4/search/keyword"
@@ -97,6 +100,8 @@ class Distributors:
         self.dk_up = self.mo_up = not offline
         self.notes = []
         self.calls = 0
+        self._dk_pause = 0.0     # grows on 429, halves on success
+        self._dk_429 = 0
         if offline:
             return
         try:
@@ -127,13 +132,38 @@ class Distributors:
             "X-DIGIKEY-Locale-Site": "US",
             "X-DIGIKEY-Locale-Language": "en",
             "X-DIGIKEY-Locale-Currency": "USD"})
-        try:
-            j = json.load(urllib.request.urlopen(req, timeout=45))
-        except (OSError, ValueError) as e:
-            self.notes.append(f"Digi-Key query for {mpn} failed: {type(e).__name__}")
+        # THROTTLING IS NOT AN ANSWER. Digi-Key answers a burst with HTTP 429, and the
+        # first version of this method treated that like any other failure: one attempt,
+        # return None, leave the columns blank. Blank means UNKNOWN, so it never lied --
+        # but a whole run could come back UNKNOWN because the API was busy for a second,
+        # and the report would be useless without being wrong. So: 429 gets an explicit
+        # exponential back-off and a retry, and the back-off is remembered on the instance
+        # so the NEXT part waits too rather than walking into the same wall.
+        j = None
+        for attempt in range(4):
+            if self._dk_pause:
+                time.sleep(self._dk_pause)
+            try:
+                j = json.load(urllib.request.urlopen(req, timeout=20))
+                self._dk_pause = max(0.0, self._dk_pause / 2)     # recover gradually
+                break
+            except urllib.error.HTTPError as e:
+                self.calls += 1
+                if e.code != 429:
+                    self.notes.append(f"Digi-Key query for {mpn} failed: HTTP {e.code}")
+                    return None
+                self._dk_pause = min(8.0, max(1.0, self._dk_pause * 2))
+                self._dk_429 += 1
+            except (OSError, ValueError) as e:
+                self.calls += 1
+                self.notes.append(f"Digi-Key query for {mpn} failed: {type(e).__name__}")
+                return None
+            else:
+                self.calls += 1
+        if j is None:
+            self.notes.append(f"Digi-Key throttled on {mpn} after 4 tries -- its columns "
+                              f"are blank below, which means UNKNOWN, not unavailable")
             return None
-        finally:
-            self.calls += 1
         # EXACT match only. A keyword search happily returns a near-neighbour, and
         # accepting one is precisely how a BOM ends up naming a part nobody chose.
         for p in j.get("Products") or []:
@@ -227,9 +257,34 @@ def mpn_value(mpn):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--offline", action="store_true", help="skip both APIs")
+    ap.add_argument("--reshape", action="store_true",
+                    help="rebuild the file's STRUCTURE from the board and the overrides, "
+                         "carrying the previously-fetched distributor data forward by MPN "
+                         "and stamping it with the date it was fetched. Queries nothing. "
+                         "Use when the board changed but the APIs are unavailable.")
     ap.add_argument("--check", action="store_true",
                     help="verify the committed file is current; write nothing")
     a = ap.parse_args()
+
+    # --reshape: the board moved but the distributors are unreachable. Rather than write a
+    # file full of blanks -- which is honest but useless -- carry the last fetched figures
+    # forward BY MPN and stamp each with the date they were actually fetched. The rule this
+    # file lives by is that a probe which did not run reports UNKNOWN and never zero; a
+    # figure that DID run, labelled with when, is not a violation of it. What is forbidden
+    # is an undated number presented as current, and `data_as_of` is what prevents that.
+    prior, prior_when = {}, None
+    if a.reshape:
+        try:
+            old = json.load(open(OUT, encoding="utf-8"))
+            prior_when = old.get("generated_utc")
+            for e in old.get("entries", []):
+                keep = {k: e[k] for k in ("digikey", "mouser", "desc", "datasheet")
+                        if k in e}
+                if keep:
+                    prior[e["mpn"]] = keep
+        except (OSError, ValueError) as e:
+            sys.exit(f"--reshape needs an existing {os.path.relpath(OUT, ROOT)}: {e}")
+        a.offline = True
 
     board = kisexp.load(f"{bom_split.ZIP}::{bom_split.MEMBER}")
     fps = kisexp.by_ref(board)
@@ -313,24 +368,42 @@ def main():
     for n in dist.notes:
         print("  NOTE: " + n)
 
-    # --- group by MPN and price it once ---------------------------------------------
+    # --- group by MPN **AND BOARD VALUE**, and price each MPN once --------------------
+    # Grouping by MPN alone was wrong, and AGBM-02 is what exposed it. Z57/Z58 resolve to
+    # the same 100 pF part as C18/C19/C20 through the same schematic link, but the BOARD
+    # gives them a different Value: "100p or 0 ohm", because they are configurable -- caps
+    # make the L+R+Start+A/B hotkeys fake a screen kit's touch input, resistors or jumpers
+    # make them plain button inputs. One line claiming a single Value for refs the board
+    # disagrees about is exactly the silent averaging this file exists to prevent, so the
+    # key includes the Value and the pair gets its own line.
     by_mpn = {}
     for ref, (mpn, how, meta) in chosen.items():
         if mpn:
-            by_mpn.setdefault(mpn, {"refs": [], "how": how, "meta": meta})["refs"].append(ref)
+            val = fps[ref].value if ref in fps else ""
+            by_mpn.setdefault((mpn, val),
+                              {"refs": [], "how": how, "meta": meta})["refs"].append(ref)
 
     entries = []
-    for mpn in sorted(by_mpn):
-        g = by_mpn[mpn]
-        dk = dist.digikey(mpn)
-        mo = dist.mouser(mpn)
-        if not a.offline:
-            time.sleep(0.35)               # be polite; both APIs are rate-limited
+    priced = {}
+    for mpn, val in sorted(by_mpn):
+        g = by_mpn[(mpn, val)]
+        if mpn not in priced:
+            priced[mpn] = (dist.digikey(mpn), dist.mouser(mpn))
+            if not a.offline:
+                time.sleep(0.35)           # be polite; both APIs are rate-limited
+        dk, mo = priced[mpn]
         e = {"refs": sorted(g["refs"]),
-             "value": fps[g["refs"][0]].value if g["refs"][0] in fps else "",
+             "value": val,
              "mpn": mpn,
              "mfr": (g["meta"].get("mfr") or (dk or {}).get("mfr") or (mo or {}).get("mfr") or ""),
              "resolved_from": g["how"]}
+        if a.reshape:
+            # Structure is fresh, figures are not. Say so on every line that carries any.
+            if mpn in prior:
+                e.update(prior[mpn])
+                e["data_as_of"] = prior_when or "unknown"
+            else:
+                e["data_as_of"] = "NEVER FETCHED -- this MPN is new since the last live run"
         for k in ("eco", "flag", "note", "alternate"):
             if g["meta"].get(k):
                 e[k] = g["meta"][k]
@@ -379,12 +452,23 @@ def main():
             sys.exit(f"FAIL: {OUT} is stale in {drift} -- run scripts/check_stock.py")
         print("ok: the committed file matches a fresh resolution")
         return 0
-    if a.offline:
+    if a.offline and not a.reshape:
         print("\n--offline: nothing written (no live data to write)")
         return 0
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=1)
         f.write("\n")
+    if a.reshape:
+        fresh = sum(1 for e in entries if e.get("data_as_of", "").startswith("NEVER"))
+        print(f"\n--reshape: NO DISTRIBUTOR WAS QUERIED. Structure is rebuilt from the "
+              f"board and the overrides; every stock and price figure is carried forward "
+              f"from {prior_when} and stamped `data_as_of`. {fresh} line(s) are new since "
+              f"that run and carry NO figures at all. Re-run without --reshape before "
+              f"placing an order.")
+    if dist._dk_429:
+        print(f"\nNOTE: Digi-Key returned HTTP 429 {dist._dk_429} time(s) and was retried "
+              f"with back-off. Any line with blank Digi-Key columns means UNKNOWN, not "
+              f"unavailable -- re-run before trusting a missing stock figure.")
     print(f"\nwrote {os.path.relpath(OUT, ROOT)}: {len(entries)} lines, "
           f"{dist.calls} API calls")
     return 0

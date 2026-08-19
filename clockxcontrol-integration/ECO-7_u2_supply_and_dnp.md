@@ -11,7 +11,7 @@ would have destroyed the board and the correct fix needs KiCad's interactive rou
 ## 7.1 What is implemented
 
 `X1`, `C3` and `C4` now carry `(attr smd dnp)` in
-`AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb`. Before this, the crystal and both load caps shipped as
+`AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb`. Before this, the crystal and both load caps shipped as
 ordinary fitted parts, so an assembly house would have soldered a crystal onto the node the
 ClockxControl is trying to drive. The diff against the ECO-6 rev B board is exactly three lines and
 touches no copper.
@@ -33,9 +33,23 @@ is stronger. Corrected in both documents.
 
 ---
 
-## 7.2 What is NOT implemented, and why
+## 7.2 CLOSED — both defects were ECO-5's, and ECO-5 is gone
 
-### The defect
+> **[ECO-13](ECO-13_rebase_onto_agbm02.md) rebased this fork onto MouseBiteLabs' AGBM-02 on
+> 2026-08-19. Both blockers below were ECO-5's own damage, so both closed with it.**
+> Consistency check [10] — which was written to go RED the moment either got fixed, exactly
+> so this section could not quietly become wrong — fired on both, and is now inverted: it
+> asserts they are **closed** and goes red if either comes back.
+>
+> | Defect | Now |
+> |---|---|
+> | `U2` pin 37 has no path to `VDD2` | **closed.** On AGBM-02 pin 37 lands on the `x = 10.97` column, a stock column the OEM RAM uses too. The two `VDD2` vias ECO-5 deleted at `(100.8, −56.6)` and `(100.8, −55.2)` are present. |
+> | `Net-(Q5B-G)` severed into two islands | **closed.** AGBM-02 has the net whole — one island over `U17.1`, `Q5.3`, `R66.2` — verified by union-find, and so does the base, so this fork inherits a good net rather than repairing a bad one. |
+>
+> **The section below is kept as the engineering record of what ECO-5 broke and how it was
+> diagnosed.** It is history, not a live warning. Read §7.3 for what is actually still open.
+
+### The defect (historical — on the ECO-5 base)
 
 `U2` pin 37 is the SRAM's supply pin, and on the ECO-5 board it has no path to `VDD2`.
 
@@ -137,26 +151,38 @@ is dense enough that geometry has to be checked against a live DRC engine, not a
 
 ## 7.3 Before you fab
 
-1. **Do not fabricate the ECO-5 or ECO-6 board as committed.** `U2` pin 37 has no supply, and with a
-   CY62157 that means no supply at all.
-2. Rework the `U2` corner in KiCad to bring `VDD2` to pin 37, and re-pour. The zone fill in every
-   board file in this repository is the stale stock fill; nothing has been re-poured since ECO-5.
-3. Restore `Net-(Q5B-G)` with the via at (104.077, −59.240) and route its two B.Cu links.
-   **Not at the stock site.** Restoring the deleted via where MouseBiteLabs had it is the same trap
-   as the `VDD2` vias: (100.800, −62.150) now sits with **0.000 mm** gap to `U2.45` (`/CPU/MD_15`,
-   pad 1.7 × 0.3 at (100.310, −62.050)) and 0.250 mm to `U2.46` (`GND`) — both inside a 0.7 mm
-   annulus. Measured, not assumed.
-4. Re-run the full differential check afterwards.
+**Items 1–3 below are closed by [ECO-13](ECO-13_rebase_onto_agbm02.md).** What remains:
 
+1. **Open the board in KiCad and run DRC.** The ECO-6 copper is generated from
+   `scripts/routes.json`, not laid out interactively, and it has never been through DRC.
+2. **Re-pour the zones.** The zone fill in every board file here is MouseBiteLabs' stock
+   fill; nothing has been re-poured since the ECO-6 additions.
+3. **Verify the ClockxControl landing geometry against a physical module.** It is
+   photo-derived. Unchanged by the rebase, and it is now the largest unverified thing in
+   the package.
+4. **Verify the CPL rotation convention** against PCBWay's per-package zero reference.
 
----
+### Closed, and what closed them
 
-## 7.4 These blockers are now gated
+| Was | Closed by |
+|---|---|
+| `U2` pin 37 has no supply — do not fabricate | ECO-13: AGBM-02's land puts pin 37 on a stock column that already carries `VDD2` |
+| Restore `Net-(Q5B-G)`, and **not** at the stock site — the deleted via's coordinate now sits 0.000 mm from `U2.45` | ECO-13: the net is whole on AGBM-02 and no via needs restoring. The clearance trap went with ECO-5's third pad column. |
 
-`scripts/check_consistency.py` check [10] asserts **both defects are still present**, and goes RED
-when either is fixed. That is deliberate. The moment somebody routes pin 37 or drops the missing
-via, this document and three others become wrong, with nothing to notice — so the check fails and
-names the four files that have to be corrected in the same commit.
+## 7.4 The gate did its job
 
-A blocker that gets quietly fixed and leaves its scary paragraph behind is how a repository starts
-lying about itself. See [`scripts/README.md`](../scripts/README.md).
+`scripts/check_consistency.py` check [10] used to assert **both defects were still
+present**, and to go RED when either was fixed. That is deliberate, and on 2026-08-19 it
+fired — on both, in the same run, naming the four documents that had to be corrected.
+
+That is the whole point of writing a check that way. The rebase closed two defects as a
+side effect of changing the base board; nobody set out to fix them, and without the check
+this document would still be telling you not to fabricate, for reasons that stopped being
+true. A blocker that gets quietly fixed and leaves its scary paragraph behind is how a
+repository starts lying about itself.
+
+The check is **kept and inverted** rather than deleted: it now asserts both are closed and
+goes red if either returns — which is a live risk, because both arose the first time from
+an ECO deleting vias around `U2` to make room for something.
+
+See [`scripts/README.md`](../scripts/README.md).

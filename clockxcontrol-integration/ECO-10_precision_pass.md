@@ -1,5 +1,19 @@
 # ECO-10 — the precision and longevity pass
 
+> ### ⚠ Superseded in part by ECO-13
+>
+> **[ECO-13](ECO-13_rebase_onto_agbm02.md) rebased this fork onto MouseBiteLabs' AGBM-02,
+> which has no LTC3527.** `R21`, `R22`, `R23`, `R55`, `C40` and `C41` — every leg of both
+> feedback dividers and both feedforward caps — **do not exist on the current board.**
+> §10.2 below is therefore history: the finding was right about the wrong converter.
+>
+> **Everything else in this ECO is live and unchanged**, because none of it is a `Value`
+> change — the audio filter's 0.1 % ±25 ppm thin film, the 25 V AEC-Q200 decoupling and the
+> supervisor divider legs are part-number choices in `scripts/mpn_overrides.json`, against
+> references AGBM-02 carries at identical positions.
+
+
+
 Six `Value` changes and twenty-three MPN upgrades. **No copper.** The board edits are a
 16-line diff against the ECO-9 build.
 

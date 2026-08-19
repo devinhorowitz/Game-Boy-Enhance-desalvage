@@ -52,11 +52,11 @@ import build_board                                               # noqa: E402
 import kisexp                                                    # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board", "agbm-01-clockxcontrol.zip")
-MEMBER = "agbm-01-clockxcontrol/AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb"
+ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board", "agbm-02-clockxcontrol.zip")
+MEMBER = "agbm-02-clockxcontrol/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"
 MPNS = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
 OUTDIR = os.path.join(ROOT, "pcbway-assembly", "generated")
-STEM = "agbm-01-cxc"
+STEM = "agbm-02-cxc"
 
 # --- footprints that are copper, not parts -------------------------------------------
 # BOM-excluded but nothing to buy. Matched on the footprint LIBRARY NAME, so a new
@@ -66,6 +66,13 @@ NO_PART_FAMILIES = {
     "TestPoint": "bare pad for a probe",
     "SolderJumper": "copper, closed with solder",
     "LOGO": "silkscreen artwork",
+    # ECO-13: NT1 is MouseBiteLabs' single-point-ground net tie -- the one place the audio
+    # ground and everything else meet, which the wiki's Schematic Explanation describes at
+    # length. It is a copper shape, not a component. It was DNP on AGBM-01 so the DNP rule
+    # caught it first; on AGBM-02 it is `exclude_from_bom` WITHOUT `dnp`, so it fell
+    # through to the hand-solder list with the "no ECO-9 reason -- add one" fallback. This
+    # is that reason.
+    "NetTie": "copper shape joining two nets -- the single-point ground, not a part",
 }
 
 # --- things with no footprint at all --------------------------------------------------

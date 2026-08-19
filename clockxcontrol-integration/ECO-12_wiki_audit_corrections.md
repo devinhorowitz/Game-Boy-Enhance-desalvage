@@ -2,6 +2,26 @@
 
 Derivative of MouseBiteLabs *Game Boy Enhance* (AGBM-01), CC BY-SA 4.0.
 
+> ### ⚠ Superseded by ECO-13
+>
+> **[ECO-13](ECO-13_rebase_onto_agbm02.md) rebased this fork onto MouseBiteLabs' AGBM-02,
+> and this ECO's board changes are now inherited rather than applied.**
+>
+> * **§12.1** corrected `R3`/`R4`/`R64` from a stale AGBM-01 PCB annotation to 5.1 k / 33 k /
+>   200 k. **AGBM-02 already carries those values** — that is what made this ECO's case in
+>   the first place. The generator now *asserts* the thresholds against the base board
+>   rather than setting them, which is stronger: it fails if upstream ever drifts.
+> * **§12.2** gave `VOUT3` back the 108 mV ECO-8 trimmed, via `R23`. `R23` does not exist on
+>   AGBM-02. Deleted with the LTC3527.
+>
+> **The part-number half is live and unchanged:** `R3`/`R4` on Susumu RG1608 0.1 % ±25 ppm
+> anti-sulfur, and `R63` moved onto the same film as its partner `R58`.
+>
+> The reasoning below is kept because it is the evidence that settled the schematic-versus-PCB
+> conflict, and because the [wiki audit](../wiki-audit/README.md) turns on it.
+
+
+
 Reading MouseBiteLabs' project wiki end to end settled two questions this fork had left
 open, and one of them had turned into a live regression in our own generated BOM. The
 full audit — every ECO in this fork checked against what Nick wrote, designed, measured

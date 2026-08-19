@@ -31,10 +31,10 @@
     "L1",
     "L2"
    ],
-   "mpn": "LSXND3030QKT4R7MNG",
-   "mfr": "Taiyo Yuden",
-   "flag": "footprint is named L_Taiyo-Yuden_NR-20xx (2.0 x 2.0 mm); land is 4.00 x 2.00 mm. Verify against the part's recommended land pattern.",
-   "note": "4.7 uH, DCR 144 mohm max, Isat 1.02 A, Irms 1.04 A"
+   "mpn": "CIGT201610EHR47MNE",
+   "mfr": "Samsung Electro-Mechanics",
+   "note": "4.7 uH, DCR 144 mohm max, Isat 1.02 A, Irms 1.04 A",
+   "eco": "ECO-13. The TPS63802 inductors, named outright in the AGBM-02 README's own Description column rather than left to a generic value. 470 nH shielded thin film, 4.8 A, 22 mOhm max, 0806. $0.21, 672,450 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -98,12 +98,13 @@
   },
   {
    "refs": [
-    "U5"
+    "U5",
+    "U13"
    ],
-   "mpn": "LTC3527EUD#PBF",
-   "mfr": "Analog Devices",
-   "flag": "The most expensive active on the board by a wide margin, and the LTC3527 is the converter the power review's Tier-2 recommends transplanting for a TPS63802. Cost argues the same way efficiency does -- check the live price block below before treating that as settled.",
-   "note": "Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz"
+   "mpn": "TPS63802DLAR",
+   "mfr": "Texas Instruments",
+   "note": "Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz",
+   "eco": "ECO-13. AGBM-02's main converters -- twin buck-boost, replacing the AGBM-01's single LTC3527. MouseBiteLabs' own measured idle is 141 mW against AGBM-01's 170 mW. U13 makes VOUT3 (R72/R73 on Net-(U13-FB)), U5 makes VOUT5 (R59/R60 on Net-(U5-FB)), both read off the netlist rather than assumed. $2.83 each, 12,217 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -219,14 +220,6 @@
   },
   {
    "refs": [
-    "R23"
-   ],
-   "mpn": "RT0603BRD07178KL",
-   "mfr": "YAGEO",
-   "eco": "ECO-12 reverts ECO-8's VOUT3 trim: 169k -> 178k, so VOUT3 returns to MouseBiteLabs' 3.336 V from the 3.228 V ECO-8 set to save 6.1 mW. Wrong trade for this fork -- VDD3 is the CPU's 3.3 V I/O ring and the cartridge supply VDD35, the bus a 1.75x overclock actually stresses, and 8.2 mW at 1.75x is 0.86% of the load, about three and a half minutes. Nick's build guide Test 3 reads \"VDD3 to GND: 3.3V\". It also restores the feedforward compensation exactly: C41 was sized against 1.78M, ECO-8 shifted that zero 5.3% and ECO-10 preserved the shifted value; 178k x 150p = 26.7 us is the original 1.78M x 15p. R23 now shares R21's part number, so this REMOVES a BOM line. 14,673 in stock, verified 2026-08-19."
-  },
-  {
-   "refs": [
     "R25"
    ],
    "mpn": "RC0603FR-0722KL",
@@ -312,9 +305,10 @@
    "refs": [
     "U2"
    ],
-   "mpn": "",
-   "mfr": "Nintendo",
-   "note": "NO DISTRIBUTOR PART. AGB SRAM, same donor. If you fit ECO-5's CY62157EV30LL instead it IS orderable and this entry is replaced -- but see ECO-7, pin 37 has no supply either way."
+   "mpn": "CY62157EV30LL-45ZXIT",
+   "mfr": "Infineon Technologies",
+   "note": "NO DISTRIBUTOR PART. AGB SRAM, same donor. If you fit ECO-5's CY62157EV30LL instead it IS orderable and this entry is replaced -- but see ECO-7, pin 37 has no supply either way.",
+   "eco": "ECO-13, and the reason this repository exists. On the AGBM-01 base U2 was a salvaged AGB-SRAM off a donor console, and ECO-5 was OUR unverified attempt to let a new part stand in for it. AGBM-02 carries MouseBiteLabs' own dual land, so this is simply an ORDERABLE PART: the machine buys it and places it, and a build needs exactly one chip off a donor -- the CPU. His Required Parts page: \"For the AGBM-02 and AGBM-12, you *only* need the CPU.\" Tape-and-reel suffix chosen over the tube part for machine placement. 8 Mbit 512K x 16 async SRAM, 45 ns, 48-TSOP I. TWO HAND STEPS COME WITH IT and no assembly line does either: bridge JP2 (U2 pin 17 MA17 to GND) and JP3 (pin 47 /BYTE to VDD2 for x16 word mode). Leave BOTH open if you fit a salvaged OEM AGB-SRAM instead -- the land still accepts it, and then this line comes off the BOM. $10.85, 1,695 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -379,39 +373,6 @@
    "mpn": "RC0603FR-0733KL",
    "mfr": "YAGEO",
    "alternate": "Second-source it: Digi-Key is at zero with a 17-week lead, MOUSER HAS 95,136 (verified 2026-08-19). Same YAGEO part, no decision required."
-  },
-  {
-   "refs": [
-    "R21"
-   ],
-   "mpn": "RT0603BRD07178KL",
-   "mfr": "YAGEO",
-   "eco": "ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. R21 = VOUT5 top leg, was 1.78M."
-  },
-  {
-   "refs": [
-    "R22"
-   ],
-   "mpn": "RT0603BRD0756KL",
-   "mfr": "YAGEO",
-   "eco": "ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. R22 = VOUT5 bottom leg, was 560k."
-  },
-  {
-   "refs": [
-    "R55"
-   ],
-   "mpn": "RT0603BRD07100KL",
-   "mfr": "YAGEO",
-   "eco": "ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. R55 = VOUT3 bottom leg, was 1M."
-  },
-  {
-   "refs": [
-    "C40",
-    "C41"
-   ],
-   "mpn": "GCM1885C2A151FA16D",
-   "mfr": "Murata Electronics",
-   "eco": "ECO-10. FEEDFORWARD caps across the top leg of each divider (VOUT -> FB, verified from the netlist), so the zero they set is 1/(2*pi*R_top*C). Dropping R_top 10x without touching C would move it from ~6 kHz to ~60 kHz and discard the phase lead it exists to provide, so 15 pF -> 150 pF holds it where the design put it. The datasheet says only that 'a typical value of 15pF will generally suffice', so this preserves MouseBiteLabs' compensation rather than following a mandate. C0G +/-1% 100 V AEC-Q200 -- a compensation element should not drift with temperature."
   },
   {
    "refs": [
@@ -492,6 +453,74 @@
    "mpn": "FDC6301N",
    "mfr": "onsemi",
    "eco": "ECO-11. NDC7002N VGS(th) is 1.0/1.9/2.5 V max and Q10A must sink ~14 uA through the TPS3840's 100 kOhm internal MR pull-up at VGS ~= 2.0 V, Q10B runs at 0.990 x SW, and Q9B opens the low-battery LED at /D1A ~= 3.0 V. A worst-case part is at or below threshold in all three, so the brownout latch may never arm and the low-battery LED may never light -- invisibly, since the console works normally until the protection was meant to act. FDC6301N is 0.65/0.85/1.5 V max on the identical SUPERSOT-6 land with the same pin assignment, giving >=0.5 V of worst-case overdrive everywhere. Its asymmetric -0.5 V gate rating is covered by its own integrated gate-source Zener ('>6 kV HBM'), whose clamp current at Q10A's power-up excursion is set by R16 -- which ECO-8 had already raised from 10k to 100k, making it 25 uA. Headroom: 25 V / 0.22 A against 5.0 V and <=165 uA."
+  },
+  {
+   "refs": [
+    "R59"
+   ],
+   "mpn": "RC0603FR-07820KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-13. VOUT5 feedback top leg on U5. Left at 1% deliberately -- see ECO-13 section 13.7, which records the precision question as an OPEN follow-up rather than answering it blind: the argument that justified 0.1% on the LTC3527 was that converter's specified 50 nA feedback input current, and this fork has not read the equivalent number for the TPS63802."
+  },
+  {
+   "refs": [
+    "R60",
+    "R73"
+   ],
+   "mpn": "RC0603FR-0791KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-13. Both TPS63802 feedback bottom legs. 1%, see R59."
+  },
+  {
+   "refs": [
+    "R72"
+   ],
+   "mpn": "RC0603FR-07510KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-13. VOUT3 feedback top leg on U13. 1%, see R59."
+  },
+  {
+   "refs": [
+    "R29"
+   ],
+   "mpn": "RC0603FR-0718KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-13. The /RESET RC with C30. Generic value, resolved from the AGBM-02 README."
+  },
+  {
+   "refs": [
+    "C73",
+    "C79"
+   ],
+   "mpn": "CGA3E2X7R1H103K080AA",
+   "mfr": "TDK",
+   "eco": "ECO-13. TPS63802 feedforward caps. TDK CGA -- the automotive-qualified grade of the C-series, X7R 50 V, matching the family ECO-10 chose for the decoupling so the board stays on as few dielectric systems as possible."
+  },
+  {
+   "refs": [
+    "C57"
+   ],
+   "mpn": "GRT188R61E106ME13D",
+   "mfr": "Murata Electronics",
+   "eco": "ECO-13. Converter input bulk on VCC. Takes the same soft-termination 25 V part ECO-10 already chose for every other 10 uF placement."
+  },
+  {
+   "refs": [
+    "C58"
+   ],
+   "mpn": "GRT21BR61E226ME13L",
+   "mfr": "Murata Electronics",
+   "eco": "ECO-13. Converter output bulk. Same soft-termination 25 V family as the rest of the 22 uF line."
+  },
+  {
+   "refs": [
+    "C70",
+    "C71"
+   ],
+   "mpn": "CL10C270JB8NNNC",
+   "mfr": "Samsung Electro-Mechanics",
+   "eco": "ECO-13. A GAP IN MOUSEBITELABS' OWN BOM: C70 and C71 are fitted (not DNP) on both AGBM-01 and AGBM-02, and neither README lists them, so there is no upstream link to resolve. They are the 27 pF coupling caps on the hotkey touch-input nets -- Net-(C70-Pad1) is C70.1, R70.2, TP10.1, Z57.2 -- read off the netlist. C0G/NP0 is the right dielectric for a coupling cap whose value is the point. CHOSEN AGAINST THE FAMILIES THIS BOARD OTHERWISE USES, and here is why not: TDK's CGA3E2C0G1H270J080AA is the AEC-Q200 part that would match ECO-10's decoupling choice, but Mouser shows 8 in stock; Murata's GCM1885C1H270JA16D and GRM1885C1H270JA01D are both flagged Not Recommended for New Designs; TDK's C1608C0G1H270J080AA is Obsolete. The Samsung part is active with 174,716 at Mouser, $0.13 (Mouser figures, verified 2026-08-19 -- Digi-Key was rate-limiting during this lookup and reported nothing, which means UNKNOWN, not unavailable).",
+   "alternate": "CC0603JRNPO9BN270 (YAGEO, 31,697 at Mouser, $0.10, verified 2026-08-19)"
   }
  ]
 }

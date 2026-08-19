@@ -1,6 +1,6 @@
 # ECO-8 — the drop-in component swaps from the power review
 
-Thirteen `Value`/`Description` edits on `AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb`. **No copper, no
+Thirteen `Value`/`Description` edits on `AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb`. **No copper, no
 land pattern, no placement.** Every replacement lands on the footprint that is already on the board.
 
 The diff against the ECO-7 build is exactly 26 lines — thirteen properties, before and after — so
@@ -18,11 +18,9 @@ datasheet — recorded in §8.3, along with the one thing this change set makes 
 | Ref | Was | Now | Class | Why |
 |---|---|---|---|---|
 | `U7` | `TLV9364` | **`TLV9064IPWR`** | correctness | 4.5 V-minimum op-amp on a 2.5 V rail |
-| `R23` | `1.78M` | **`1.69M`** | efficiency | `VOUT3` 3.336 V → 3.228 V — *later superseded to `169k` by [ECO-10](ECO-10_precision_pass.md), same rail* |
 | `DL1` | `150060VS75000` | **`150060GS75000`** | efficiency + quality | InGaN green, 11–18× the luminous intensity |
 | `R25` | `3.3k` | **`22k`** | efficiency | pairs with `DL1` |
-| `PTC1` | `0467001.NR` | **`0805L110SLYR`** | stability + BOM fix | derated hold current was below the load |
-| `F1` | `0467001.NR` | **`F0805B2R00FSTR`** | BOM fix | stale value, no electrical change |
+| `PTC1` | `0805L075SLYR` | **`0805L110SLYR`** | stability | derated hold current was below the load |
 | `R15` | `10k` | **`100k`** | efficiency | brownout-latch bias |
 | `R16` | `10k` | **`100k`** | efficiency | brownout-latch bias |
 | `R11` | `1k` | **`10k`** | efficiency | latched-off drain |
@@ -31,7 +29,21 @@ datasheet — recorded in §8.3, along with the one thing this change set makes 
 
 `PTC1` and `F1` also had their `Description` field replaced. Both carried the string `0805L050WR`,
 which is a third part again — a legacy string baked into the library symbol, present on both parts
-in AGBM-01, AGBM-02 and AGBM-11 alike.
+in AGBM-01, AGBM-02 and AGBM-11 alike. Those two rows are unaffected by the rebase.
+
+### Three rows this ECO used to carry, and why they are gone
+
+[ECO-13](ECO-13_rebase_onto_agbm02.md) moved the base board from the ECO-5 AGBM-01
+desalvage to MouseBiteLabs' AGBM-02. Against that base:
+
+| Row | What happened |
+|---|---|
+| `F1` `1.78M`→… *(was `0467001.NR`→`F0805B2R00FSTR`)* | **already fixed upstream.** AGBM-02 reads `F0805B2R00FSTR`. The finding was right and he made the same fix; nothing left to change. |
+| `PTC1` was `0467001.NR` | **annotation already fixed upstream** — AGBM-02 reads `0805L075SLYR`. The *engineering* finding is untouched: that part derates to 0.55 A hold at 40 °C, below the load. The swap stays, from a different starting value, and it is no longer a "BOM fix". |
+| `R23` `1.78M`→`1.69M` | **the reference does not exist.** It was the LTC3527's `VOUT3` feedback leg and AGBM-02 has no LTC3527. [ECO-12 §12.2](ECO-12_wiki_audit_corrections.md) had already reverted this change; the rebase deletes it. |
+
+The `R23` trim was worth 4.1 / 6.1 / 8.2 mW in the ledger below. **Those rows are struck
+from the totals** — see the revised table.
 
 ### The ledger, at three labelled operating points
 
@@ -41,7 +53,7 @@ Battery-side, on MouseBiteLabs' own measured figures (170 mW idle, 792 mW repres
 | Change | Idle | 1× use | 1.75× |
 |---|---|---|---|
 | `U7` | 12.0 mW | 12.0 | 12.0 |
-| `R23` | 4.1 | 6.1 | 8.2 |
+| ~~`R23`~~ *(ref deleted by ECO-13)* | — | — | — |
 | `DL1` + `R25` | 4.6 | 4.6 | 4.6 |
 | `PTC1` | 0.1 | 2.2 | 3.2 |
 | `R15` + `R16` | 0.74 | 0.74 | 0.73 |

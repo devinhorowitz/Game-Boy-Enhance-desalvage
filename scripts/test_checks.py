@@ -24,10 +24,13 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_consistency as cc                                   # noqa: E402
 
-VIA_AT_THE_BREAK = (
-    '\n\t(via\n\t\t(at 100.8 -62.15)\n\t\t(size 0.7)\n\t\t(drill 0.3)\n'
-    '\t\t(layers "F.Cu" "B.Cu")\n\t\t(net 225)\n'
-    '\t\t(uuid "00000000-0000-0000-0000-000000000000")\n\t)')
+# ECO-13 INVERTED THIS CASE. On the ECO-5 base Net-(Q5B-G) was BROKEN, so the mutation
+# ADDED the missing via and check [10] had to notice the blocker was fixed. On AGBM-02 the
+# net is WHOLE and check [10] asserts that, so the mutation now DELETES the via that joins
+# it -- (100.8, -62.15) on net 224, the same coordinate ECO-5 removed the first time -- and
+# the check has to notice the net came apart.
+BREAK_THE_NET = re.compile(
+    r'\n\t\(via\n\t\t\(at 100\.8 -62\.15\)(?:(?!\n\t\()[\s\S])*?\n\t\)')
 
 
 def _run(fn, board):
@@ -39,6 +42,11 @@ def _run(fn, board):
     return list(cc.errors), s.getvalue()
 
 
+def cc_by_ref():
+    import kisexp
+    return kisexp.by_ref(cc.board())
+
+
 def main():
     good = cc.board()
     # WHICH VALUE TO CORRUPT. It has to be the value R23 carries TODAY, at the end of the
@@ -47,7 +55,18 @@ def main():
     # Reading it from cc._eco_chain_final() rather than a literal is what stops an ECO
     # that moves R23 from silently turning these cases into no-ops; the "BLIND" guard
     # below is what caught it the two times it happened, at ECO-10 and again at ECO-12.
-    VICTIM = cc._eco_chain_final()["R23"]
+    # ECO-13 note: this used to name R23, which does not exist on the AGBM-02 base. Take
+    # whichever ref the chain actually ends on, so the case survives the next rebase too.
+    chain = cc._eco_chain_final()
+    if not chain:
+        print("  BLIND:  no ECO in the chain changes a Value -- cases [1] and [3] cannot run")
+        return 1
+    VICTIM_REF = sorted(chain)[0]
+    VICTIM = chain[VICTIM_REF]
+    # For the duplicate-refdes case the new name has to be one the board ALREADY carries,
+    # or there is no duplicate to find. Take another ref off the board rather than typing
+    # one in, so it cannot go stale either.
+    OTHER_REF = next(r for r in sorted(cc_by_ref()) if r != VICTIM_REF and "*" not in r)
 
     def corrupt(ref, prop, was, now, src=None):
         """Replace one property inside ONE named footprint. Returns the board unchanged
@@ -75,10 +94,10 @@ def main():
         # below is what said so.
         ("[1]  a hand-edited board no longer rebuilds",
          cc.check_reproducible,
-         corrupt("R23", "Value", VICTIM, "12345")),
+         corrupt(VICTIM_REF, "Value", VICTIM, "12345")),
         ("[3]  an ECO table and the board disagree",
          cc.check_eco8_ledger,
-         corrupt("R23", "Value", VICTIM, "12345")),
+         corrupt(VICTIM_REF, "Value", VICTIM, "12345")),
         ("[4]  a stray DNP flag",
          cc.check_dnp_ledger,
          good.replace("(attr smd)", "(attr smd dnp)", 1)),
@@ -91,12 +110,12 @@ def main():
          good.replace(f"(at {m.group(1)} {m.group(2)}", "(at 91.95 -44.95", 1)),
         # The one that matters most: restoring the via ECO-5 deleted makes the net whole,
         # which makes four documents wrong. The check must say so.
-        ("[10] the Net-(Q5B-G) blocker gets FIXED",
+        ("[10] the Net-(Q5B-G) blocker COMES BACK",
          cc.check_blockers,
-         good[:k] + VIA_AT_THE_BREAK + good[k:]),
+         BREAK_THE_NET.sub("", good, count=1)),
         ("[11] a duplicate reference designator",
          cc.check_structure,
-         corrupt("R23", "Reference", "R23", "R24")),
+         corrupt(VICTIM_REF, "Reference", VICTIM_REF, OTHER_REF)),
     ]
 
     # [12] is tested separately: it reads the board through bom_split, not through the

@@ -225,7 +225,28 @@ that removed *all* the audible noise runs on `VAUD`, referenced to the audio gro
 this lever without a listening test**, and note the asymmetry: the power is worth about 40 mW at 1×,
 and the failure mode is the one thing this project exists to get right.
 
-### The converter transplant is last, not first
+### The converter transplant — DONE, by rebasing rather than by respinning
+
+> **[ECO-13](../clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md), 2026-08-19: this
+> fork now sits on MouseBiteLabs' AGBM-02, which *is* the twin-TPS63802 board.** The
+> transplant this section ranks and defers is no longer a modification anyone has to make —
+> it arrived with the base board, along with his verified CY62157 land, and it cost nothing
+> to take because AGBM-02 is AGBM-01 with 217 of 230 footprints at identical positions.
+>
+> Everything below still stands as the *assessment*, and it is the reason the ranking was
+> right: this is a light-load gap, not a 29 mW dividend at play. The honest summary is that
+> the fork took the 29 mW because it was going to AGBM-02 anyway for the RAM land, **not**
+> because the power case justified a respin. It did not.
+>
+> Two consequences for the rest of this document:
+> * **The LTC3527 analysis is now history.** `R21`, `R22`, `R23`, `R55`, `C40` and `C41` do
+>   not exist on this board, so ECO-10's feedback-divider rescale and ECO-12 §12.2's
+>   `VOUT3` revert are both deleted. The 50 nA-feedback-current finding was right about the
+>   wrong converter.
+> * **`U8` is still an LDO**, so the core-rail item below is still live — and still carries
+>   MouseBiteLabs' recorded objection to a switcher on that rail.
+
+#### The original assessment, unchanged
 
 The AGBM-02 twin-TPS63802 swap is the **only measured number in the review** — 170 vs 141 mW on two
 boards with verified-identical downstream. But it is a **light-load-only gap**. At in-use currents

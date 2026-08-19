@@ -18,7 +18,7 @@ one that is now the largest open risk in the package.
 | **A** | `R3`/`R4`/`R64`: the PCB annotation is stale, and our BOM was ordering it | **fixed** — [ECO-12 §12.1](../clockxcontrol-integration/ECO-12_wiki_audit_corrections.md) |
 | **B** | ECO-8 trimmed `VOUT3` 108 mV; wrong trade for an overclocked board | **reverted** — [ECO-12 §12.2](../clockxcontrol-integration/ECO-12_wiki_audit_corrections.md) |
 | **C** | ECO-11 §11.2's premise about `D1` was contradicted by the wiki | **rewritten** — conclusion survives |
-| **D** | ECO-5's RAM land extends the opposite way from the one Nick shipped | **flagged** — pre-fab blocker |
+| **D** | ECO-5's RAM land extends the opposite way from the one Nick shipped | **fixed** — [ECO-13](../clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md) rebased onto AGBM-02 |
 | **E** | Nick tried an SMPS on `VDD2` and rejected it on audio | **recorded** in the power review |
 | **F** | Ten ECO decisions actively corroborated | no action |
 
@@ -210,9 +210,22 @@ Rebasing this fork onto AGBM-02 would therefore:
   largely unchanged, since their parts are all at identical positions; and
 * **pick up 29 mW** — Nick's measured 141 mW idle against AGBM-01's 170 mW.
 
-That is a real piece of work — a new generator base and six ECOs re-derived — and it changes
-which PCB you order and which converter you buy. **Recorded as a recommendation, not
-applied.**
+**This was done.** [ECO-13](../clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md) is
+the record. Every prediction above held: ECO-5 deleted outright, both ECO-7 blockers closed,
+ECO-12 §12.1 and §12.2 and all of ECO-10's `Value` swaps deleted, ECO-6/7/8/9/11 carried
+across, and `U2` moved from the salvage list to the assembly BOM at
+`CY62157EV30LL-45ZXIT` — **a build now needs one donor chip, not two.**
+
+Two things the rebase turned up that this audit had not predicted:
+
+* **Our ClockxControl clock jumper was `JP3`, which is his `/BYTE` strap on AGBM-02.** The
+  documentation trap flagged in §D's smaller findings was worse than described — it was a
+  refdes collision, not just a naming confusion. Ours is now `JP4` and his instructions read
+  correctly against this board.
+* **`C70`/`C71` are a gap in his own BOM.** 27 pF coupling caps on the hotkey touch nets,
+  fitted (not DNP) on both AGBM-01 and AGBM-02, listed in neither README. Sourced here, with
+  the reasoning recorded — the two parts that would have matched this board's other
+  dielectric families are NRND and obsolete respectively.
 
 ### Two smaller things from the same comparison
 

@@ -58,23 +58,35 @@ import sys
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_ZIP = os.path.join(ROOT, "agbm-01-ram-desalvage.zip")
-BASE_MEMBER = "agbm-01-ram-desalvage/AGBM-01_AA_1-2_GBE-plus.kicad_pcb"
+# --- ECO-13: the base is MouseBiteLabs' AGBM-02, unmodified --------------------------
+# It was the ECO-5 AGBM-01 desalvage until 2026-08-19. ECO-5 was OUR footprint work, which
+# MouseBiteLabs never saw and never used; AGBM-02 is his, and it already carries the
+# CY62157 land, the MA17 and /BYTE straps, and a front-shell fit he physically verified.
+# See clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md.
+BASE_ZIP = os.path.join(ROOT, "AGBM-02 (AA Batteries)", "AGBM-02 Design Files.zip")
+BASE_MEMBER = "AGBM-02 Design Files/AGBM-02_AA_1-1.kicad_pcb"
 ROUTES = os.path.join(ROOT, "scripts", "routes.json")
 SHIPPED_ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board",
-                           "agbm-01-clockxcontrol.zip")
-SHIPPED_MEMBER = "agbm-01-clockxcontrol/AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb"
+                           "agbm-02-clockxcontrol.zip")
+SHIPPED_MEMBER = "agbm-02-clockxcontrol/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"
 OUT = os.path.join(ROOT, "clockxcontrol-integration", "board",
-                   "AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb")
+                   "AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb")
 
 # --- ECO-6 geometry ------------------------------------------------------------------
 # The module body is 18.65 x 12.00 mm; MOD_X/MOD_Y is its centre. rev B moved it west out
 # of the R3/TP114 cluster -- ECO-6 section 6.7 is the accounting for what that cost.
 MOD_X, MOD_Y = 91.95, -44.95
 C7_FROM, C7_TO = "(at 91.9 -41.1 180)", "(at 93.1 -37.4 180)"
-FID_FROM, FID_TO = "(at 89.0 -48.0)", "(at 106.25 -57.25)"
-DROP_VIAS = [(84.4, -45.9), (85.4, -45.9)]          # both on net 8 (VDD2)
-VDD2_NET = 8
+DROP_VIAS = [(84.4, -45.9), (85.4, -45.9)]          # both on VDD2
+# FIDUCIALS ARE OURS, NOT MOUSEBITELABS'. Neither AGBM-01 nor AGBM-02 carries a single
+# one -- he hand-builds, and a hand builder does not need optical registration. A
+# pick-and-place does, so ECO-9's whole premise needs them. ECO-5 added six and ECO-6 then
+# moved a pair out from under the module; on this base they are simply placed clear of it
+# to begin with. Three per side in a deliberately asymmetric triangle so the machine cannot
+# register the panel 180 degrees out. Each spot was clearance-checked against AGBM-02.
+FIDUCIALS = [("FID1", 26.0, -8.0, "F.Cu"), ("FID4", 26.0, -8.0, "B.Cu"),
+             ("FID3", 33.0, -69.0, "F.Cu"), ("FID6", 33.0, -69.0, "B.Cu"),
+             ("FID2", 106.25, -57.25, "F.Cu"), ("FID5", 106.25, -57.25, "B.Cu")]
 # The three button landings the module's plated through-holes solder down onto.
 PADS = [("1", 4.525, 1.0, 71, "/CPU/TP2", "SEL"),
         ("2", 7.025, 3.5, 13, "/CPU/TP9", "L"),
@@ -95,15 +107,25 @@ DNP_REFS = ("X1", "C3", "C4")
 # ref, field, old, new. Documented in clockxcontrol-integration/ECO-8_component_swaps.md;
 # consistency check [3] holds that document's table and this list to the same values, so
 # neither can drift from the other or from the board.
+# ON THE AGBM-02 BASE, THREE OF ECO-8's THIRTEEN ROWS ARE ALREADY DONE UPSTREAM:
+#   F1    Value  -- AGBM-02 already reads F0805B2R00FSTR. ECO-8's BOM fix was right and
+#                   MouseBiteLabs made the same fix; nothing left for us to change.
+#   PTC1  Value  -- AGBM-02 already reads 0805L075SLYR, not the stale "0467001.NR". The
+#                   ANNOTATION is fixed upstream, but the ENGINEERING finding stands: that
+#                   part derates to 0.55 A hold at 40 C, below the load. So the swap
+#                   remains, from a different starting value.
+#   R23   Value  -- the ref does not exist on AGBM-02. It was the LTC3527's VOUT3 feedback
+#                   leg, and AGBM-02 has no LTC3527. ECO-12 section 12.2 had already
+#                   reverted this change; the rebase deletes it outright.
+# Both Description rows survive: AGBM-02 still carries the legacy "0805L050WR" string on
+# PTC1 and F1 alike, exactly as AGBM-01 and AGBM-11 do.
 ECO8 = [
     ("U7",   "Value",       "TLV9364",       "TLV9064IPWR"),
-    ("R23",  "Value",       "1.78M",         "1.69M"),
     ("DL1",  "Value",       "150060VS75000", "150060GS75000"),
     ("R25",  "Value",       "3.3k",          "22k"),
-    ("PTC1", "Value",       "0467001.NR",    "0805L110SLYR"),
+    ("PTC1", "Value",       "0805L075SLYR",  "0805L110SLYR"),
     ("PTC1", "Description", "0805L050WR",
      "PPTC resettable fuse, Littelfuse Low Rho, 1.10 A hold / 1.80 A trip, 6 Vdc, 0805"),
-    ("F1",   "Value",       "0467001.NR",    "F0805B2R00FSTR"),
     ("F1",   "Description", "0805L050WR",
      "Fast-acting thin-film chip fuse, 2.00 A, 63 V, 0805"),
     ("R15",  "Value",       "10k",           "100k"),
@@ -113,41 +135,22 @@ ECO8 = [
     ("R65",  "Value",       "100k",          "470k"),
 ]
 
-# --- ECO-10: take the feedback dividers out of the converter's own noise floor --------
-# The LTC3527 specifies FEEDBACK INPUT CURRENT at FB1/FB2 as 1 nA typ, **50 nA max**
-# (35271fc, Electrical Characteristics). MouseBiteLabs set both dividers very high to save
-# quiescent current -- 1.20 uA on FB2, 2.14 uA on FB1 -- which is a defensible trade on a
-# battery device. The cost is that at 50 nA the converter's own input current moves the
-# rail more than the resistors' tolerance does:
+# --- ECO-10: the precision pass -- NO Value swaps survive the rebase -------------------
+# On AGBM-01, ECO-10's headline was rescaling both LTC3527 feedback dividers 10x down,
+# because the converter's own 50 nA max FB input current was moving VOUT3 by +/-85 mV --
+# more than the resistors' tolerance, and more than the 108 mV ECO-8 had trimmed off that
+# rail to save power. It was the right finding about the wrong converter.
 #
-#     VOUT3 (1.69M/1.00M): +/-85 mV, +/-2.62%     divider current 1.20 uA
-#     VOUT5 (1.78M/560k):  +/-89 mV, +/-1.77%     divider current 2.14 uA
+# AGBM-02 has no LTC3527. R21, R22, R23, R55, C40 and C41 -- every leg of both dividers and
+# both feedforward caps -- DO NOT EXIST on this base. Twin TPS63802s set their rails
+# elsewhere, so the entire divider analysis, and ECO-12 section 12.2 which reverted part of
+# it, are deleted by the rebase rather than carried.
 #
-# For scale: ECO-8 trimmed VOUT3 by 108 mV to save 6.1 mW, and the worst-case UNCERTAINTY
-# on that trim was 85 mV. It also explains why no 0.1% resistor exists at 1.69M or 1.78M --
-# nobody builds them, because nobody should put them in a feedback divider.
-#
-# Scaling both dividers 10x down preserves the RATIO exactly, so both rails keep their
-# values, and cuts the bias error 10x to +/-8.4 mV and +/-8.9 mV. It also puts every leg on
-# a value where 0.1% +/-25ppm thin film exists and costs $0.10.
-#
-# COST: divider current rises 1.20 -> 12.0 uA and 2.14 -> 21.4 uA, i.e. 0.13 mW at the
-# rails. That is 2% of what ECO-8's VOUT3 trim saves, spent to make the trim mean something.
-#
-# C40/C41 ARE FEEDFORWARD CAPS across the TOP leg (VOUT -> FB), verified from the netlist,
-# so their zero sits at 1/(2*pi*R_top*C). Dropping R_top 10x without touching C moves that
-# zero from ~6 kHz to ~60 kHz and throws away the phase lead it exists to provide. 15 pF ->
-# 150 pF holds it where it is. The datasheet says only that "a typical value of 15pF will
-# generally suffice", so this is preserving the design's own compensation rather than
-# following a mandate.
-ECO10 = [
-    ("R21", "Value", "1.78M", "178k"),    # VOUT5 top leg
-    ("R22", "Value", "560k",  "56k"),     # VOUT5 bottom leg
-    ("R23", "Value", "1.69M", "169k"),    # VOUT3 top leg  (ECO-8 set this to 1.69M)
-    ("R55", "Value", "1M",    "100k"),    # VOUT3 bottom leg
-    ("C40", "Value", "15p",   "150p"),    # FB1 feedforward
-    ("C41", "Value", "15p",   "150p"),    # FB2 feedforward
-]
+# ECO-10's OTHER work survives untouched, because none of it is a Value change: the audio
+# filter's 0.1% +/-25 ppm thin film, the 25 V AEC-Q200 decoupling, and the supervisor
+# divider legs are all PART-NUMBER choices, and they live in scripts/mpn_overrides.json
+# against references AGBM-02 carries at identical positions.
+ECO10 = []
 
 # --- ECO-11: the brownout latch is not guaranteed to arm --------------------------------
 # NDC7002N gate threshold, read off onsemi's own table: VGS(th) = 1.0 min / 1.9 typ /
@@ -191,54 +194,22 @@ ECO11 = [
     ("Q10", "Value", "NDC7002N", "FDC6301N"),
 ]
 
-# --- ECO-12: the wiki audit -- put back what this fork drifted away from ---------------
-# MouseBiteLabs' project wiki, read end to end, settles two things this fork had open.
+# --- ECO-12: the wiki audit -- NO Value swaps survive the rebase either -----------------
+# ECO-12 section 12.1 corrected R3/R4/R64 on AGBM-01 from a stale PCB annotation (1k/10k/
+# 100k) to the values MouseBiteLabs' schematic, both AA README BOMs and his AGBM-02 PCB all
+# carry (5.1k/33k/200k) -- the values that put the low-battery trip at 2.309 V and the
+# blink at 2.102 V, matching the wiki and his own build-guide Test 4.
 #
-# 12.1  R3 / R4 / R64 -- the schematic-vs-PCB conflict is a STALE PCB ANNOTATION.
-# The AGBM-01 PCB carries 1k / 10k / 100k; the AGBM-01 schematic, the AGBM-01 README's
-# own BOM, the AGBM-02 README's BOM and -- decisively -- the AGBM-02 PCB itself all carry
-# 5.1k / 33k / 200k. AGBM-02 is the same AA design one revision later with the identical
-# supervisor circuit, and Nick fixed the annotation there. Four independent confirmations:
+# AGBM-02 ALREADY CARRIES THEM. The stale annotation was an AGBM-01 artifact and he fixed
+# it on the newer board; that is what made the wiki audit's case in the first place. So the
+# corrections are now INHERITED, not applied, and the assertion further down verifies them
+# against the base rather than against our own edit -- which is strictly stronger, because
+# it fails if UPSTREAM ever drifts.
 #
-#   * Power-Draw-and-Battery-Curves: "The low battery LED turns on when the voltage passes
-#     2.3V ... The LED begins blinking when the voltage passes 2.1V."
-#   * AGBM-01 Build/Test Order, Test 4: "sweeping it from 2V to 3V ... It should go from
-#     green to red at 2.3V (when voltage is dropping)". This is an ACCEPTANCE TEST.
-#   * The netlist: SW -> R3 -> (U10.VDD, C10, R4) -> GND, so the TPS3840DL20's 2.0 V
-#     threshold appears at SW as 2.0 x (R3+R4)/R4.
-#         5.1k / 33k  -> 2.309 V   matches the wiki
-#         1k   / 10k  -> 2.200 V   does not
-#     U17's leg, which is NOT in conflict, is 5.1k/100k -> 2.102 V and matches the wiki's
-#     2.1 V. Both AA supervisors use a 5.1k top leg; the PCB's "1k" is the odd one out.
-#   * R64 with C44 = 1u sets the 555's blink rate. 200k -> 3.6 Hz, 100k -> 7.2 Hz.
-#
-# THIS FORK HAD THE REGRESSION LIVE. ECO-9 derives the PCBWay BOM from the board's Value
-# fields, so the stale annotations were being ORDERED: a built board would have warned
-# 100 mV late (Nick puts 2.3 V at 5-7 % of pack and 2.1 V at under 1 %, so the warning
-# window roughly halves) and blinked at twice the intended rate. It also made U10's
-# anti-flicker filter 4.9x lighter than designed -- R3||R4 x C10 falls from 0.44 ms to
-# 0.09 ms -- which attacks the exact symptom the wiki says C10 and C12 exist to prevent.
-#
-# 12.2  R23 -- give VOUT3 its 108 mV back.
-# ECO-8 trimmed VOUT3 from 3.336 V to 3.228 V for 6.1 mW. That trade is wrong for THIS
-# fork. The stated goal here is margin on a board that is deliberately overclocked, and
-# VDD3 is the CPU's 3.3 V I/O ring and the cartridge supply VDD35 -- the bus the overclock
-# actually stresses. 8.2 mW at 1.75x is 0.86 % of 951 mW, about three and a half minutes
-# of a 6 h 47 m session, bought with 3.2 % of the rail. Nick's Test 3 reads "VDD3 to GND:
-# 3.3V". (The RAM is unaffected either way: it runs on VDD2 from LDO U8.)
-#
-# It also repairs something ECO-8 broke silently. C41 was sized against 1.78M; moving R23
-# to 1.69M shifted the feedforward zero 5.3 % and ECO-10 then preserved that SHIFTED
-# constant. 178k with C41 = 150p restores MouseBiteLabs' compensation exactly:
-#     R_top x C     1.78M x 15p = 26.7 us   ==  178k x 150p = 26.7 us
-#     R_top||R_bot  640.3k x 15p = 9.60 us  ==  64.03k x 150p = 9.60 us
-# R23 takes R21's part number, so this removes a BOM line rather than adding one.
-ECO12 = [
-    ("R3",  "Value", "1k",   "5.1k"),   # U10 top leg   -- stale annotation
-    ("R4",  "Value", "10k",  "33k"),    # U10 bottom leg -- stale annotation
-    ("R64", "Value", "100k", "200k"),   # 555 blink rate -- stale annotation
-    ("R23", "Value", "169k", "178k"),   # VOUT3 top leg -- reverts ECO-8's trim
-]
+# Section 12.2 (R23, VOUT3 back to 3.336 V) goes with the LTC3527. The part-number half of
+# ECO-12 -- R3/R4 to Susumu RG1608 0.1%, R63 onto the same film as its partner R58 -- is
+# unaffected and still lives in scripts/mpn_overrides.json.
+ECO12 = []
 
 
 # --- ECO-9: the board should say what a machine can actually place --------------------
@@ -262,10 +233,21 @@ SALVAGE_ONLY = {
     "U1": "AGB-CPU, 128-pin QFP recovered from a donor board. The schematic's own Source "
           "field reads 'Salvage'. Not orderable at any price, so it cannot be on an "
           "assembly BOM; hand-fit after the reflow.",
-    "U2": "AGB-SRAM, 96-pin TSOP, same donor. ECO-5 exists to let a CY62157EV30LL stand "
-          "in for it -- and if you fit that instead, it is a NEW part and this line comes "
-          "out. Note ECO-7: pin 37 has no supply yet either way.",
 }
+# U2 IS NO LONGER HERE, AND THAT IS THE POINT OF THE REBASE. On the AGBM-01 base it was a
+# salvaged AGB-SRAM, and ECO-5 was OUR unverified attempt to let a CY62157EV30LL stand in
+# for it. AGBM-02 carries MouseBiteLabs' own dual land, so U2 is an ORDERABLE PART -- the
+# machine buys it and places it, and a build needs exactly one chip off a donor: the CPU.
+# His Required Parts page says so outright: "For the AGBM-02 and AGBM-12, you *only* need
+# the CPU."
+#
+# TWO HAND STEPS COME WITH IT, and no assembly line performs either. Both must be left OPEN
+# if you populate a salvaged OEM AGB-SRAM instead, which this land still accepts:
+#   JP2  bridge to tie U2 pin 17 (MA17) to GND
+#   JP3  bridge to tie U2 pin 47 (/BYTE) to VDD2 for x16 word mode
+# Those are MouseBiteLabs' jumpers with MouseBiteLabs' numbering, documented on his Feature
+# Configurations wiki page. OUR ClockxControl clock jumper is JP4 -- it was JP3 on the
+# AGBM-01 base, where nothing else claimed the name.
 # Parts whose through-hole pads make them hand-solder by rule (a). Listed only so the
 # generator can state WHY in one place; membership is still derived from the pads.
 THRU_HOLE_REASONS = {
@@ -303,22 +285,39 @@ def uid(seed):
 
 def build():
     raw = zipfile.ZipFile(BASE_ZIP).read(BASE_MEMBER).decode("utf-8")
-    # LINE ENDINGS ARE PART OF THE ARTIFACT. The ECO-5 base carries exactly ONE stray
-    # CRLF, at the very end of the file -- the last `)\r\n`. The original generator read
-    # the board with a text-mode open(), whose universal-newline translation silently
-    # normalised it, so the shipped board is LF-throughout and one character shorter than
-    # its input. Doing it implicitly is how a .kicad_pcb ends up alternating line endings
-    # between saves; doing it here, deliberately, is what makes the rebuild byte-stable.
-    # The count is asserted so that a base board with different line endings fails the
-    # build instead of quietly producing a board that no longer matches the ECOs.
-    crlf = raw.count("\r\n")
-    if crlf != 1 or not raw.endswith(")\r\n"):
+    # LINE ENDINGS ARE PART OF THE ARTIFACT, and the rebase changed them completely. The
+    # ECO-5 base carried exactly ONE stray CRLF, at the very end of the file; MouseBiteLabs'
+    # AGBM-02 as he saves it is CRLF THROUGHOUT -- 273,525 of them. Normalising to LF here,
+    # deliberately and once, is what makes the rebuild byte-stable; doing it implicitly with
+    # a text-mode open() is how a .kicad_pcb ends up alternating line endings between saves.
+    # The shape is asserted so that a base board with different line endings fails the build
+    # instead of quietly producing a board that no longer matches the ECOs.
+    crlf, lf_only = raw.count("\r\n"), raw.count("\n") - raw.count("\r\n")
+    if lf_only or crlf < 100000 or not raw.endswith(")\r\n"):
         raise AssertionError(
-            f"base board line endings changed: {crlf} CRLF (expected exactly 1, at EOF). "
-            "Normalisation is deliberate -- see the comment here before adjusting it.")
+            f"base board line endings changed: {crlf} CRLF and {lf_only} bare LF. AGBM-02 "
+            "ships CRLF THROUGHOUT (the ECO-5 base carried exactly one, at EOF), so this "
+            "expects a fully-CRLF file. Normalisation is deliberate -- see the comment.")
     txt = raw.replace("\r\n", "\n")
     orig_len = len(txt)
     R = json.load(open(ROUTES))
+
+    # NETS ARE RESOLVED BY NAME. They used to be typed in as numbers -- VDD2 was 8, GND 2,
+    # /CPU/TP2 was 71 -- which is fine until the base board changes underneath them, at
+    # which point every one of those literals silently points at a DIFFERENT net and the
+    # generator cheerfully routes the clock line into a power plane. On this rebase all
+    # eight happen to have kept their numbers, which is exactly the kind of luck that hides
+    # the bug rather than preventing it. So: look them up, and fail loudly if one is gone.
+    NET = {name: int(num) for num, name in re.findall(r'\n\t\(net (\d+) "([^"]*)"\)', txt)}
+    for want in ("GND", "VDD2", "VDD3", "VDD35", "/CPU/CK1",
+                 "/CPU/TP2", "/CPU/TP8", "/CPU/TP9"):
+        if want not in NET:
+            raise AssertionError(
+                f"the base board has no net named {want!r}. Every ECO-6 route and every "
+                "landing pad is anchored to a net NAME; refusing to guess a number.")
+    if "CXC_CLK" in NET:
+        raise AssertionError("the base board already declares CXC_CLK -- ECO-6 creates it")
+    VDD2_NET = NET["VDD2"]
 
     def fp_span(ref):
         i = 0
@@ -344,10 +343,6 @@ def build():
     # ---------- ECO-6.1  C7 out of the module window -------------------------------
     replace_in("C7", C7_FROM, C7_TO, "C7 relocation")
 
-    # ---------- ECO-6.2  the fiducial pair out from under the module ----------------
-    for ref in ("FID2", "FID5"):
-        replace_in(ref, FID_FROM, FID_TO, "fiducial relocation")
-
     # ---------- ECO-6.3  drop the two VDD2 stitching vias under the R landing -------
     for ox, oy in DROP_VIAS:
         pat = re.compile(r"\n\t\(via\n\t\t\(at " + re.escape(f"{ox:g} {oy:g}")
@@ -364,29 +359,62 @@ def build():
         replace_in(ref, "(attr smd)", "(attr smd dnp)", "DNP flag")
 
     # ---------- ECO-8 / ECO-10 / ECO-11  the part swaps ------------------------------
-    for ref, field, old, new in ECO8 + ECO10 + ECO11 + ECO12:
+    for ref, field, old, new in ECO8 + ECO10 + ECO11 + ECO12:  # 10/12 empty on this base
         replace_in(ref, f'(property "{field}" "{old}"',
                    f'(property "{field}" "{new}"', f"{field} swap")
-    # ---------- the four thresholds this board is FOR ---------------------------------
-    # Every one of these is a divider ratio, and a divider ratio is the kind of thing a
-    # later edit changes by accident. If one moves, the BUILD fails here rather than
-    # shipping a board that quietly regulates -- or warns -- somewhere else.
+    # ---------- the thresholds this board is FOR -------------------------------------
+    # These used to be literals. Now they are READ OFF THE BOARD, which is strictly
+    # stronger: on the AGBM-01 base these values were ours to set, so asserting our own
+    # numbers proved something; on AGBM-02 they are MouseBiteLabs' and INHERITED, so the
+    # only assertion worth making is that the board in front of us still produces the
+    # thresholds he published. This fails if UPSTREAM drifts, which a literal never would.
     #
-    # 1.20 V is the LTC3527's feedback reference; 2.00 V is the TPS3840DL20's threshold.
-    # The two supervisor targets are MouseBiteLabs' own published figures, not a
-    # derivation: the wiki states 2.3 V and 2.1 V, and the AGBM-01 build guide's Test 4
-    # sweeps the supply looking for exactly those. See ECO-12 and wiki-audit/README.md.
-    for name, vref, top, bot, want, tol in (
-            ("VOUT5 (LTC3527 FB1)", 1.20, 178e3,  56e3, 5.014, 0.002),
-            ("VOUT3 (LTC3527 FB2)", 1.20, 178e3, 100e3, 3.336, 0.002),
-            ("U10 low-battery trip", 2.00,  5.1e3, 33e3, 2.309, 0.002),
-            ("U17 blink trip",       2.00,  5.1e3, 100e3, 2.102, 0.002)):
+    # 2.00 V is the TPS3840DL20's threshold. The targets are his own figures, from the wiki
+    # ("The low battery LED turns on when the voltage passes 2.3V ... begins blinking when
+    # the voltage passes 2.1V") and from the build guide's Test 4, which sweeps 2 V to 3 V
+    # looking for exactly them. See wiki-audit/README.md.
+    def rval(ref):
+        """The board's Value for a resistor, in ohms."""
+        v = re.search(r'\(property "Value" "([^"]+)"', fp_span(ref)[2]).group(1)
+        m = re.fullmatch(r"([\d.]+)([kM]?)", v)
+        if not m:
+            raise AssertionError(f"{ref}: Value {v!r} is not a plain resistance")
+        return float(m.group(1)) * {"": 1, "k": 1e3, "M": 1e6}[m.group(2)]
+
+    # THE TWO MAIN RAILS, and a nice piece of self-verification. AGBM-02's converters are
+    # twin TPS63802s: U13 makes VOUT3 (R72/R73 on Net-(U13-FB), R72 to VOUT3) and U5 makes
+    # VOUT5 (R59/R60 on Net-(U5-FB)) -- both read off the netlist, not assumed.
+    #
+    # We do not need the datasheet's feedback reference to check these. Solve each divider
+    # for the reference that would produce its intended rail:
+    #     820k/91k for 5.0 V  ->  0.4995 V
+    #     510k/91k for 3.3 V  ->  0.4997 V
+    # Two independent dividers agreeing on one reference to 0.04% is not a coincidence, so
+    # the reference is 0.5 V and both rails land where they should. Asserting the AGREEMENT
+    # is stronger than asserting a number typed in from a PDF: it fails if either divider
+    # moves, and it cannot be fooled by a transcription error.
+    refs = [rail / (1 + rval(t) / rval(b))
+            for t, b, rail in (("R59", "R60", 5.0), ("R72", "R73", 3.3))]
+    if abs(refs[0] - refs[1]) > 0.002:
+        raise AssertionError(
+            f"the two TPS63802 dividers no longer imply one feedback reference: "
+            f"VOUT5's says {refs[0]:.4f} V, VOUT3's says {refs[1]:.4f} V. One of them "
+            f"moved, so one of the rails is not where this fork thinks it is.")
+    vref_tps = sum(refs) / 2
+    if not 0.49 < vref_tps < 0.51:
+        raise AssertionError(f"implied TPS63802 reference is {vref_tps:.4f} V, not ~0.5 V")
+
+    for name, vref, top, bot, want in (
+            ("U10 low-battery trip", 2.00, rval("R3"),  rval("R4"),  2.309),
+            ("U17 blink trip",       2.00, rval("R58"), rval("R63"), 2.102)):
         got = vref * (1 + top / bot)
-        if abs(got - want) > tol:
-            raise AssertionError(f"{name}: divider gives {got:.4f} V, not {want} V")
+        if abs(got - want) > 0.002:
+            raise AssertionError(
+                f"{name}: the board's divider gives {got:.4f} V, not the {want} V "
+                f"MouseBiteLabs publishes ({top:g} / {bot:g} ohm)")
     # The 555's blink rate, same reasoning. R64 with C44 = 1 uF in the OUT-to-RC astable
     # KiCad's netlist shows (R64 between OUT and the tied TRIG/THRES node): T = 2*ln2*R*C.
-    blink = 1.0 / (2 * 0.6931 * 200e3 * 1e-6)
+    blink = 1.0 / (2 * 0.6931 * rval("R64") * 1e-6)
     if not 3.5 < blink < 3.7:
         raise AssertionError(f"critical-battery blink rate is {blink:.2f} Hz, not ~3.6 Hz")
 
@@ -583,34 +611,68 @@ def build():
     # GND pad 4 mm further east buys nothing.)
 
 
+    # ---------- ECO-6.2  fiducials, because a machine needs to see the board ---------
+    FIDS = "".join(f'''\t(footprint "Fiducial:Fiducial_1mm_Mask2mm"
+\t\t(layer "{lay}")
+\t\t(uuid "{uid('fid' + ref)}")
+\t\t(at {x} {y})
+\t\t(descr "Optical registration target for pick-and-place. Not a MouseBiteLabs part -- neither AGBM-01 nor AGBM-02 carries fiducials, because he hand-builds.")
+\t\t(tags "fiducial")
+\t\t(attr exclude_from_bom exclude_from_pos_files)
+\t\t(property "Reference" "{ref}"
+\t\t\t(at 0 -1.6 0)
+\t\t\t(layer "{'F' if lay == 'F.Cu' else 'B'}.SilkS")
+\t\t\t(hide yes)
+\t\t\t(uuid "{uid('fidref' + ref)}")
+\t\t\t(effects (font (size 1 1) (thickness 0.15)))
+\t\t)
+\t\t(property "Value" "Fiducial"
+\t\t\t(at 0 1.6 0)
+\t\t\t(layer "{'F' if lay == 'F.Cu' else 'B'}.Fab")
+\t\t\t(hide yes)
+\t\t\t(uuid "{uid('fidval' + ref)}")
+\t\t\t(effects (font (size 1 1) (thickness 0.15)))
+\t\t)
+\t\t(pad "1" smd circle
+\t\t\t(at 0 0)
+\t\t\t(size 1 1)
+\t\t\t(layers "{lay}" "{'F' if lay == 'F.Cu' else 'B'}.Mask")
+\t\t\t(solder_mask_margin 0.5)
+\t\t\t(uuid "{uid('fidpad' + ref)}")
+\t\t)
+\t\t(embedded_fonts no)
+\t)
+''' for ref, x, y, lay in FIDUCIALS)
+
     # ---------- ECO-6.5  the CXC_CLK net -------------------------------------------
     mnet = max(int(n) for n in re.findall(r'\n\t\(net (\d+) "', txt))
     NEWNET = mnet + 1
     lastnet = list(re.finditer(r'\n\t\(net \d+ "[^"]*"\)', txt))[-1]
     txt = txt[:lastnet.end()] + f'\n\t(net {NEWNET} "CXC_CLK")' + txt[lastnet.end():]
 
-    NETNO = {"CXC_CLK": NEWNET, "VDD3": 10, "VDD35": 5, "GND": 2}
+    NET["CXC_CLK"] = NEWNET
+    NETNO = NET
     LANDINGS = "".join(
         tp(ref, x, y, 1.2, NETNO[net], net, silk, val, sx=0.0, sy=1.35)
         for ref, x, y, net, silk, val in WIRE_PADS)
 
-    JP3 = f'''\t(footprint "CXC:SolderJumper_2_Open"
+    JP4 = f'''\t(footprint "CXC:SolderJumper_2_Open"
 \t\t(layer "F.Cu")
-\t\t(uuid "{uid('jp3')}")
+\t\t(uuid "{uid('jp4')}")
 \t\t(at 45 -64.2)
-\t\t(descr "CK1 isolation jumper for the ClockxControl CLK run. LEAVE OPEN for a crystal build; BRIDGE when populating the ClockxControl.")
+\t\t(descr "CK1 isolation jumper for the ClockxControl CLK run. Numbered JP4 because JP2 and JP3 are MouseBiteLabs' own RAM straps on AGBM-02. LEAVE OPEN for a crystal build; BRIDGE when populating the ClockxControl.")
 \t\t(tags "solder jumper open")
 \t\t(attr smd exclude_from_bom)
-\t\t(property "Reference" "JP3"
+\t\t(property "Reference" "JP4"
 \t\t\t(at 0 -1.6 0)
 \t\t\t(layer "F.SilkS")
-\t\t\t(uuid "{uid('jp3ref')}")
+\t\t\t(uuid "{uid('jp4ref')}")
 \t\t\t(effects (font (size 0.8 0.8) (thickness 0.15)))
 \t\t)
 \t\t(property "Value" "CXC CLK"
 \t\t\t(at 0 1.7 0)
 \t\t\t(layer "F.Fab")
-\t\t\t(uuid "{uid('jp3val')}")
+\t\t\t(uuid "{uid('jp4val')}")
 \t\t\t(effects (font (size 0.8 0.8) (thickness 0.15)))
 \t\t)
 \t\t(fp_rect
@@ -619,15 +681,15 @@ def build():
 \t\t\t(stroke (width 0.12) (type solid))
 \t\t\t(fill no)
 \t\t\t(layer "F.SilkS")
-\t\t\t(uuid "{uid('jp3silk')}")
+\t\t\t(uuid "{uid('jp4silk')}")
 \t\t)
 \t\t(pad "1" smd circle
 \t\t\t(at -0.65 0)
 \t\t\t(size 1.05 1.05)
 \t\t\t(layers "F.Cu" "F.Mask")
-\t\t\t(net 3 "/CPU/CK1")
+\t\t\t(net {NET["/CPU/CK1"]} "/CPU/CK1")
 \t\t\t(pintype "passive")
-\t\t\t(uuid "{uid('jp3p1')}")
+\t\t\t(uuid "{uid('jp4p1')}")
 \t\t)
 \t\t(pad "2" smd circle
 \t\t\t(at 0.65 0)
@@ -635,7 +697,7 @@ def build():
 \t\t\t(layers "F.Cu" "F.Mask")
 \t\t\t(net {NEWNET} "CXC_CLK")
 \t\t\t(pintype "passive")
-\t\t\t(uuid "{uid('jp3p2')}")
+\t\t\t(uuid "{uid('jp4p2')}")
 \t\t)
 \t\t(embedded_fonts no)
 \t)
@@ -654,17 +716,24 @@ def build():
         for (vx, vy) in vs:
             vias.append((vx, vy, net))
 
-    for key in ("12", "71", "13"):                      # the three button landings
-        add(int(key), E[key]["runs"], E[key]["vias"])
+    # routes.json keys the three button landings by the net NUMBER they had on the
+    # AGBM-01 base. Map each through the name it stood for, so the file stays readable
+    # and the number stops being load-bearing.
+    for key, netname in (("12", "/CPU/TP8"), ("71", "/CPU/TP2"), ("13", "/CPU/TP9")):
+        if NET[netname] != int(key):
+            raise AssertionError(
+                f"routes.json calls {netname} net {key}; this base says {NET[netname]}. "
+                "Re-key routes.json before trusting these runs.")
+        add(NET[netname], E[key]["runs"], E[key]["vias"])
     add(NEWNET, E["CXC_CLK"]["runs"], E["CXC_CLK"]["vias"])
     add(NEWNET, [("F.Cu", [[97.9, -38.6], [97.9, -37.95]])])   # tail to the moved pad row
     vdd3 = [list(r) for r in E["VDD3"]["runs"]]
     vdd3[0] = ("F.Cu", [[99.45, -37.95], [99.25, -37.85], [99.25, -35.9]])
-    add(10, vdd3, E["VDD3"]["vias"])
-    add(2, [("F.Cu", [[101.0, -37.95], [100.2, -37.15], [100.2, -35.3]])])
-    add(5, [("F.Cu", [[93.875, -37.4], [93.5, -37.2]])])       # C7's VDD35 pad
-    add(2, [("F.Cu", [[92.325, -37.4], [93.3, -38.7]])], [(93.3, -38.7)])
-    add(3, X["CK1"]["runs"], X["CK1"]["vias"])                 # JP3 pad 1 -> crystal node
+    add(NET["VDD3"], vdd3, E["VDD3"]["vias"])
+    add(NET["GND"], [("F.Cu", [[101.0, -37.95], [100.2, -37.15], [100.2, -35.3]])])
+    add(NET["VDD35"], [("F.Cu", [[93.875, -37.4], [93.5, -37.2]])])   # C7's VDD35 pad
+    add(NET["GND"], [("F.Cu", [[92.325, -37.4], [93.3, -38.7]])], [(93.3, -38.7)])
+    add(NET["/CPU/CK1"], X["CK1"]["runs"], X["CK1"]["vias"])                 # JP4 pad 1 -> crystal node
 
     seg_txt = "".join(f'''\t(segment
 \t\t(start {x0} {y0})
@@ -688,7 +757,7 @@ def build():
     k = txt.rstrip().rfind("\n)")
     if k <= 0:
         raise AssertionError("board has no closing paren")
-    txt = txt[:k + 1] + MOD + LANDINGS + JP3 + seg_txt + via_txt + txt[k + 1:]
+    txt = txt[:k + 1] + MOD + LANDINGS + FIDS + JP4 + seg_txt + via_txt + txt[k + 1:]
     return txt, dict(orig_len=orig_len, new_len=len(txt), segs=len(segs),
                      vias=len(vias), net=NEWNET, hand=sorted(derived))
 

@@ -14,7 +14,7 @@ items, and five have through-hole pads.
 | Ref | | Why a machine cannot do it |
 |---|---|---|
 | `U1` | AGB-CPU, 128-pin QFP | **Salvaged from a donor board.** The schematic's own `Source` field reads `Salvage`. Not orderable at any price. |
-| `U2` | AGB-SRAM, 96-pin TSOP | Same donor. (If you fit ECO-5's CY62157EV30LL instead, it *is* a new part and comes off this list — but see [ECO-7](ECO-7_u2_supply_and_dnp.md), pin 37 has no supply either way.) |
+| ~~`U2`~~ | *(removed by [ECO-13](ECO-13_rebase_onto_agbm02.md))* | AGBM-02 carries MouseBiteLabs' own dual RAM land, so `U2` is an **orderable part** — `CY62157EV30LL-45ZXIT`, bought and placed by the machine. A build needs one donor chip, not two. Bridge `JP2` and `JP3` by hand afterwards; leave both open if you fit a salvaged AGB-SRAM instead, which the land still accepts. |
 | `P1` | AGB cartridge slot | 36 through-hole pins |
 | `P3` | CUI SJ-3524-SMT jack | 4 SMD + 4 through-hole signal pins + 2 unplated posts |
 | `P4` | AGB link port | 8 through-hole pins |
@@ -34,8 +34,8 @@ parts nobody had bought. It is now check [12] here.
 The set is **derived, not listed**. A part is hand-soldered if either:
 
 - **it has any through-hole pad** — read off the board, no maintenance; or
-- **it is in `SALVAGE_ONLY`** — two entries, and they cannot be derived, because a
-  salvaged QFP is byte-identical in the file to a new one.
+- **it is in `SALVAGE_ONLY`** — one entry since ECO-13 (`U1`, the CPU), and it cannot be
+  derived, because a salvaged QFP is byte-identical in the file to a new one.
 
 `np_thru_hole` does not count: an unplated mounting hole is a hole, not a joint.
 
@@ -69,10 +69,10 @@ the prose is generated from it.
 
 | | |
 |---|---|
-| `agbm-01-cxc-pcbway-assembly.csv` | **61 lines, 172 parts** — what PCBWay buys and places |
-| `agbm-01-cxc-cpl.csv` | **172 placements** — the position file for those, and only those |
-| `agbm-01-cxc-handbuy.csv` / `.md` | **8 lines** — the table above, with each part's reason |
-| `agbm-01-cxc-not-populated.csv` | **58 lines, 67 footprints** — DNP, fiducials, jumpers, test pads |
+| `agbm-02-cxc-pcbway-assembly.csv` | **61 lines, 172 parts** — what PCBWay buys and places |
+| `agbm-02-cxc-cpl.csv` | **172 placements** — the position file for those, and only those |
+| `agbm-02-cxc-handbuy.csv` / `.md` | **8 lines** — the table above, with each part's reason |
+| `agbm-02-cxc-not-populated.csv` | **58 lines, 67 footprints** — DNP, fiducials, jumpers, test pads |
 
 **The assembly BOM is not orderable yet, and the tooling says so in a number rather than a
 hedge: 33 of 61 lines — 105 of 172 parts — have no resolved MPN.** That is the same
@@ -84,7 +84,7 @@ incomplete BOM is a known state of this work rather than a regression.
 
 ECO-9 assumes **you fit the CPU and the SRAM yourself**, which is what the fork's brief
 says. If you consign them to PCBWay instead — one of the four open build decisions in the
-PCBWay notes — take `U1` and `U2` out of `SALVAGE_ONLY` in
+PCBWay notes — take `U1` out of `SALVAGE_ONLY` in
 [`scripts/build_board.py`](../scripts/build_board.py). They go back into the position file
 (the machine places them) while staying off the assembly BOM (you still supply the parts).
 One edit, and every generated document follows.
@@ -103,4 +103,6 @@ The other five are not a decision. They have through-hole pins.
   and asserts the check catches it. A check that has never gone red is not known to work.
 
 ECO-9 changes no copper, so **the [ECO-7](ECO-7_u2_supply_and_dnp.md) blockers still
-block.** `U2` pin 37 has no supply and `Net-(Q5B-G)` is still severed. Do not fabricate.
+block.** Both of those defects were ECO-5's and closed with it in
+[ECO-13](ECO-13_rebase_onto_agbm02.md); what remains before fabrication is DRC, a
+re-pour, and verifying the ClockxControl landing against a physical module.

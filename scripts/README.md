@@ -81,7 +81,7 @@ disclaims does not count — and the fix was to move the words, not widen the wi
 | | |
 |---|---|
 | `kisexp.py` | the one reader. Footprints, properties, pads, nets, vias, segments, and a small union-find that tells "unrouted" from "routed in two pieces". |
-| `build_board.py` | ECO-5 base → the ClockxControl board. Every edit asserts its own precondition. |
+| `build_board.py` | MouseBiteLabs' AGBM-02 → the ClockxControl board. Every edit asserts its own precondition. |
 | `routes.json` | the frozen ECO-6 routing. Frozen because the router is not deterministic and the ECO-6 clearance analysis was done against *these* paths. |
 | `pack_board.py` | tree → the deliverable zip, with fixed timestamps so two runs over an unchanged tree produce identical bytes. |
 | `bom_split.py` | board → the two buy documents. **A part moves between them by changing the design, never by editing a list** — the board's own `exclude_from_bom` / `dnp` decide, which is what [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) made true. |
@@ -98,7 +98,7 @@ disclaims does not count — and the fix was to move the words, not widen the wi
 | [1] | the shipped board rebuilds byte-for-byte from the committed base | the board was hand-edited, or the generator changed without repacking |
 | [2] | every document in the shipped zip matches its copy in the tree | the package went stale |
 | [3] | ECO-8's swap table, the generator and the board agree on all eleven values | any one of the three is edited alone |
-| [4] | the DNP set is the ECO-5 base's 47 plus exactly ECO-7's three | a stray flag on either side |
+| [4] | the DNP set is the AGBM-02 base's, plus exactly ECO-7's three | a stray flag on either side |
 | [5] | every ref in `resolved-mpns.json` is on the board with that `Value` | the buy list and the board disagree |
 | [6] | every MPN is consistent with the `Value` beside it | a distributor would ship the wrong part |
 | [7] | every path any `.md` cites exists, is marked historical in its own sentence, or is ledgered | a citation rots |
@@ -115,11 +115,13 @@ Worth recording, because it is the argument for having built it.
 - **A never-spliced footprint in the generator.** A `TP82` landing was constructed and then
   left out of the final concatenation, so it existed in the code and never on the board.
   Check [9] noticed a snapshot naming a footprint that was not there. Deleted.
-- **An implicit newline normalisation the rebuild depended on.** The ECO-5 base carries
+- **An implicit newline normalisation the rebuild depended on.** The old ECO-5 base carried
   exactly one stray CRLF, at EOF. The original generator's text-mode `open()` silently
-  normalised it, so the shipped board is one character shorter than its input. Check [1]
-  could not pass until that was made explicit — and it is now asserted, so a base board
-  with different line endings fails the build instead of quietly producing a different one.
+  normalised it, so the shipped board was one character shorter than its input. Check [1]
+  could not pass until that was made explicit. It is asserted now, and the ECO-13 rebase
+  proved the assertion's worth immediately: MouseBiteLabs' AGBM-02 is CRLF **throughout**,
+  273,525 of them, so the build fails loudly on a base whose line endings are not what the
+  generator expects instead of quietly producing a different board.
 - **A silent empty parse.** `kisexp` anchors on `"\n\t"`, and the upstream MouseBiteLabs
   board is CRLF throughout — so it parsed to **zero footprints** and produced a confident,
   wrong conclusion about which board had routed a net. `load()` now normalises and
@@ -139,9 +141,9 @@ git fetch upstream && git merge upstream/main
 
 Synced 2026-08-19 to `48e2dc3`. **Every design file here is byte-identical to upstream's**,
 which is the property the whole ECO chain rests on — `build_board.py` regenerates the board
-from `agbm-01-ram-desalvage.zip`, which is ECO-5's fork of upstream's `AGBM-01_Design Files`.
-If that ever stops being true, every number in ECO-6 through ECO-10 is describing a board
-nobody has.
+from `AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip` — **upstream's own file, unmodified**,
+since the [ECO-13](../clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md) rebase. If that
+ever stops being true, every number in ECO-6 through ECO-13 is describing a board nobody has.
 
 **Do not edit the root `.gitignore`.** It is upstream's, contributed by `bytendomods`; leaving
 it alone means a future sync is always a fast-forward. This fork's patterns live in scoped
