@@ -67,9 +67,9 @@ Q6,2N7002,Bucketmouse:SOT-23,106.2,-30.6,180.0,top
 DL1,150060GS75000,Bucketmouse:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder,111.0,-61.5,90.0,top
 Q3,2N3906,Bucketmouse:SOT-23,13.9,-19.6,90.0,top
 U17,TPS3840DL20,Bucketmouse:SOT-23-5,101.9,-53.3,180.0,bottom
-R55,1M,Bucketmouse:R_0603_1608Metric_Boxed,25.4522,-36.1,180.0,bottom
+R55,100k,Bucketmouse:R_0603_1608Metric_Boxed,25.4522,-36.1,180.0,bottom
 R57,20k,Bucketmouse:R_0603_1608Metric_Boxed,105.6,-27.7,-90.0,bottom
-C41,15p,Bucketmouse:C_0603_1608Metric_Boxed_2,25.4522,-32.5,180.0,bottom
+C41,150p,Bucketmouse:C_0603_1608Metric_Boxed_2,25.4522,-32.5,180.0,bottom
 R8,100k,Bucketmouse:R_0603_1608Metric_Boxed,15.3,-33.0,-90.0,bottom
 C77,0.01u,Bucketmouse:C_0603_1608Metric_Boxed_2,20.0,-49.5,-90.0,bottom
 R15,100k,Bucketmouse:R_0603_1608Metric_Boxed,15.8,-23.5,90.0,bottom
@@ -83,7 +83,7 @@ C72,0.1u,Bucketmouse:C_0603_1608Metric_Boxed_2,94.2,-58.8,-90.0,bottom
 R50,100k,Bucketmouse:R_0603_1608Metric_Boxed,107.7,-38.2,-90.0,bottom
 R7,100k,Bucketmouse:R_0603_1608Metric_Boxed,34.6,-51.9,-90.0,bottom
 C20,100p,Bucketmouse:C_0603_1608Metric_Boxed_2,89.4,-64.5,-90.0,bottom
-R21,1.78M,Bucketmouse:R_0603_1608Metric_Boxed,25.45,-46.1,180.0,bottom
+R21,178k,Bucketmouse:R_0603_1608Metric_Boxed,25.45,-46.1,180.0,bottom
 R43,15,Bucketmouse:R_0603_1608Metric_Boxed,120.5,-52.7,180.0,bottom
 P2,FFC CONNECTOR,Bucketmouse:AGB-FFC-Connector,54.0,-63.6,0.0,bottom
 C69,1u,Bucketmouse:C_0603_1608Metric_Boxed_2,60.9,-58.4,0.0,bottom
@@ -105,14 +105,14 @@ U12,TPS22917DBV,Bucketmouse:TSOT-23-6,57.0,-59.7,90.0,bottom
 R46,100k,Bucketmouse:R_0603_1608Metric_Boxed,122.3,-33.95,0.0,bottom
 C18,100p,Bucketmouse:C_0603_1608Metric_Boxed_2,76.4,-59.5,-90.0,bottom
 U14,MIC1553,Bucketmouse:SOT-23-5,97.6,-58.5,90.0,bottom
-R23,1.69M,Bucketmouse:R_0603_1608Metric_Boxed,25.45,-34.3,180.0,bottom
+R23,169k,Bucketmouse:R_0603_1608Metric_Boxed,25.45,-34.3,180.0,bottom
 C28,3300p,Bucketmouse:C_0603_1608Metric_Boxed_2,112.4,-24.3,180.0,bottom
 U11,TPS22917DBV,Bucketmouse:TSOT-23-6,31.4,-49.1,90.0,bottom
 SW1,CSS-1310B,Bucketmouse:AGB-Switch_CSS-1X10B_Uncentered,18.5,-11.6,163.0,bottom
 C76,0.01u,Bucketmouse:C_0603_1608Metric_Boxed_2,22.0,-49.5,90.0,bottom
 C26,680p,Bucketmouse:C_0603_1608Metric_Boxed_2,119.3,-32.4,90.0,bottom
 U7,TLV9064IPWR,Bucketmouse:TSSOP-14_4.4x5mm_P0.65mm,115.1,-29.8,90.0,bottom
-R22,560k,Bucketmouse:R_0603_1608Metric_Boxed,25.4522,-44.3,0.0,bottom
+R22,56k,Bucketmouse:R_0603_1608Metric_Boxed,25.4522,-44.3,0.0,bottom
 R42,7.5k,Bucketmouse:R_0603_1608Metric_Boxed,123.7,-31.0,90.0,bottom
 C75,0.01u,Bucketmouse:C_0603_1608Metric_Boxed_2,7.0,-49.0,180.0,bottom
 C31,680p,Bucketmouse:C_0603_1608Metric_Boxed_2,114.6,-35.4,0.0,bottom
@@ -168,6 +168,6 @@ U15,SN74LVC1G332,Bucketmouse:TSOT-23-6,27.0,-54.7,90.0,bottom
 R68,100k,Bucketmouse:R_0603_1608Metric_Boxed,34.0,-58.2,90.0,bottom
 C56,1u,Bucketmouse:C_0603_1608Metric_Boxed_2,108.6,-24.3,180.0,bottom
 C32,1000p,Bucketmouse:C_0603_1608Metric_Boxed_2,110.85,-32.4,-90.0,bottom
-C40,15p,Bucketmouse:C_0603_1608Metric_Boxed_2,25.4522,-47.9,180.0,bottom
+C40,150p,Bucketmouse:C_0603_1608Metric_Boxed_2,25.4522,-47.9,180.0,bottom
 L2,4.7uH,Bucketmouse:L_Taiyo-Yuden_NR-20xx_HandSoldering,29.5,-34.8,0.0,bottom
 U18,TPS22917DBV,Bucketmouse:TSOT-23-6,29.4745,-27.3,180.0,bottom

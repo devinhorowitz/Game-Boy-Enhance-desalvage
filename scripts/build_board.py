@@ -37,6 +37,9 @@ WHAT IT DOES, IN ECO ORDER
     ECO-9  mark the parts a pick-and-place cannot handle `exclude_from_bom` +
            `exclude_from_pos_files`, so the board itself says what a machine can buy
            and place. No copper either -- attributes only.
+    ECO-10 rescale both LTC3527 feedback dividers 10x down, same ratios, so the
+           converter's own FB input current stops being the dominant rail error. Six
+           Values, no copper.
 
 EVERY EDIT ASSERTS ITS OWN PRECONDITION. A replacement whose target string is missing, or
 present more than once, fails the build instead of silently producing a different board.
@@ -106,6 +109,42 @@ ECO8 = [
     ("R11",  "Value",       "1k",            "10k"),
     ("R24",  "Value",       "100k",          "1M"),
     ("R65",  "Value",       "100k",          "470k"),
+]
+
+# --- ECO-10: take the feedback dividers out of the converter's own noise floor --------
+# The LTC3527 specifies FEEDBACK INPUT CURRENT at FB1/FB2 as 1 nA typ, **50 nA max**
+# (35271fc, Electrical Characteristics). MouseBiteLabs set both dividers very high to save
+# quiescent current -- 1.20 uA on FB2, 2.14 uA on FB1 -- which is a defensible trade on a
+# battery device. The cost is that at 50 nA the converter's own input current moves the
+# rail more than the resistors' tolerance does:
+#
+#     VOUT3 (1.69M/1.00M): +/-85 mV, +/-2.62%     divider current 1.20 uA
+#     VOUT5 (1.78M/560k):  +/-89 mV, +/-1.77%     divider current 2.14 uA
+#
+# For scale: ECO-8 trimmed VOUT3 by 108 mV to save 6.1 mW, and the worst-case UNCERTAINTY
+# on that trim was 85 mV. It also explains why no 0.1% resistor exists at 1.69M or 1.78M --
+# nobody builds them, because nobody should put them in a feedback divider.
+#
+# Scaling both dividers 10x down preserves the RATIO exactly, so both rails keep their
+# values, and cuts the bias error 10x to +/-8.4 mV and +/-8.9 mV. It also puts every leg on
+# a value where 0.1% +/-25ppm thin film exists and costs $0.10.
+#
+# COST: divider current rises 1.20 -> 12.0 uA and 2.14 -> 21.4 uA, i.e. 0.13 mW at the
+# rails. That is 2% of what ECO-8's VOUT3 trim saves, spent to make the trim mean something.
+#
+# C40/C41 ARE FEEDFORWARD CAPS across the TOP leg (VOUT -> FB), verified from the netlist,
+# so their zero sits at 1/(2*pi*R_top*C). Dropping R_top 10x without touching C moves that
+# zero from ~6 kHz to ~60 kHz and throws away the phase lead it exists to provide. 15 pF ->
+# 150 pF holds it where it is. The datasheet says only that "a typical value of 15pF will
+# generally suffice", so this is preserving the design's own compensation rather than
+# following a mandate.
+ECO10 = [
+    ("R21", "Value", "1.78M", "178k"),    # VOUT5 top leg
+    ("R22", "Value", "560k",  "56k"),     # VOUT5 bottom leg
+    ("R23", "Value", "1.69M", "169k"),    # VOUT3 top leg  (ECO-8 set this to 1.69M)
+    ("R55", "Value", "1M",    "100k"),    # VOUT3 bottom leg
+    ("C40", "Value", "15p",   "150p"),    # FB1 feedforward
+    ("C41", "Value", "15p",   "150p"),    # FB2 feedforward
 ]
 
 
@@ -231,10 +270,17 @@ def build():
     for ref in DNP_REFS:
         replace_in(ref, "(attr smd)", "(attr smd dnp)", "DNP flag")
 
-    # ---------- ECO-8  the drop-in part swaps --------------------------------------
-    for ref, field, old, new in ECO8:
+    # ---------- ECO-8 / ECO-10  the part swaps ---------------------------------------
+    for ref, field, old, new in ECO8 + ECO10:
         replace_in(ref, f'(property "{field}" "{old}"',
                    f'(property "{field}" "{new}"', f"{field} swap")
+    # The rails must come out where they went in. 1.20 V is the LTC3527's feedback
+    # reference; if a future edit breaks a ratio, the build fails here rather than
+    # shipping a board that quietly regulates somewhere else.
+    for name, top, bot, want in (("VOUT5", 178e3, 56e3, 5.014), ("VOUT3", 169e3, 100e3, 3.228)):
+        got = 1.20 * (1 + top / bot)
+        if abs(got - want) > 0.002:
+            raise AssertionError(f"{name}: rescaled divider gives {got:.4f} V, not {want} V")
 
     # ---------- ECO-9  what a machine cannot place -----------------------------------
     hand = dict(THRU_HOLE_REASONS)

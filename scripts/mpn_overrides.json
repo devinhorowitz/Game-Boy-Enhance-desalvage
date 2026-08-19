@@ -223,9 +223,9 @@
    "refs": [
     "R23"
    ],
-   "mpn": "RC0603FR-071M69L",
+   "mpn": "RT0603BRD07169KL",
    "mfr": "YAGEO",
-   "eco": "ECO-8: replaces RC0603FR-071M78L (1.78 M). Sets VOUT3 = 1.20 x (1 + 1.69/1.00) = 3.228 V instead of 3.336 V; worst case 3.12 V, still 0.12 V above the 3.0 V at which onsemi specify the NCV8164 LDOs."
+   "eco": "ECO-8 changed R23 from 1.78M to 1.69M to bring VOUT3 from 3.336 V to 3.228 V. ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. ECO-10 then rescaled that 1.69M to 169k. Same rail, 10x lower impedance, 0.1% instead of 1%."
   },
   {
    "refs": [
@@ -275,7 +275,7 @@
    ],
    "mpn": "C0603C102J5GACTU",
    "mfr": "KEMET",
-   "eco": "ECO-8 (BOM-only, not expressible in a KiCad Value field): replaces C0603C102K5RACTU (X7R, +/-10%). These are the Sallen-Key FEEDBACK caps, i.e. the ones that set Q, and their partners C26/C31 are already C0G. X7R drifts +/-15% over temperature against C0G's +/-30 ppm/C, so a handheld warming in the hand detunes half of each filter section."
+   "eco": "ECO-10 (proposed in the power review, deferred by ECO-8, applied here). X7R -> C0G. These are the Sallen-Key FEEDBACK caps -- the ones that set Q -- and their partners C26/C31 are already C0G. X7R drifts +/-15% over its range while C0G drifts +/-30ppm/degC, so a handheld warming in the hand detunes half of each filter section and no tolerance grade fixes it."
   },
   {
    "refs": [
@@ -284,7 +284,7 @@
    ],
    "mpn": "C0603C332J5GACTU",
    "mfr": "KEMET",
-   "eco": "ECO-8 (BOM-only): replaces C0603C332K5RACTU (X7R, +/-10%). Same reasoning as C24/C32."
+   "eco": "ECO-10. Same as C24/C32: the other feedback pair, X7R -> C0G."
   },
   {
    "refs": [
@@ -381,6 +381,110 @@
    "mpn": "RC0603FR-0733KL",
    "mfr": "YAGEO",
    "alternate": "Second-source it: Digi-Key is at zero with a 17-week lead, MOUSER HAS 95,136 (verified 2026-08-19). Same YAGEO part, no decision required."
+  },
+  {
+   "refs": [
+    "R21"
+   ],
+   "mpn": "RT0603BRD07178KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. R21 = VOUT5 top leg, was 1.78M."
+  },
+  {
+   "refs": [
+    "R22"
+   ],
+   "mpn": "RT0603BRD0756KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. R22 = VOUT5 bottom leg, was 560k."
+  },
+  {
+   "refs": [
+    "R55"
+   ],
+   "mpn": "RT0603BRD07100KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. R55 = VOUT3 bottom leg, was 1M."
+  },
+  {
+   "refs": [
+    "C40",
+    "C41"
+   ],
+   "mpn": "GCM1885C2A151FA16D",
+   "mfr": "Murata Electronics",
+   "eco": "ECO-10. FEEDFORWARD caps across the top leg of each divider (VOUT -> FB, verified from the netlist), so the zero they set is 1/(2*pi*R_top*C). Dropping R_top 10x without touching C would move it from ~6 kHz to ~60 kHz and discard the phase lead it exists to provide, so 15 pF -> 150 pF holds it where the design put it. The datasheet says only that 'a typical value of 15pF will generally suffice', so this preserves MouseBiteLabs' compensation rather than following a mandate. C0G +/-1% 100 V AEC-Q200 -- a compensation element should not drift with temperature."
+  },
+  {
+   "refs": [
+    "R51",
+    "R42"
+   ],
+   "mpn": "RG1608P-752-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part."
+  },
+  {
+   "refs": [
+    "R52",
+    "R47"
+   ],
+   "mpn": "RG1608P-203-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part."
+  },
+  {
+   "refs": [
+    "R54",
+    "R48"
+   ],
+   "mpn": "RG1608P-183-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part."
+  },
+  {
+   "refs": [
+    "R53",
+    "R34",
+    "R58"
+   ],
+   "mpn": "RG1608P-512-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part. R58 is not in the filter -- it is the U17 supervisor's upper divider leg, and it gets the same part for the same reason: a trip point should not move with temperature."
+  },
+  {
+   "refs": [
+    "R63"
+   ],
+   "mpn": "RT0603BRD07100KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-10. U17's lower divider leg -- with R58 it sets the low-battery trip point. 1% +/-100ppm -> 0.1% +/-25ppm. R3/R4/R64 are the OTHER supervisor legs and are deliberately NOT upgraded yet: they still carry the unresolved schematic-vs-PCB value conflict, and buying precision parts of a value that may be wrong is waste."
+  },
+  {
+   "refs": [
+    "C26",
+    "C31"
+   ],
+   "mpn": "GCM1885C2A681FA16D",
+   "mfr": "Murata Electronics",
+   "eco": "ECO-10. Already C0G; tolerance +/-5% -> +/-1%, and AEC-Q200. Q goes as sqrt(Cfb/Cgnd), so tightening the shunt legs tightens the alignment directly."
+  },
+  {
+   "refs": [
+    "C27",
+    "C33"
+   ],
+   "mpn": "GCM1885C2A331FA16D",
+   "mfr": "Murata Electronics",
+   "eco": "ECO-10. Same as C26/C31: C0G +/-5% -> +/-1%, AEC-Q200."
+  },
+  {
+   "refs": [
+    "C11"
+   ],
+   "mpn": "CGA3E1X7R1E105K080AC",
+   "mfr": "TDK",
+   "eco": "ECO-10, longevity. The fitted KEMET C0603C105K4RACTU is X7R but only 16 V; TDK's CGA is the AUTOMOTIVE (AEC-Q200) grade of the C-series at 25 V in the same 0603 x 0.90 mm body. Higher rated voltage means less capacitance lost to DC bias on every rail these sit on, and the automotive grade is screened harder. 1,435,431 in stock, $0.17 (verified 2026-08-19). NOT CHANGED, and worth saying why: the 0.1 uF line is already KEMET C0603C104K5RACTU, X7R at 50 V -- that is already the right part and churning it would buy nothing."
   }
  ]
 }

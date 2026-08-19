@@ -18,7 +18,7 @@ datasheet — recorded in §8.3, along with the one thing this change set makes 
 | Ref | Was | Now | Class | Why |
 |---|---|---|---|---|
 | `U7` | `TLV9364` | **`TLV9064IPWR`** | correctness | 4.5 V-minimum op-amp on a 2.5 V rail |
-| `R23` | `1.78M` | **`1.69M`** | efficiency | `VOUT3` 3.336 V → 3.228 V |
+| `R23` | `1.78M` | **`1.69M`** | efficiency | `VOUT3` 3.336 V → 3.228 V — *later superseded to `169k` by [ECO-10](ECO-10_precision_pass.md), same rail* |
 | `DL1` | `150060VS75000` | **`150060GS75000`** | efficiency + quality | InGaN green, 11–18× the luminous intensity |
 | `R25` | `3.3k` | **`22k`** | efficiency | pairs with `DL1` |
 | `PTC1` | `0467001.NR` | **`0805L110SLYR`** | stability + BOM fix | derated hold current was below the load |

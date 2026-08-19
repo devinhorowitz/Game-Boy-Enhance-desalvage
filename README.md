@@ -5,7 +5,7 @@
 >
 > | | |
 > |---|---|
-> | [`clockxcontrol-integration/`](clockxcontrol-integration/) | a host-side footprint for insideGadgets' GBA ClockxControl, cut into the board — **ECO-6** (the land pattern), **ECO-7** (the crystal DNP and two open blockers), **ECO-8** (eleven part swaps), **ECO-9** (the assembly split) |
+> | [`clockxcontrol-integration/`](clockxcontrol-integration/) | a host-side footprint for insideGadgets' GBA ClockxControl, cut into the board — **ECO-6** (the land pattern), **ECO-7** (the crystal DNP and two open blockers), **ECO-8** (eleven part swaps), **ECO-9** (the assembly split), **ECO-10** (the precision pass) |
 > | [`power-review/`](power-review/) | a component-level efficiency and stability review, 101 findings. Headline: the energy the overclock costs **cannot** be won back |
 > | [`pcbway-assembly/`](pcbway-assembly/) | preparing the board for PCBWay's assembly service — BOM resolution, sourcing audit, the consign/hand-solder split |
 > | [`scripts/`](scripts/) | the board is a **function** of committed inputs, and the documents are **gated** against it |

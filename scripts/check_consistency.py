@@ -70,6 +70,7 @@ ZIP_ROOT = "agbm-01-clockxcontrol"
 BOARD_MEMBER = f"{ZIP_ROOT}/AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb"
 MPNS = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
 ECO8_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-8_component_swaps.md")
+ECO10_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-10_precision_pass.md")
 
 errors, warnings, verbose = [], [], False
 
@@ -143,6 +144,8 @@ def check_package_parity():
             "clockxcontrol-integration/ECO-8_component_swaps.md",
         f"{ZIP_ROOT}/ECO-9_assembly_split.md":
             "clockxcontrol-integration/ECO-9_assembly_split.md",
+        f"{ZIP_ROOT}/ECO-10_precision_pass.md":
+            "clockxcontrol-integration/ECO-10_precision_pass.md",
         f"{ZIP_ROOT}/ClockxControl_GBA_GBC.kicad_mod":
             "clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod",
     }
@@ -183,39 +186,60 @@ def check_package_parity():
 # [3] ECO-8's own table is the ledger for the swaps
 # =====================================================================================
 def check_eco8_ledger():
-    print("[3] ECO-8's swap table matches the generator and the board")
+    """Every ECO whose table names a Value change is held to the generator and the board."""
+    for label, doc_path, gen in (("ECO-8", ECO8_DOC, build_board.ECO8),
+                                 ("ECO-10", ECO10_DOC, build_board.ECO10)):
+        _check_one_eco(label, doc_path, gen)
+
+
+# An ECO document records the change IT made and is not wrong when a later ECO moves the
+# same part again -- ECO-8 took R23 to 1.69M and ECO-10 then took that to 169k, and both
+# statements are true. So each ECO's table is checked against its own generator list, and
+# the BOARD is checked only against where the whole chain ends up.
+def _eco_chain_final():
+    out = {}
+    for lst in (build_board.ECO8, build_board.ECO10):
+        for ref, field, _o, n in lst:
+            if field == "Value":
+                out[ref] = n
+    return out
+
+
+def _check_one_eco(label, doc_path, gen):
+    print(f"[3] {label}'s swap table matches the generator and the board")
+    final = _eco_chain_final()
     try:
-        doc = open(ECO8_DOC, encoding="utf-8").read()
+        doc = open(doc_path, encoding="utf-8").read()
     except OSError as e:
-        err(f"cannot read ECO-8: {e}")
+        err(f"cannot read {label}: {e}")
         return
     # | `U7` | `TLV9364` | **`TLV9064IPWR`** | correctness | ... |
     row = re.compile(r"^\|\s*`(\w+)`\s*\|\s*\**`([^`]+)`\**\s*\|\s*\**`([^`]+)`\**\s*\|",
                      re.M)
     doc_rows = {ref: (was, now) for ref, was, now in row.findall(doc)}
-    gen_rows = {ref: (old, new) for ref, field, old, new in build_board.ECO8
-                if field == "Value"}
+    gen_rows = {ref: (o, n) for ref, field, o, n in gen if field == "Value"}
     if not doc_rows:
-        err("ECO-8 has no parseable swap table -- check [3] cannot gate anything")
+        err(f"{label} has no parseable swap table -- check [3] cannot gate anything")
         return
     fps = kisexp.by_ref(board())
     bad = []
-    for ref, (old, new) in gen_rows.items():
+    for ref, (o, n) in gen_rows.items():
         if ref not in doc_rows:
-            bad.append(f"{ref}: in the generator, absent from ECO-8's table")
+            bad.append(f"{ref}: in the generator, absent from {label}'s table")
             continue
         d_old, d_new = doc_rows[ref]
-        if (d_old, d_new) != (old, new):
-            bad.append(f"{ref}: ECO-8 says {d_old!r}->{d_new!r}, generator says "
-                       f"{old!r}->{new!r}")
+        if (d_old, d_new) != (o, n):
+            bad.append(f"{ref}: {label} says {d_old!r}->{d_new!r}, generator says "
+                       f"{o!r}->{n!r}")
         if ref not in fps:
             bad.append(f"{ref}: not on the board")
-        elif fps[ref].value != new:
-            bad.append(f"{ref}: board Value is {fps[ref].value!r}, both documents say "
-                       f"{new!r}")
-        note(f"{ref}: {old} -> {new}")
+        elif fps[ref].value != final.get(ref, n):
+            bad.append(f"{ref}: board Value is {fps[ref].value!r}, the ECO chain ends at "
+                       f"{final.get(ref, n)!r}")
+        note(f"{ref}: {o} -> {n}"
+             + (f" (later superseded to {final[ref]})" if final.get(ref) != n else ""))
     for ref in set(doc_rows) - set(gen_rows):
-        bad.append(f"{ref}: in ECO-8's table, not in the generator")
+        bad.append(f"{ref}: in {label}'s table, not in the generator")
     if bad:
         err("ECO-8, the generator and the board disagree: " + "; ".join(sorted(bad)))
     else:

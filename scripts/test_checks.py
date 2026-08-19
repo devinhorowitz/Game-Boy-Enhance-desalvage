@@ -41,17 +41,26 @@ def _run(fn, board):
 
 def main():
     good = cc.board()
+    # the final Value of the first ref the ECO chain touches -- whatever it is today
+    import build_board
+    chain = {r: n for lst in (build_board.ECO8, build_board.ECO10)
+             for r, f, _o, n in lst if f == "Value"}
+    VICTIM = chain["R23"]
     k = good.rstrip().rfind("\n)")
     m = re.search(r'\(footprint "[^"]+"\n\t\t\(layer "F\.Cu"\)\n\t\t\(uuid "[^"]+"\)\n'
                   r'\t\t\(at ([-\d.]+) ([-\d.]+)', good)
 
     cases = [
+        # The mutated value is pulled from the generator rather than typed here, so an ECO
+        # that moves a part cannot silently turn these cases into no-ops. Two of them did
+        # exactly that when ECO-10 rescaled R23 from 1.69M to 169k, and the "BLIND" guard
+        # below is what said so.
         ("[1]  a hand-edited board no longer rebuilds",
          cc.check_reproducible,
-         good.replace('(property "Value" "1.69M"', '(property "Value" "1.78M"', 1)),
-        ("[3]  ECO-8's table and the board disagree",
+         good.replace(f'(property "Value" "{VICTIM}"', '(property "Value" "12345"', 1)),
+        ("[3]  an ECO table and the board disagree",
          cc.check_eco8_ledger,
-         good.replace('(property "Value" "1.69M"', '(property "Value" "1.78M"', 1)),
+         good.replace(f'(property "Value" "{VICTIM}"', '(property "Value" "12345"', 1)),
         ("[4]  a stray DNP flag",
          cc.check_dnp_ledger,
          good.replace("(attr smd)", "(attr smd dnp)", 1)),
