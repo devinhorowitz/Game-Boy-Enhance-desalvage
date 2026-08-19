@@ -237,6 +237,24 @@ def main():
     buyable = {r for line in asm + hand for r in line["refs"]}
 
     ov = json.load(open(OVERRIDES, encoding="utf-8"))["entries"]
+    # THE LEDGER MAY NOT ASSERT AVAILABILITY. A hand-written "out of stock, 10,000 due in
+    # December" is true for about a week and then quietly lies, and it sits right next to a
+    # live block that says otherwise. Dated observations are fine -- "192,278 in stock,
+    # verified 2026-08-19" carries its own expiry -- so the rule is: any availability claim
+    # must name the day it was checked. This fired the first time it existed: a swapped
+    # capacitor line kept the previous part's "OUT OF STOCK" flag and shipped it into the
+    # assembly BOM beside the new part, which is in stock.
+    stale = []
+    for e in ov:
+        for k in ("note", "flag", "eco", "alternate"):
+            v = e.get(k) or ""
+            if re.search(r"in stock|out of stock|due \d|expected \d|week lead|\bwk lead\b", v, re.I) \
+                    and not re.search(r"verified 20\d\d-\d\d-\d\d|20\d\d-\d\d-\d\d\)", v):
+                stale.append(f"{','.join(e['refs'])}.{k}")
+    if stale:
+        sys.exit("FAIL: scripts/mpn_overrides.json asserts availability without a date in "
+                 + ", ".join(stale) + ". Availability is fetched live -- either delete the "
+                 "claim or date it ('verified YYYY-MM-DD').")
     over = {r: e for e in ov for r in e["refs"]}
     links = json.load(open(LINKMAP, encoding="utf-8"))["links"]
     srcs = schematic_sources()

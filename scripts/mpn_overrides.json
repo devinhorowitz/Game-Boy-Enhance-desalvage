@@ -55,9 +55,8 @@
    ],
    "mpn": "GRM21BR61E226ME44L",
    "mfr": "Murata",
-   "flag": "OUT OF STOCK at Digi-Key, 17-week standard lead time",
    "note": "22 uF 25 V X5R +/-20%",
-   "alternate": "NO LIKE-FOR-LIKE EXISTS. Every 22 uF 25 V X5R 0805 from a tier-1 maker is at zero; the part is at the edge of what the case size supports, which is why the whole class is scarce. Closest in stock: GRM21BR61C226ME44L (Murata, same series, 16 V instead of 25 V, 95,529, $0.35) or GRM21BC81C226ME44K (Murata, 16 V X6S, 202,906, $0.40). READ BEFORE SUBSTITUTING: these three sit on /VFILT (<=3.2 V), VOUT5 (5.014 V) and VOUT3 (3.228 V), so 16 V is 3.2x headroom on BREAKDOWN -- the question is DC-BIAS CAPACITANCE. A 16 V 0805 22 uF retains materially less at 5 V bias than a 25 V one, so C21's effective capacitance on VOUT5 falls. The power review already flagged C21's derating as mattering. Check the LTC3527's output-ripple requirement against the substitute's bias curve before committing; 1206 for a 25 V part is the other option and needs a footprint change."
+   "alternate": "NO LIKE-FOR-LIKE EXISTS. Every 22 uF 25 V X5R 0805 from a tier-1 maker was at zero (verified 2026-08-19); the part is at the edge of what the case size supports, which is why the whole class is scarce. Closest in stock: GRM21BR61C226ME44L (Murata, same series, 16 V instead of 25 V, 95,529 in stock, $0.35, verified 2026-08-19) or GRM21BC81C226ME44K (Murata, 16 V X6S, 202,906, $0.40). READ BEFORE SUBSTITUTING: these three sit on /VFILT (<=3.2 V), VOUT5 (5.014 V) and VOUT3 (3.228 V), so 16 V is 3.2x headroom on BREAKDOWN -- the question is DC-BIAS CAPACITANCE. A 16 V 0805 22 uF retains materially less at 5 V bias than a 25 V one, so C21's effective capacitance on VOUT5 falls. The power review already flagged C21's derating as mattering. Check the LTC3527's output-ripple requirement against the substitute's bias curve before committing; 1206 for a 25 V part is the other option and needs a footprint change."
   },
   {
    "refs": [
@@ -69,11 +68,10 @@
     "C60",
     "C68"
    ],
-   "mpn": "GRM188R61E106KA73J",
-   "mfr": "Murata",
-   "flag": "OUT OF STOCK at Digi-Key, 10,000 expected 28 Dec 2026",
-   "note": "10 uF 25 V X5R +/-10%",
-   "alternate": "GRT188R61E106ME13D (Murata, 192,278 in stock, $0.27, verified 2026-08-19). SAME manufacturer, same 25 V X5R 0603 -- the GRT series is Murata's soft-termination version of the GRM, so the dielectric and therefore the DC-bias behaviour are unchanged. Tolerance goes +/-10% to +/-20%, immaterial for bulk decoupling. The highest rail any of these seven sits on is VCC at <=3.2 V, so 25 V is already 8x headroom. A like-for-like swap; not simply applied because it is a design decision, not a sourcing one."
+   "mpn": "GRT188R61E106ME13D",
+   "mfr": "Murata Electronics",
+   "note": "SWAPPED 2026-08-19 from GRM188R61E106KA73J, which was at ZERO stock at both distributors with a 17-week lead (verified 2026-08-19). BOM-only: the board Value stays `10u` and no board file changes, so unlike ECO-8's Value edits this one cannot be reverted by a PCB-from-schematic sync -- but the SCHEMATIC's own Source link for these seven still points at the GRM, so update it there too before anyone regenerates a BOM from the schematic. Verified parameter-by-parameter against the incumbent on the Digi-Key API: capacitance 10 uF, rated voltage 25 V, dielectric X5R, package 0603 (1608), max thickness 1.00 mm and operating range -55 to +85 C are ALL IDENTICAL. Two differences, both neutral-or-better here: tolerance loosens from +/-10% to +/-20%, which is immaterial on bulk decoupling and is dwarfed by MLCC DC-bias derating anyway; and the GRT is Murata's soft-termination series and is AEC-Q200 automotive-qualified, which the GRM is not. WHY THE VOLTAGE MATTERED MORE THAN THE TOLERANCE: the seven placements sit on VOUT3 (3.228 V), VCC (<=3.2 V), VAUD (2.5 V), VDD2 (2.5 V), U17-VDD and /D1A, and the power review flagged DC-bias derating as the thing to protect. Rated voltage drives derating far harder than the tolerance band does, so holding 25 V and giving up the tolerance grade is the right way round.",
+   "alternate": "GRT188R61C106KE13D if you want DEPTH and a SECOND SOURCE more than you want the 25 V rating: 10 uF +/-10% 16 V X5R 0603, Digi-Key 764,592 and Mouser 456,339 (verified 2026-08-19), versus the fitted GRT part's 192,299 at Digi-Key and ZERO at Mouser. It also restores the incumbent's +/-10% tolerance. The cost is the one thing this swap was chosen to protect: 16 V instead of 25 V in the same 0603 case means noticeably more capacitance lost to DC bias. Breakdown is not the issue -- the highest of these seven rails is 3.23 V, so 16 V is still 5x headroom."
   },
   {
    "refs": [
@@ -104,7 +102,7 @@
    ],
    "mpn": "LTC3527EUD#PBF",
    "mfr": "Analog Devices",
-   "flag": "$8.78 qty 1, only 119 in stock. Cost and availability both argue for the TPS63802 transplant.",
+   "flag": "The most expensive active on the board by a wide margin, and the LTC3527 is the converter the power review's Tier-2 recommends transplanting for a TPS63802. Cost argues the same way efficiency does -- check the live price block below before treating that as settled.",
    "note": "Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz"
   },
   {
@@ -130,9 +128,9 @@
    ],
    "mpn": "MIC1553YM5-TR",
    "mfr": "Microchip",
-   "flag": "0 IN STOCK, 3,000 expected 14 Sep 2026. Confirms this is an oscillator, not a power switch.",
+   "flag": "Confirms this is an oscillator, not a power switch -- the MIC1553 is an IttyBitty RC 555-type astable. It drives the low-battery LED blink.",
    "note": "555-type timer/oscillator, 500 kHz",
-   "alternate": "0 at both distributors, 24-week lead -- the longest on the board. Nothing to substitute: the MIC1553 is an IttyBitty 555-type oscillator with no drop-in equivalent in SOT-23-5. It drives the low-battery LED blink, which is already dead for another reason (ECO-7's Net-(Q5B-G) blocker), so it is not on the critical path for a first build."
+   "alternate": "0 at both distributors with a 24-week lead, the longest on the board (verified 2026-08-19). Nothing to substitute: the MIC1553 is an IttyBitty 555-type oscillator with no drop-in equivalent in SOT-23-5. It drives the low-battery LED blink, which is already dead for another reason (ECO-7's Net-(Q5B-G) blocker), so it is not on the critical path for a first build."
   },
   {
    "refs": [
@@ -152,7 +150,7 @@
    ],
    "mpn": "TPS22917DBVR",
    "mfr": "Texas Instruments",
-   "flag": "OUT OF STOCK, 3,000 expected 6 Oct 2026. TPS22917DBVT is the same part on a different reel, 10,916 in stock.",
+   "flag": "TPS22917DBVT is the same die on a different reel; see `alternate`. Which of the two to order is a stock question, not an engineering one.",
    "note": "Load switch, Ron 80 mohm typ",
    "alternate": "TPS22917DBVT -- the SAME DIE on a different reel (10,909 in stock, $1.14, verified 2026-08-19) while DBVR sits at zero with a 16-week lead. Not an engineering decision; change it at order time if DBVR is still out."
   },

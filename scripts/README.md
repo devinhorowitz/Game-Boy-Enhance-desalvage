@@ -163,6 +163,12 @@ one lesson the borrowed doctrine had already written down:
   schematic's own Digi-Key links buy the schematic's values. This is the conflict that has been
   blocking the supervisor-divider change since ECO-8 §8.4, and it is now a ledgered decision
   (the MPN follows the board) that keeps being reported rather than an unexplained gap.
+- **The ledger cannot assert availability either.** Swapping the 10 µF line to an in-stock part
+  left the *previous* part's hand-written `OUT OF STOCK` flag attached to the entry, and it
+  shipped into the assembly BOM sitting beside a live block that said 192,299 in stock. A
+  hand-written stock claim is true for about a week and then quietly lies. `check_stock.py` now
+  refuses to run if any hand-maintained field claims availability without naming the day it was
+  checked — a dated observation carries its own expiry, an undated one does not.
 - **An unreached probe must report UNKNOWN, not zero.** SOLAR-GLOW's weekly-freshness workflow
   says this in capitals and it earned its capitals here on the first live run: a rate-limited
   Mouser query returned nothing for a 33 k resistor, which the first draft wrote out as absent.

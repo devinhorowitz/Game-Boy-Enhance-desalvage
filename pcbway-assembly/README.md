@@ -103,18 +103,42 @@ resistor as unstocked while Mouser had 95,136 of them.
 
 ## 4. What the resolution turned up, and why this is not ready to order
 
-### Five lines are at zero, and every one now carries a verified alternate
+### One line was swapped; four remain at zero, each with a verified alternate
 
 Live figures, both distributors, 2026-08-19. Each `alternate` in
 [`resolved-mpns.json`](resolved-mpns.json) records the substitute *and* what accepting it costs.
 
 | Refs | Part | Digi-Key | Mouser | What to do |
 |---|---|---|---|---|
-| `C2 C12 C23 C37 C59 C60 C68` | Murata GRM188R61E106KA73J, 10 µF 25 V X5R 0603 | **0**, 17 wk | **0** | **`GRT188R61E106ME13D`** — same maker, same 25 V X5R 0603, GRT is Murata's soft-termination GRM. 192,278 in stock. Like-for-like. |
+| `C2 C12 C23 C37 C59 C60 C68` | ~~GRM188R61E106KA73J~~ → **Murata `GRT188R61E106ME13D`** | **192,299** | 0 | ✅ **Swapped.** See below. |
 | `C1 C21 C42` | Murata GRM21BR61E226ME44L, 22 µF 25 V X5R 0805 | **0**, 17 wk | **0** | **No like-for-like exists** — see below. |
 | `U11 U12 U18` | TI TPS22917DBVR | **0**, 16 wk | **0** | **`TPS22917DBVT`** — same die, different reel. 10,909 in stock. |
 | `U14` | Microchip MIC1553YM5-TR | **0**, **24 wk** | **0** | Nothing substitutes it. Not on the critical path — see below. |
 | `R26` | YAGEO RC0603FR-0733KL, 33 k | **0**, 17 wk | **95,136** | Buy it from Mouser. No decision needed. |
+
+**The 10 µF swap, and why it is safe.** Verified parameter by parameter against the incumbent
+on the Digi-Key API — **capacitance 10 µF, rated voltage 25 V, dielectric X5R, package 0603
+(1608), max thickness 1.00 mm and operating range −55 to +85 °C are all identical.** Two
+differences, both neutral or better: tolerance loosens ±10 % → ±20 %, immaterial on bulk
+decoupling and dwarfed by DC-bias derating anyway; and the GRT is Murata's soft-termination
+series and is **AEC-Q200 automotive-qualified**, which the GRM is not.
+
+Holding the *voltage* and giving up the *tolerance* is the right way round: rated voltage
+drives DC-bias derating far harder than the tolerance band does, and DC-bias is the property
+the component review said to protect. The seven placements sit on `VOUT3` (3.228 V), `VCC`
+(≤3.2 V), `VAUD` and `VDD2` (2.5 V), `U17`'s supply and `/D1A`.
+
+**One thing to know: the fitted GRT part is single-sourced.** Digi-Key has 192,299; Mouser has
+zero. If depth and a second source matter more to you than the 25 V rating,
+`GRT188R61C106KE13D` is 10 µF ±10 % **16 V** X5R 0603 with **764,592 at Digi-Key and 456,339 at
+Mouser** — it also restores the incumbent's ±10 %. The cost is exactly the thing this swap was
+chosen to protect: 16 V in the same case means noticeably more capacitance lost to DC bias.
+Breakdown is not the issue either way — the highest of these seven rails is 3.23 V.
+
+This is a **BOM-only change**: the board `Value` stays `10u` and no board file moved, so unlike
+ECO-8's Value edits it cannot be reverted by a PCB-from-schematic sync. **But the schematic's
+own `Source` link for these seven still points at the GRM**, so update it there too before
+anyone regenerates a BOM from the schematic.
 
 **`C1`/`C21`/`C42` is the one that needs a human.** Every 22 µF 25 V X5R 0805 from a tier-1
 manufacturer is at zero — the part sits at the edge of what the case size supports, which is
