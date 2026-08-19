@@ -13,9 +13,14 @@ Everything here exists to make two claims true and keep them true:
 python3 scripts/build_board.py --check     # the shipped board is what the generator makes
 python3 scripts/pack_board.py  --check     # the shipped package is what the tree holds
 python3 scripts/bom_split.py   --check     # the two buy documents agree with the board
+python3 scripts/check_stock.py --offline   # every MPN buys the value the board asks for
 python3 scripts/check_consistency.py       # everything else
 python3 scripts/test_checks.py             # ...and the checks can still fail
 ```
+
+`check_stock.py` without `--offline` also queries the distributors, and needs
+`DIGIKEY_CLIENT_ID`, `DIGIKEY_CLIENT_SECRET` and `MOUSER_PART_API_KEY` in the environment.
+CI runs only the offline half, because CI has no credentials and should not have any.
 
 All three run in CI on every push that touches anything they read
 ([`.github/workflows/consistency.yml`](../.github/workflows/consistency.yml)).
@@ -80,6 +85,9 @@ disclaims does not count — and the fix was to move the words, not widen the wi
 | `routes.json` | the frozen ECO-6 routing. Frozen because the router is not deterministic and the ECO-6 clearance analysis was done against *these* paths. |
 | `pack_board.py` | tree → the deliverable zip, with fixed timestamps so two runs over an unchanged tree produce identical bytes. |
 | `bom_split.py` | board → the two buy documents. **A part moves between them by changing the design, never by editing a list** — the board's own `exclude_from_bom` / `dnp` decide, which is what [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) made true. |
+| `check_stock.py` | resolves every buyable ref to an MPN and prices it live against the **Digi-Key and Mouser APIs**. Writes `pcbway-assembly/resolved-mpns.json`. |
+| `mpn_overrides.json` | hand-maintained: which part a refdes buys, and why. An override beats a schematic link — which is how ECO-8's swaps survive an upstream schematic that still points at the parts they replaced. |
+| `link_mpn.json` | the upstream schematic's own 34 per-symbol Digi-Key short-links, resolved once and frozen. For a generic `1u` or `100k` this is the only record of which part MouseBiteLabs picked. |
 | `check_consistency.py` | the twelve checks. |
 | `test_checks.py` | mutates the board in memory and asserts each check **fails**. A check that has never gone red is not known to work. |
 
@@ -138,3 +146,25 @@ Worth recording, because it is the argument for having built it.
   (any through-hole pad, plus a two-entry salvage ledger), not a list to maintain.
 - **The sourcing gap got a number.** "~35 unresolved links" is now **33 of 61 assembly
   lines, 105 of 172 parts**, measured every run.
+
+## What it found on its third run
+
+Resolving the MPNs against the live APIs turned up a **third instance of one defect class** and
+one lesson the borrowed doctrine had already written down:
+
+- **`Q1` and `Q3` carry TO-92 part numbers on SOT-23 pads.** The board says `2N3904`/`2N3906`.
+  There is no 2N3904 in SOT-23 — the SOT-23 parts are `MMBT3904LT1G`/`MMBT3906LT1G`, which is
+  exactly what the schematic's own links buy. The power review's verifier predicted this in
+  passing ("a part-number/package mismatch nobody flagged") and nothing had acted on it. It is
+  the same shape as `SW1`'s `CSS-1310B` and `P3`'s `SJ-3524-SMT`: **the Value names something a
+  distributor will not ship.** All three are now ledgered and reported until the board is fixed.
+- **Three refs where the schematic and the PCB disagree about the value.** `R3` (1k vs 5.1k),
+  `R4` (10k vs 33k) and `R64` (100k vs 200k) — confirmed from the distributor side, because the
+  schematic's own Digi-Key links buy the schematic's values. This is the conflict that has been
+  blocking the supervisor-divider change since ECO-8 §8.4, and it is now a ledgered decision
+  (the MPN follows the board) that keeps being reported rather than an unexplained gap.
+- **An unreached probe must report UNKNOWN, not zero.** SOLAR-GLOW's weekly-freshness workflow
+  says this in capitals and it earned its capitals here on the first live run: a rate-limited
+  Mouser query returned nothing for a 33 k resistor, which the first draft wrote out as absent.
+  Mouser had 95,136 of them. The client now retries with backoff and, failing that, writes an
+  explicit `UNKNOWN` marker that says in its own text that it is not a stock figure of zero.

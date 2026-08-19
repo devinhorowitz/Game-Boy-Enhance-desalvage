@@ -1,0 +1,388 @@
+{
+ "_comment": "HAND-MAINTAINED decisions about which part a reference designator buys, and why. The exclusion-ledger shape: every entry that is not a plain lookup carries a reason. scripts/check_stock.py joins this with scripts/link_mpn.json (the upstream schematic's own Digi-Key links, resolved once) and with live Digi-Key/Mouser data, and writes pcbway-assembly/resolved-mpns.json. THAT FILE IS GENERATED -- edit this one instead. An override beats a schematic link, which is how an ECO's part swap survives the fact that the upstream schematic still points at the part it replaced.",
+ "entries": [
+  {
+   "refs": [
+    "F1"
+   ],
+   "mpn": "F0805B2R00FSTR",
+   "mfr": "KYOCERA AVX",
+   "eco": "ECO-8: PCB Value corrected from the stale \"0467001.NR\" (a Littelfuse 467-series 0603 1 A fuse) to match the schematic. No electrical change."
+  },
+  {
+   "refs": [
+    "PTC1"
+   ],
+   "mpn": "0805L110SLYR",
+   "mfr": "Littelfuse",
+   "eco": "ECO-8: replaces 0805L075SLYR. Fitted part derates to 0.55 A hold at 40 C and 0.40 A at 60 C, below the realistic worst-case 585 mA input current.",
+   "alternate": "0805L150SLYR if nuisance trips are seen at 1.75x and max brightness - saves ~3x more but raises Itrip to 3.00 A, above F1's useful band"
+  },
+  {
+   "refs": [
+    "U7"
+   ],
+   "mpn": "TLV9064IPWR",
+   "mfr": "Texas Instruments",
+   "eco": "ECO-8: replaces TLV9364QPWRQ1, which is specified 4.5 V to 40 V and was fitted on the 2.5 V VAUD rail with its inputs 0.75 V above the common-mode ceiling. Pin-for-pin identical on the 14-pin TSSOP land. Cheaper than the part it replaces."
+  },
+  {
+   "refs": [
+    "L1",
+    "L2"
+   ],
+   "mpn": "LSXND3030QKT4R7MNG",
+   "mfr": "Taiyo Yuden",
+   "flag": "footprint is named L_Taiyo-Yuden_NR-20xx (2.0 x 2.0 mm); land is 4.00 x 2.00 mm. Verify against the part's recommended land pattern.",
+   "note": "4.7 uH, DCR 144 mohm max, Isat 1.02 A, Irms 1.04 A"
+  },
+  {
+   "refs": [
+    "CP1",
+    "CP2",
+    "CP3"
+   ],
+   "mpn": "TPSB107K010R0400",
+   "mfr": "KYOCERA AVX",
+   "flag": "POLARIZED part on a footprint named C_1210_3225Metric with no polarity marking; land is 4.10 x 2.70 mm. Placement-orientation risk for machine assembly.",
+   "note": "100 uF 10 V molded TANTALUM, POLARIZED, ESR 400 mohm at 100 kHz"
+  },
+  {
+   "refs": [
+    "C1",
+    "C21",
+    "C42"
+   ],
+   "mpn": "GRM21BR61E226ME44L",
+   "mfr": "Murata",
+   "flag": "OUT OF STOCK at Digi-Key, 17-week standard lead time",
+   "note": "22 uF 25 V X5R +/-20%",
+   "alternate": "NO LIKE-FOR-LIKE EXISTS. Every 22 uF 25 V X5R 0805 from a tier-1 maker is at zero; the part is at the edge of what the case size supports, which is why the whole class is scarce. Closest in stock: GRM21BR61C226ME44L (Murata, same series, 16 V instead of 25 V, 95,529, $0.35) or GRM21BC81C226ME44K (Murata, 16 V X6S, 202,906, $0.40). READ BEFORE SUBSTITUTING: these three sit on /VFILT (<=3.2 V), VOUT5 (5.014 V) and VOUT3 (3.228 V), so 16 V is 3.2x headroom on BREAKDOWN -- the question is DC-BIAS CAPACITANCE. A 16 V 0805 22 uF retains materially less at 5 V bias than a 25 V one, so C21's effective capacitance on VOUT5 falls. The power review already flagged C21's derating as mattering. Check the LTC3527's output-ripple requirement against the substitute's bias curve before committing; 1206 for a 25 V part is the other option and needs a footprint change."
+  },
+  {
+   "refs": [
+    "C2",
+    "C12",
+    "C23",
+    "C37",
+    "C59",
+    "C60",
+    "C68"
+   ],
+   "mpn": "GRM188R61E106KA73J",
+   "mfr": "Murata",
+   "flag": "OUT OF STOCK at Digi-Key, 10,000 expected 28 Dec 2026",
+   "note": "10 uF 25 V X5R +/-10%",
+   "alternate": "GRT188R61E106ME13D (Murata, 192,278 in stock, $0.27, verified 2026-08-19). SAME manufacturer, same 25 V X5R 0603 -- the GRT series is Murata's soft-termination version of the GRM, so the dielectric and therefore the DC-bias behaviour are unchanged. Tolerance goes +/-10% to +/-20%, immaterial for bulk decoupling. The highest rail any of these seven sits on is VCC at <=3.2 V, so 25 V is already 8x headroom. A like-for-like swap; not simply applied because it is a design decision, not a sourcing one."
+  },
+  {
+   "refs": [
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C10",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C34",
+    "C39",
+    "C43",
+    "C52",
+    "C53",
+    "C72"
+   ],
+   "mpn": "C0603C104K5RACTU",
+   "mfr": "KEMET",
+   "note": "0.1 uF 50 V X7R"
+  },
+  {
+   "refs": [
+    "U5"
+   ],
+   "mpn": "LTC3527EUD#PBF",
+   "mfr": "Analog Devices",
+   "flag": "$8.78 qty 1, only 119 in stock. Cost and availability both argue for the TPS63802 transplant.",
+   "note": "Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz"
+  },
+  {
+   "refs": [
+    "U4",
+    "U8"
+   ],
+   "mpn": "NCV8164ASN250T1G",
+   "mfr": "onsemi",
+   "note": "LDO, fixed 2.5 V, 300 mA"
+  },
+  {
+   "refs": [
+    "U6"
+   ],
+   "mpn": "LM4853MM/NOPB",
+   "mfr": "Texas Instruments",
+   "note": "Class-AB audio amp, 2.4-5.5 V, 1.9 W into 3 ohm or 300 mW x2 into 8 ohm, depop and shutdown"
+  },
+  {
+   "refs": [
+    "U14"
+   ],
+   "mpn": "MIC1553YM5-TR",
+   "mfr": "Microchip",
+   "flag": "0 IN STOCK, 3,000 expected 14 Sep 2026. Confirms this is an oscillator, not a power switch.",
+   "note": "555-type timer/oscillator, 500 kHz",
+   "alternate": "0 at both distributors, 24-week lead -- the longest on the board. Nothing to substitute: the MIC1553 is an IttyBitty 555-type oscillator with no drop-in equivalent in SOT-23-5. It drives the low-battery LED blink, which is already dead for another reason (ECO-7's Net-(Q5B-G) blocker), so it is not on the critical path for a first build."
+  },
+  {
+   "refs": [
+    "U3",
+    "U10",
+    "U17"
+   ],
+   "mpn": "TPS3840DL20DBVR",
+   "mfr": "Texas Instruments",
+   "note": "Supervisor, 2.0 V threshold, open-drain active-low reset, 619 ms timeout"
+  },
+  {
+   "refs": [
+    "U11",
+    "U12",
+    "U18"
+   ],
+   "mpn": "TPS22917DBVR",
+   "mfr": "Texas Instruments",
+   "flag": "OUT OF STOCK, 3,000 expected 6 Oct 2026. TPS22917DBVT is the same part on a different reel, 10,916 in stock.",
+   "note": "Load switch, Ron 80 mohm typ",
+   "alternate": "TPS22917DBVT -- the SAME DIE on a different reel (10,909 in stock, $1.14, verified 2026-08-19) while DBVR sits at zero with a 16-week lead. Not an engineering decision; change it at order time if DBVR is still out."
+  },
+  {
+   "refs": [
+    "Q2",
+    "Q5",
+    "Q7",
+    "Q9",
+    "Q10"
+   ],
+   "mpn": "NDC7002N",
+   "mfr": "onsemi",
+   "flag": "VGS(th) max 2.5 V is the basis of the review's brownout-latch gate-drive concern",
+   "note": "Dual N-channel MOSFET, 50 V, 510 mA, RDS(on) 2 ohm at 10 V, VGS(th) up to 2.5 V"
+  },
+  {
+   "refs": [
+    "D1",
+    "D2"
+   ],
+   "mpn": "1SS355VMTE-17",
+   "mfr": "Rohm",
+   "flag": "Schematic Description calls it a Schottky. It is not, and 100 mA is far under a reverse-battery clamp duty.",
+   "note": "STANDARD switching diode (NOT Schottky), 80 V, 100 mA, trr 4 ns, Vf 1.2 V at 100 mA"
+  },
+  {
+   "refs": [
+    "SW1"
+   ],
+   "mpn": "CSS-1310TB",
+   "mfr": "Nidec Components",
+   "flag": "Schematic value 'CSS-1310B' is an incomplete ordering code. The orderable part is CSS-1310TB.",
+   "note": "Slide switch SP3T, 100 mA at 12 VDC, SMD right-angle gull wing, 10,000 cycles"
+  },
+  {
+   "refs": [
+    "X1"
+   ],
+   "mpn": "ABLS-4.194304MHZ-B4-T",
+   "mfr": "Abracon",
+   "flag": "marked DNP by ECO-7 for ClockxControl builds",
+   "note": "4.194304 MHz crystal, 18 pF load"
+  },
+  {
+   "refs": [
+    "P2"
+   ],
+   "mpn": "62684-402100ALF",
+   "mfr": "Amphenol ICC (FCI)",
+   "note": "FFC/FPC connector, 40 positions, 0.50 mm pitch, top contacts, SMD right angle"
+  },
+  {
+   "refs": [
+    "DL1"
+   ],
+   "mpn": "150060GS75000",
+   "mfr": "Wurth Elektronik",
+   "eco": "ECO-8: replaces 150060VS75000 (AlInGaP, 570 nm, 12-40 mcd). Identical body and identical recommended land pattern 0.8/0.8/2.4 mm, same polarity (pin 1 = K). With R25 = 22k it runs at 0.124 mA and is brighter than the incumbent is today at 0.93 mA."
+  },
+  {
+   "refs": [
+    "DL2"
+   ],
+   "mpn": "150060RS75000",
+   "mfr": "Wurth Elektronik",
+   "note": "Red LED, Vf 2 V, 250 mcd at 20 mA"
+  },
+  {
+   "refs": [
+    "R23"
+   ],
+   "mpn": "RC0603FR-071M69L",
+   "mfr": "YAGEO",
+   "eco": "ECO-8: replaces RC0603FR-071M78L (1.78 M). Sets VOUT3 = 1.20 x (1 + 1.69/1.00) = 3.228 V instead of 3.336 V; worst case 3.12 V, still 0.12 V above the 3.0 V at which onsemi specify the NCV8164 LDOs."
+  },
+  {
+   "refs": [
+    "R25"
+   ],
+   "mpn": "RC0603FR-0722KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-8: replaces 3.3k. Pairs with the DL1 swap."
+  },
+  {
+   "refs": [
+    "R15",
+    "R16"
+   ],
+   "mpn": "RC0603FR-07100KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-8: replaces 10k on both. Cuts the statically-biased brownout-latch current from 389 uA to 81 uA off VBATT. Forced beta stays at 2.4 against hFE minima of 60 (2N3906) and 40 (2N3904). Same part as R12/R17/R64, already on the BOM."
+  },
+  {
+   "refs": [
+    "R11"
+   ],
+   "mpn": "RC0603FR-0710KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-8: replaces 1k. Cuts the post-brownout latched-off drain from 2.40 mA to 240 uA. Must be paired with R24 = 1M, otherwise /EN falls from 0.990 x SW to 0.909 x SW and Q10B's already-marginal gate drive gets worse."
+  },
+  {
+   "refs": [
+    "R24"
+   ],
+   "mpn": "RC0603FR-071ML",
+   "mfr": "YAGEO",
+   "eco": "ECO-8: replaces 100k. Restores the /EN divider ratio alongside R11 = 10k. Verified against the LTC3527 SHDN input current (1 uA typ / 2 uA max): /EN = 2.356 V at SW = 2.4 V and 1.762 V at SW = 1.8 V, both far above the 0.88 V VIH."
+  },
+  {
+   "refs": [
+    "R65"
+   ],
+   "mpn": "RC0603FR-07470KL",
+   "mfr": "YAGEO",
+   "eco": "ECO-8: replaces 100k on the MIC1553 CS pull-up. 470k not the 1M the review proposed: the MIC1553 datasheet gives no numeric CS leakage spec and warns that a floating CS is unpredictable, and the worst-case CS-high threshold is 0.72 x VS = 3.61 V, not the nominal 2/3."
+  },
+  {
+   "refs": [
+    "C24",
+    "C32"
+   ],
+   "mpn": "C0603C102J5GACTU",
+   "mfr": "KEMET",
+   "eco": "ECO-8 (BOM-only, not expressible in a KiCad Value field): replaces C0603C102K5RACTU (X7R, +/-10%). These are the Sallen-Key FEEDBACK caps, i.e. the ones that set Q, and their partners C26/C31 are already C0G. X7R drifts +/-15% over temperature against C0G's +/-30 ppm/C, so a handheld warming in the hand detunes half of each filter section."
+  },
+  {
+   "refs": [
+    "C28",
+    "C35"
+   ],
+   "mpn": "C0603C332J5GACTU",
+   "mfr": "KEMET",
+   "eco": "ECO-8 (BOM-only): replaces C0603C332K5RACTU (X7R, +/-10%). Same reasoning as C24/C32."
+  },
+  {
+   "refs": [
+    "P3"
+   ],
+   "mpn": "SJ-3524-SMT-TR",
+   "mfr": "CUI Devices",
+   "note": "3.5 mm stereo jack. BOM DEFECT FIXED HERE: the board Value reads `SJ-3524-SMT`, which is the base part and NOT an orderable code -- the Digi-Key API returns no exact match for it. The orderable part is SJ-3524-SMT-TR (98,898 in stock, $0.89, verified 2026-08-19). Same defect class as SW1's CSS-1310B/CSS-1310TB. Hand-solder per ECO-9 -- 4 SMD + 4 through-hole pins."
+  },
+  {
+   "refs": [
+    "VR2"
+   ],
+   "mpn": "RK10J12R0A0B",
+   "mfr": "Alps Alpine",
+   "note": "10k dual-gang volume pot. The board Value IS the ordering code. Hand-solder per ECO-9 -- 7 SMD pads plus 2 through-hole anchors."
+  },
+  {
+   "refs": [
+    "U1"
+   ],
+   "mpn": "",
+   "mfr": "Nintendo",
+   "note": "NO DISTRIBUTOR PART. AGB CPU salvaged from a donor board; the schematic's Source field reads 'Salvage'. Deliberately empty rather than absent, so the buy documents show a line with nothing to order against it instead of silently omitting the most important part on the board."
+  },
+  {
+   "refs": [
+    "U2"
+   ],
+   "mpn": "",
+   "mfr": "Nintendo",
+   "note": "NO DISTRIBUTOR PART. AGB SRAM, same donor. If you fit ECO-5's CY62157EV30LL instead it IS orderable and this entry is replaced -- but see ECO-7, pin 37 has no supply either way."
+  },
+  {
+   "refs": [
+    "P1"
+   ],
+   "mpn": "",
+   "mfr": "",
+   "note": "NO DISTRIBUTOR PART. AGB cartridge slot, aftermarket -- retro parts shops, not Digi-Key or Mouser. 36 through-hole pins, hand-soldered per ECO-9."
+  },
+  {
+   "refs": [
+    "P4"
+   ],
+   "mpn": "",
+   "mfr": "",
+   "note": "NO DISTRIBUTOR PART. AGB link/EXT port, aftermarket. 8 through-hole pins."
+  },
+  {
+   "refs": [
+    "SP1"
+   ],
+   "mpn": "",
+   "mfr": "",
+   "note": "NO DISTRIBUTOR PART. Speaker, aftermarket. 2 through-hole pads."
+  },
+  {
+   "refs": [
+    "MOD1"
+   ],
+   "mpn": "",
+   "mfr": "insideGadgets",
+   "note": "NO DISTRIBUTOR PART. GBA ClockxControl, bought direct from insideGadgets (shop.insidegadgets.com). A mezzanine, not a placeable component -- see ECO-9."
+  },
+  {
+   "refs": [
+    "R3"
+   ],
+   "mpn": "RC0603FR-071KL",
+   "mfr": "YAGEO",
+   "flag": "UNRESOLVED SCHEMATIC/PCB CONFLICT -- the MPN here follows the BOARD, because the board is what gets fabricated and a PCB-derived BOM reads its Value. The upstream SCHEMATIC says 5.1k and its own Digi-Key link buys RC0603FR-075K1L. Both files ship in this repository and they have disagreed since before this fork. This is the conflict that blocks the supervisor-divider change in ECO-8 section 8.4: R3/R4 set U10's battery-sense divider and R64 sets U17's, so the two candidate value sets put the low-battery and brownout trip points in different places. SETTLE IT AGAINST HARDWARE BEFORE ORDERING -- measure the trip point on a built board, or ask MouseBiteLabs."
+  },
+  {
+   "refs": [
+    "R4"
+   ],
+   "mpn": "RC0603FR-0710KL",
+   "mfr": "YAGEO",
+   "flag": "UNRESOLVED SCHEMATIC/PCB CONFLICT -- the MPN here follows the BOARD, because the board is what gets fabricated and a PCB-derived BOM reads its Value. The upstream SCHEMATIC says 33k and its own Digi-Key link buys RC0603FR-0733KL. Both files ship in this repository and they have disagreed since before this fork. This is the conflict that blocks the supervisor-divider change in ECO-8 section 8.4: R3/R4 set U10's battery-sense divider and R64 sets U17's, so the two candidate value sets put the low-battery and brownout trip points in different places. SETTLE IT AGAINST HARDWARE BEFORE ORDERING -- measure the trip point on a built board, or ask MouseBiteLabs."
+  },
+  {
+   "refs": [
+    "R64"
+   ],
+   "mpn": "RC0603FR-07100KL",
+   "mfr": "YAGEO",
+   "flag": "UNRESOLVED SCHEMATIC/PCB CONFLICT -- the MPN here follows the BOARD, because the board is what gets fabricated and a PCB-derived BOM reads its Value. The upstream SCHEMATIC says 200k and its own Digi-Key link buys RC0603FR-07200KL. Both files ship in this repository and they have disagreed since before this fork. This is the conflict that blocks the supervisor-divider change in ECO-8 section 8.4: R3/R4 set U10's battery-sense divider and R64 sets U17's, so the two candidate value sets put the low-battery and brownout trip points in different places. SETTLE IT AGAINST HARDWARE BEFORE ORDERING -- measure the trip point on a built board, or ask MouseBiteLabs."
+  },
+  {
+   "refs": [
+    "R26"
+   ],
+   "mpn": "RC0603FR-0733KL",
+   "mfr": "YAGEO",
+   "alternate": "Second-source it: Digi-Key is at zero with a 17-week lead, MOUSER HAS 95,136 (verified 2026-08-19). Same YAGEO part, no decision required."
+  }
+ ]
+}

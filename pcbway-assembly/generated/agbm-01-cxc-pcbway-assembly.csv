@@ -1,62 +1,59 @@
 refs,qty,value,mpn,mfr,footprint,status,stock,note
-C1 C21 C42,3,22u,GRM21BR61E226ME44L,Murata,Bucketmouse:C_0805_2012Metric_Boxed_2,Active,,"OUT OF STOCK at Digi-Key, 17-week standard lead time"
-C18 C19 C20,3,100p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-C12 C2 C23 C37 C59 C60 C68,7,10u,GRM188R61E106KA73J,Murata,Bucketmouse:C_0603_1608Metric_Boxed_2,Active,,"OUT OF STOCK at Digi-Key, 10,000 expected 28 Dec 2026"
-C10 C13 C14 C15 C16 C17 C34 C39 C43 C5 C52 C53 C6 C7 C72 C8,16,0.1u,C0603C104K5RACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,Active,,
-C11 C22 C25 C29 C30 C36 C38 C44 C45 C46 C47 C48 C49 C50 C51 C54 C55 C56 C69 C9,20,1u,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-C24 C32,2,1000p,C0603C102J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,Active,,"ECO-8 (BOM-only, not expressible in a KiCad Value field): replaces C0603C102K5RACTU (X7R, +/-10%). These are the Sallen-Key FEEDBACK caps, i.e. the ones that set Q, and their partners C26/C31 are already C0G. X7R drifts +/-15% over temperature against C0G's +/-30 ppm/C, so a handheld warming in the hand detunes half of each filter section."
-C26 C31,2,680p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-C27 C33,2,330p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-C28 C35,2,3300p,C0603C332J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,Active,"26,340 at Digi-Key, $0.41/1, $0.157/100","ECO-8 (BOM-only): replaces C0603C332K5RACTU (X7R, +/-10%). Same reasoning as C24/C32."
-C40 C41,2,15p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-C61 C80,2,3300p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-C62 C63 C64 C74 C75 C76 C77 C78,8,0.01u,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
-CP1 CP2 CP3,3,100u,TPSB107K010R0400,KYOCERA AVX,Bucketmouse:C_1210_3225Metric_Boxed_2,Active,,POLARIZED part on a footprint named C_1210_3225Metric with no polarity marking; land is 4.10 x 2.70 mm. Placement-orientation risk for machine assembly.
-D1 D2,2,1SS355VMTE-17,1SS355VMTE-17,Rohm,Bucketmouse:D_SOD-323F,Active,,"Schematic Description calls it a Schottky. It is not, and 100 mA is far under a reverse-battery clamp duty."
-DL1,1,150060GS75000,150060GS75000,Wurth Elektronik,Bucketmouse:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder,"Valid (Wurth), Active",388630,"ECO-8: replaces 150060VS75000 (AlInGaP, 570 nm, 12-40 mcd). Identical body and identical recommended land pattern 0.8/0.8/2.4 mm, same polarity (pin 1 = K). With R25 = 22k it runs at 0.124 mA and is brighter than the incumbent is today at 0.93 mA."
-DL2,1,150060RS75000,150060RS75000,Wurth Elektronik,Bucketmouse:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder,Active,,
-EM1 EM2,2,ACM2520-801-3P-T002,,,Bucketmouse:L_CommonModeChoke_TDK_ACM2520-3P,,,
-EM3 EM7,2,MH1608-601Y,,,Bucketmouse:L_0603_1608Metric,,,
-F1,1,F0805B2R00FSTR,F0805B2R00FSTR,KYOCERA AVX,Bucketmouse:Fuse_0805_2012Metric,Active,,"ECO-8: PCB Value corrected from the stale ""0467001.NR"" (a Littelfuse 467-series 0603 1 A fuse) to match the schematic. No electrical change."
-L1 L2,2,4.7uH,LSXND3030QKT4R7MNG,Taiyo Yuden,Bucketmouse:L_Taiyo-Yuden_NR-20xx_HandSoldering,Active,,footprint is named L_Taiyo-Yuden_NR-20xx (2.0 x 2.0 mm); land is 4.00 x 2.00 mm. Verify against the part's recommended land pattern.
-P2,1,FFC CONNECTOR,62684-402100ALF,Amphenol ICC (FCI),Bucketmouse:AGB-FFC-Connector,Active,94873,
-PTC1,1,0805L110SLYR,0805L110SLYR,Littelfuse,Bucketmouse:Fuse_0805_2012Metric,Active,"16,066 at Digi-Key, $2.26/1 down to $0.80/4000 (2026-08-18)","ECO-8: replaces 0805L075SLYR. Fitted part derates to 0.55 A hold at 40 C and 0.40 A at 60 C, below the realistic worst-case 585 mA input current."
-Q1,1,2N3904,,,Bucketmouse:SOT-23,,,
-Q10 Q2 Q5 Q7 Q9,5,NDC7002N,NDC7002N,onsemi,Bucketmouse:TSOT-23-6,Active,23776,VGS(th) max 2.5 V is the basis of the review's brownout-latch gate-drive concern
-Q3,1,2N3906,,,Bucketmouse:SOT-23,,,
-Q6 Q8,2,2N7002,,,Bucketmouse:SOT-23,,,
-R1,1,1.5M,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R11,1,10k,RC0603FR-0710KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,Active,,"ECO-8: replaces 1k. Cuts the post-brownout latched-off drain from 2.40 mA to 240 uA. Must be paired with R24 = 1M, otherwise /EN falls from 0.990 x SW to 0.909 x SW and Q10B's already-marginal gate drive gets worse."
-R15 R16,2,100k,RC0603FR-07100KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,Active,,"ECO-8: replaces 10k on both. Cuts the statically-biased brownout-latch current from 389 uA to 81 uA off VBATT. Forced beta stays at 2.4 against hFE minima of 60 (2N3906) and 40 (2N3904). Same part as R12/R17/R64, already on the BOM."
-R18 R2 R4,3,10k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R19 R20 R3,3,1k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R10 R47 R52 R56 R57,5,20k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R12 R13 R14 R17 R30 R31 R35 R37 R45 R46 R49 R5 R50 R6 R63 R64 R66 R67 R68 R7 R8 R9,22,100k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R21,1,1.78M,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R22,1,560k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R23,1,1.69M,RC0603FR-071M69L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,Active,"8,855 at Digi-Key, from $0.10/1 (2026-08-18)","ECO-8: replaces RC0603FR-071M78L (1.78 M). Sets VOUT3 = 1.20 x (1 + 1.69/1.00) = 3.228 V instead of 3.336 V; worst case 3.12 V, still 0.12 V above the 3.0 V at which onsemi specify the NCV8164 LDOs."
-R24,1,1M,RC0603FR-071ML,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,Active,,"ECO-8: replaces 100k. Restores the /EN divider ratio alongside R11 = 10k. Verified against the LTC3527 SHDN input current (1 uA typ / 2 uA max): /EN = 2.356 V at SW = 2.4 V and 1.762 V at SW = 1.8 V, both far above the 0.88 V VIH."
-R25,1,22k,RC0603FR-0722KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,Active,,ECO-8: replaces 3.3k. Pairs with the DL1 swap.
-R26,1,33k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R29 R48 R54,3,18k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R36,1,270,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R38 R39,2,47,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R34 R53 R58,3,5.1k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R41,1,2.2k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R42 R51,2,7.5k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R40 R43 R44,3,15,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R55,1,1M,,,Bucketmouse:R_0603_1608Metric_Boxed,,,
-R65,1,470k,RC0603FR-07470KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,Active,"backordered at Digi-Key, 132,700 at LCSC (2026-08-18)","ECO-8: replaces 100k on the MIC1553 CS pull-up. 470k not the 1M the review proposed: the MIC1553 datasheet gives no numeric CS leakage spec and warns that a floating CS is unpredictable, and the worst-case CS-high threshold is 0.72 x VS = 3.61 V, not the nominal 2/3."
-RA1,1,330,,,Bucketmouse:R_Array_Convex_4x0603,,,
-SW1,1,CSS-1310B,CSS-1310TB,Nidec Components,Bucketmouse:AGB-Switch_CSS-1X10B_Uncentered,Active,17509,Schematic value 'CSS-1310B' is an incomplete ordering code. The orderable part is CSS-1310TB.
-U14,1,MIC1553,MIC1553YM5-TR,Microchip,Bucketmouse:SOT-23-5,Active,,"0 IN STOCK, 3,000 expected 14 Sep 2026. Confirms this is an oscillator, not a power switch."
-U15,1,SN74LVC1G332,,,Bucketmouse:TSOT-23-6,,,
-U16,1,SN74HC02PWR,,,Bucketmouse:TSSOP-14_4.4x5mm_P0.65mm,,,
-U10 U17 U3,3,TPS3840DL20,TPS3840DL20DBVR,Texas Instruments,Bucketmouse:SOT-23-5,Active,91662,
-U11 U12 U18,3,TPS22917DBV,TPS22917DBVR,Texas Instruments,Bucketmouse:TSOT-23-6,Active,,"OUT OF STOCK, 3,000 expected 6 Oct 2026. TPS22917DBVT is the same part on a different reel, 10,916 in stock."
-U4 U8,2,NCV8164ASN250T1G,NCV8164ASN250T1G,onsemi,Bucketmouse:SOT-23-5,Active,5008,
-U5,1,LTC3527,LTC3527EUD#PBF,Analog Devices,Bucketmouse:QFN-16_UD,Active,,"$8.78 qty 1, only 119 in stock. Cost and availability both argue for the TPS63802 transplant."
-U6,1,LM4853,LM4853MM/NOPB,Texas Instruments,Bucketmouse:MSOP-10_3x3mm_P0.5mm,Active,2861,
-U7,1,TLV9064IPWR,TLV9064IPWR,Texas Instruments,Bucketmouse:TSSOP-14_4.4x5mm_P0.65mm,Active,"1,433 at Digi-Key, $1.62/1 cut tape (2026-08-18)","ECO-8: replaces TLV9364QPWRQ1, which is specified 4.5 V to 40 V and was fitted on the 2.5 V VAUD rail with its inputs 0.75 V above the common-mode ceiling. Pin-for-pin identical on the 14-pin TSSOP land. Cheaper than the part it replaces."
-U9,1,SN74LVC2G34DBVR,,,Bucketmouse:TSOT-23-6,,,
-VR1,1,50k,,,Bucketmouse:3313J-2,,,
+C1 C21 C42,3,22u,GRM21BR61E226ME44L,Murata,Bucketmouse:C_0805_2012Metric_Boxed_2,,,"OUT OF STOCK at Digi-Key, 17-week standard lead time"
+C18 C19 C20,3,100p,C0603C101J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C12 C2 C23 C37 C59 C60 C68,7,10u,GRM188R61E106KA73J,Murata,Bucketmouse:C_0603_1608Metric_Boxed_2,,,"OUT OF STOCK at Digi-Key, 10,000 expected 28 Dec 2026"
+C10 C13 C14 C15 C16 C17 C34 C39 C43 C5 C52 C53 C6 C7 C72 C8,16,0.1u,C0603C104K5RACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C11 C22 C25 C29 C30 C36 C38 C44 C45 C46 C47 C48 C49 C50 C51 C54 C55 C56 C69 C9,20,1u,C0603C105K4RACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C24 C32,2,1000p,C0603C102J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,"ECO-8 (BOM-only, not expressible in a KiCad Value field): replaces C0603C102K5RACTU (X7R, +/-10%). These are the Sallen-Key FEEDBACK caps, i.e. the ones that set Q, and their partners C26/C31 are already C0G. X7R drifts +/-15% over temperature against C0G's +/-30 ppm/C, so a handheld warming in the hand detunes half of each filter section."
+C26 C31,2,680p,C0603C681J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C27 C33,2,330p,C0603C331J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C28 C35,2,3300p,C0603C332J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,"ECO-8 (BOM-only): replaces C0603C332K5RACTU (X7R, +/-10%). Same reasoning as C24/C32."
+C40 C41,2,15p,C0603C150J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C61 C80,2,3300p,C0603C332K5RACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+C62 C63 C64 C74 C75 C76 C77 C78,8,0.01u,C0603C103K5RACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
+CP1 CP2 CP3,3,100u,TPSB107K010R0400,KYOCERA AVX,Bucketmouse:C_1210_3225Metric_Boxed_2,,,POLARIZED part on a footprint named C_1210_3225Metric with no polarity marking; land is 4.10 x 2.70 mm. Placement-orientation risk for machine assembly.
+D1 D2,2,1SS355VMTE-17,1SS355VMTE-17,Rohm,Bucketmouse:D_SOD-323F,,,"Schematic Description calls it a Schottky. It is not, and 100 mA is far under a reverse-battery clamp duty."
+DL1,1,150060GS75000,150060GS75000,Wurth Elektronik,Bucketmouse:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder,,,"ECO-8: replaces 150060VS75000 (AlInGaP, 570 nm, 12-40 mcd). Identical body and identical recommended land pattern 0.8/0.8/2.4 mm, same polarity (pin 1 = K). With R25 = 22k it runs at 0.124 mA and is brighter than the incumbent is today at 0.93 mA."
+DL2,1,150060RS75000,150060RS75000,Wurth Elektronik,Bucketmouse:LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder,,,
+EM1 EM2,2,ACM2520-801-3P-T002,ACM2520-801-3P-T002,TDK,Bucketmouse:L_CommonModeChoke_TDK_ACM2520-3P,,,
+EM3 EM7,2,MH1608-601Y,MH1608-601Y,Bourns,Bucketmouse:L_0603_1608Metric,,,
+F1,1,F0805B2R00FSTR,F0805B2R00FSTR,KYOCERA AVX,Bucketmouse:Fuse_0805_2012Metric,,,"ECO-8: PCB Value corrected from the stale ""0467001.NR"" (a Littelfuse 467-series 0603 1 A fuse) to match the schematic. No electrical change."
+L1 L2,2,4.7uH,LSXND3030QKT4R7MNG,Taiyo Yuden,Bucketmouse:L_Taiyo-Yuden_NR-20xx_HandSoldering,,,footprint is named L_Taiyo-Yuden_NR-20xx (2.0 x 2.0 mm); land is 4.00 x 2.00 mm. Verify against the part's recommended land pattern.
+P2,1,FFC CONNECTOR,62684-402100ALF,Amphenol ICC (FCI),Bucketmouse:AGB-FFC-Connector,,,
+PTC1,1,0805L110SLYR,0805L110SLYR,Littelfuse,Bucketmouse:Fuse_0805_2012Metric,,,"ECO-8: replaces 0805L075SLYR. Fitted part derates to 0.55 A hold at 40 C and 0.40 A at 60 C, below the realistic worst-case 585 mA input current."
+Q1,1,2N3904,MMBT3904LT1G,onsemi,Bucketmouse:SOT-23,,,
+Q10 Q2 Q5 Q7 Q9,5,NDC7002N,NDC7002N,onsemi,Bucketmouse:TSOT-23-6,,,VGS(th) max 2.5 V is the basis of the review's brownout-latch gate-drive concern
+Q3,1,2N3906,MMBT3906LT1G,onsemi,Bucketmouse:SOT-23,,,
+Q6 Q8,2,2N7002,2N7002,onsemi,Bucketmouse:SOT-23,,,
+R1,1,1.5M,RC0603FR-071M5L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R19 R20 R3,3,1k,RC0603FR-071KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R11 R18 R2 R4,4,10k,RC0603FR-0710KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,"ECO-8: replaces 1k. Cuts the post-brownout latched-off drain from 2.40 mA to 240 uA. Must be paired with R24 = 1M, otherwise /EN falls from 0.990 x SW to 0.909 x SW and Q10B's already-marginal gate drive gets worse."
+R10 R47 R52 R56 R57,5,20k,RC0603FR-0720KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R12 R13 R14 R15 R16 R17 R30 R31 R35 R37 R45 R46 R49 R5 R50 R6 R63 R64 R66 R67 R68 R7 R8 R9,24,100k,RC0603FR-07100KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R21,1,1.78M,RC0603FR-071M78L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R22,1,560k,RC0603FR-13560KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R23,1,1.69M,RC0603FR-071M69L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,"ECO-8: replaces RC0603FR-071M78L (1.78 M). Sets VOUT3 = 1.20 x (1 + 1.69/1.00) = 3.228 V instead of 3.336 V; worst case 3.12 V, still 0.12 V above the 3.0 V at which onsemi specify the NCV8164 LDOs."
+R25,1,22k,RC0603FR-0722KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,ECO-8: replaces 3.3k. Pairs with the DL1 swap.
+R26,1,33k,RC0603FR-0733KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R24 R55,2,1M,RC0603FR-071ML,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,"ECO-8: replaces 100k. Restores the /EN divider ratio alongside R11 = 10k. Verified against the LTC3527 SHDN input current (1 uA typ / 2 uA max): /EN = 2.356 V at SW = 2.4 V and 1.762 V at SW = 1.8 V, both far above the 0.88 V VIH."
+R29 R48 R54,3,18k,RC0603FR-0718KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R36,1,270,RC0603FR-07270RL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R38 R39,2,47,RC0603FR-0747RL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R34 R53 R58,3,5.1k,RC0603FR-075K1L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R41,1,2.2k,RC0603FR-072K2L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R42 R51,2,7.5k,RC0603FR-077K5L,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R40 R43 R44,3,15,RC0603FR-1315RL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,
+R65,1,470k,RC0603FR-07470KL,YAGEO,Bucketmouse:R_0603_1608Metric_Boxed,,,"ECO-8: replaces 100k on the MIC1553 CS pull-up. 470k not the 1M the review proposed: the MIC1553 datasheet gives no numeric CS leakage spec and warns that a floating CS is unpredictable, and the worst-case CS-high threshold is 0.72 x VS = 3.61 V, not the nominal 2/3."
+RA1,1,330,EXB-V8V331JV,Panasonic,Bucketmouse:R_Array_Convex_4x0603,,,
+SW1,1,CSS-1310B,CSS-1310TB,Nidec Components,Bucketmouse:AGB-Switch_CSS-1X10B_Uncentered,,,Schematic value 'CSS-1310B' is an incomplete ordering code. The orderable part is CSS-1310TB.
+U14,1,MIC1553,MIC1553YM5-TR,Microchip,Bucketmouse:SOT-23-5,,,"0 IN STOCK, 3,000 expected 14 Sep 2026. Confirms this is an oscillator, not a power switch."
+U15,1,SN74LVC1G332,SN74LVC1G332DBVR,Texas Instruments,Bucketmouse:TSOT-23-6,,,
+U16,1,SN74HC02PWR,SN74HC02PWR,Texas Instruments,Bucketmouse:TSSOP-14_4.4x5mm_P0.65mm,,,
+U10 U17 U3,3,TPS3840DL20,TPS3840DL20DBVR,Texas Instruments,Bucketmouse:SOT-23-5,,,
+U11 U12 U18,3,TPS22917DBV,TPS22917DBVR,Texas Instruments,Bucketmouse:TSOT-23-6,,,"OUT OF STOCK, 3,000 expected 6 Oct 2026. TPS22917DBVT is the same part on a different reel, 10,916 in stock."
+U4 U8,2,NCV8164ASN250T1G,NCV8164ASN250T1G,onsemi,Bucketmouse:SOT-23-5,,,
+U5,1,LTC3527,LTC3527EUD#PBF,Analog Devices,Bucketmouse:QFN-16_UD,,,"$8.78 qty 1, only 119 in stock. Cost and availability both argue for the TPS63802 transplant."
+U6,1,LM4853,LM4853MM/NOPB,Texas Instruments,Bucketmouse:MSOP-10_3x3mm_P0.5mm,,,
+U7,1,TLV9064IPWR,TLV9064IPWR,Texas Instruments,Bucketmouse:TSSOP-14_4.4x5mm_P0.65mm,,,"ECO-8: replaces TLV9364QPWRQ1, which is specified 4.5 V to 40 V and was fitted on the 2.5 V VAUD rail with its inputs 0.75 V above the common-mode ceiling. Pin-for-pin identical on the 14-pin TSSOP land. Cheaper than the part it replaces."
+U9,1,SN74LVC2G34DBVR,SN74LVC2G34DBVR,Texas Instruments,Bucketmouse:TSOT-23-6,,,
+VR1,1,50k,3313J-2-503E,Bourns,Bucketmouse:3313J-2,,,

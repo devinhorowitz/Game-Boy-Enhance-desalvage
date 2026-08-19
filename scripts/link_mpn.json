@@ -1,0 +1,176 @@
+{
+ "_comment": "Digi-Key short-link -> manufacturer part number, resolved 2026-08-19 by fetching each link. The links live in the UPSTREAM schematic's per-symbol `Source` property (AGBM-01 (AA Batteries)/AGBM-01_Design Files.zip), which is the only record of WHICH part MouseBiteLabs picked for a generic value like `1u` or `100k`. curl gets HTTP 403 from www.digikey.com (their bot protection, not the egress proxy), so these were resolved through a fetch tool rather than scripted; the mapping is static, so freezing it here is correct. Everything VOLATILE about these parts -- stock, price, lifecycle status -- is fetched live from the Digi-Key and Mouser APIs by scripts/check_stock.py and is deliberately NOT frozen here.",
+ "_source": "per-symbol (property \"Source\" ...) in the upstream schematic sheets",
+ "links": {
+  "rpz9t4md": {
+   "mpn": "RC0603FR-07100KL",
+   "mfr": "YAGEO",
+   "expect": "100k"
+  },
+  "2ppmm3vt": {
+   "mpn": "C0603C105K4RACTU",
+   "mfr": "KEMET",
+   "expect": "1u"
+  },
+  "j50jww8m": {
+   "mpn": "C0603C103K5RACTU",
+   "mfr": "KEMET",
+   "expect": "0.01u"
+  },
+  "38d0p2b4": {
+   "mpn": "RC0603FR-0720KL",
+   "mfr": "YAGEO",
+   "expect": "20k"
+  },
+  "qqj3r2v5": {
+   "mpn": "RC0603FR-075K1L",
+   "mfr": "YAGEO",
+   "expect": "5.1k"
+  },
+  "1rfwtcff": {
+   "mpn": "RC0603FR-0718KL",
+   "mfr": "YAGEO",
+   "expect": "18k"
+  },
+  "h34j0h9q": {
+   "mpn": "C0603C101J5GACTU",
+   "mfr": "KEMET",
+   "expect": "100p"
+  },
+  "d1537pn3": {
+   "mpn": "RC0603FR-1315RL",
+   "mfr": "YAGEO",
+   "expect": "15"
+  },
+  "3p3jj3wt": {
+   "mpn": "C0603C332K5RACTU",
+   "mfr": "KEMET",
+   "expect": "3300p"
+  },
+  "q58vhz49": {
+   "mpn": "C0603C150J5GACTU",
+   "mfr": "KEMET",
+   "expect": "15p"
+  },
+  "t0dpzzp1": {
+   "mpn": "RC0603FR-0733KL",
+   "mfr": "YAGEO",
+   "expect": "33k"
+  },
+  "nwddb5fm": {
+   "mpn": "RC0603FR-071KL",
+   "mfr": "YAGEO",
+   "expect": "1k"
+  },
+  "5ptw22qq": {
+   "mpn": "C0603C331J5GACTU",
+   "mfr": "KEMET",
+   "expect": "330p"
+  },
+  "vbm0z4md": {
+   "mpn": "2N7002",
+   "mfr": "onsemi",
+   "expect": "2N7002"
+  },
+  "jm5qjr7w": {
+   "mpn": "C0603C681J5GACTU",
+   "mfr": "KEMET",
+   "expect": "680p"
+  },
+  "vn4221jt": {
+   "mpn": "RC0603FR-077K5L",
+   "mfr": "YAGEO",
+   "expect": "7.5k"
+  },
+  "2trwn31h": {
+   "mpn": "RC0603FR-0747RL",
+   "mfr": "YAGEO",
+   "expect": "47"
+  },
+  "771087dh": {
+   "mpn": "ACM2520-801-3P-T002",
+   "mfr": "TDK",
+   "expect": "ACM2520-801-3P-T002"
+  },
+  "c329ffdd": {
+   "mpn": "MH1608-601Y",
+   "mfr": "Bourns",
+   "expect": "MH1608-601Y"
+  },
+  "hhdhqzd8": {
+   "mpn": "MMBT3906LT1G",
+   "mfr": "onsemi",
+   "expect": "2N3906"
+  },
+  "3t5fhht8": {
+   "mpn": "RC0603FR-13560KL",
+   "mfr": "YAGEO",
+   "expect": "560k"
+  },
+  "pwjt9n2j": {
+   "mpn": "RC0603FR-071ML",
+   "mfr": "YAGEO",
+   "expect": "1M"
+  },
+  "3391593q": {
+   "mpn": "RC0603FR-07200KL",
+   "mfr": "YAGEO",
+   "expect": "200k"
+  },
+  "5j230h4f": {
+   "mpn": "MMBT3904LT1G",
+   "mfr": "onsemi",
+   "expect": "2N3904"
+  },
+  "mt3hp154": {
+   "mpn": "RC0603FR-071M78L",
+   "mfr": "YAGEO",
+   "expect": "1.78M"
+  },
+  "tzhnmjv0": {
+   "mpn": "SN74LVC2G34DBVR",
+   "mfr": "Texas Instruments",
+   "expect": "SN74LVC2G34DBVR"
+  },
+  "m8cr1b0n": {
+   "mpn": "EXB-V8V331JV",
+   "mfr": "Panasonic",
+   "expect": "330"
+  },
+  "pd49zr2b": {
+   "mpn": "RC0603FR-071M5L",
+   "mfr": "YAGEO",
+   "expect": "1.5M"
+  },
+  "89v4f1wn": {
+   "mpn": "RC0603FR-072K2L",
+   "mfr": "YAGEO",
+   "expect": "2.2k"
+  },
+  "t1r20n2n": {
+   "mpn": "SN74HC02PWR",
+   "mfr": "Texas Instruments",
+   "expect": "SN74HC02PWR"
+  },
+  "734hmb3p": {
+   "mpn": "SN74LVC1G332DBVR",
+   "mfr": "Texas Instruments",
+   "expect": "SN74LVC1G332DBVR"
+  },
+  "p8zptq5h": {
+   "mpn": "3313J-2-503E",
+   "mfr": "Bourns",
+   "expect": "50k"
+  },
+  "85p4bp5h": {
+   "mpn": "RC0603FR-07270RL",
+   "mfr": "YAGEO",
+   "expect": "270"
+  },
+  "t130htj0": {
+   "mpn": "RC0603FR-0710KL",
+   "mfr": "YAGEO",
+   "expect": "10k"
+  }
+ }
+}

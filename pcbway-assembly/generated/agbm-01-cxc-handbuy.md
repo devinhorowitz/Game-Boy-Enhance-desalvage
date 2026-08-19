@@ -10,12 +10,12 @@ Quantities are for **1 board(s)**.
 |---|---|---|---|---|---|
 | `MOD1` | 1 | ClockxControl | — | — | ClockxControl mezzanine -- its plated holes are filled with solder from above onto the pads below; no pick-and-place does that |
 | `P1` | 1 | CART SLOT | — | — | AGB cartridge slot, 36 through-hole pins |
-| `P3` | 1 | SJ-3524-SMT | — | — | CUI SJ-3524-SMT headphone jack -- 4 SMD + 4 through-hole signal pins and 2 unplated posts, so a selective-solder or hand step either way |
+| `P3` | 1 | SJ-3524-SMT | SJ-3524-SMT-TR | CUI Devices | CUI SJ-3524-SMT headphone jack -- 4 SMD + 4 through-hole signal pins and 2 unplated posts, so a selective-solder or hand step either way |
 | `P4` | 1 | AGB-LINK | — | — | AGB link port, 8 through-hole pins |
 | `SP1` | 1 | Speaker | — | — | speaker, 2 through-hole pads and a wired mechanical part |
 | `U1` | 1 | AGB-CPU | — | — | AGB-CPU, 128-pin QFP recovered from a donor board. The schematic's own Source field reads 'Salvage'. Not orderable at any price, so it cannot be on an assembly BOM; hand-fit after the reflow. |
 | `U2` | 1 | AGB-SRAM | — | — | AGB-SRAM, 96-pin TSOP, same donor. ECO-5 exists to let a CY62157EV30LL stand in for it -- and if you fit that instead, it is a NEW part and this line comes out. Note ECO-7: pin 37 has no supply yet either way. |
-| `VR2` | 1 | RK10J12R0A0B | — | — | Alps RK10J12R0A0B volume pot -- 7 SMD pads plus 2 through-hole anchors |
+| `VR2` | 1 | RK10J12R0A0B | RK10J12R0A0B | Alps Alpine | Alps RK10J12R0A0B volume pot -- 7 SMD pads plus 2 through-hole anchors |
 
 ## What this list is not
 

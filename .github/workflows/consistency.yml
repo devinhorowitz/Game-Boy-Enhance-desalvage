@@ -69,6 +69,12 @@ jobs:
       # regression, so it warns in check [12] rather than failing the build here.
       - name: The two buy documents agree with the board
         run: python3 scripts/bom_split.py --check
+      # OFFLINE ONLY. This half needs no credentials and CI is given none -- it checks that
+      # every resolved MPN buys the value the board actually asks for, which is a property
+      # of the committed files. Stock and price are refreshed by running it WITHOUT
+      # --offline on a machine that has the distributor keys.
+      - name: Every MPN buys the value the board asks for
+        run: python3 scripts/check_stock.py --offline
       # A check that has never gone red is not known to work. This mutates the board in
       # memory and asserts each check FAILS on the mutation, so a matcher that silently
       # stops matching is caught here rather than by a wrong board reaching a fab.

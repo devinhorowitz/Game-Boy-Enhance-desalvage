@@ -333,6 +333,20 @@ KNOWN_DEFECT_PNS = {
         ("SW1's schematic Value is an incomplete Nidec ordering code; the orderable part "
          "is CSS-1310TB. Tracked in pcbway-assembly/README.md as a BOM defect to fix "
          "before an order.", "pcbway-assembly/README.md", "CSS-1310TB"),
+    # Found 2026-08-19 by the MPN resolution, and predicted before that by the power
+    # review's verifier: "the BOM value strings '2N3904'/'2N3906' on SOT-23 pads are
+    # themselves a part-number/package mismatch nobody flagged." 2N3904 and 2N3906 are
+    # TO-92 part numbers. There is no 2N3904 in SOT-23 -- the SOT-23 part is MMBT3904,
+    # which is exactly what the schematic's own Digi-Key link buys. The Value is wrong and
+    # the link is right, the same shape as SW1 and P3.
+    ("2N3904", "MMBT3904LT1G"):
+        ("Q1's board Value is the TO-92 part number on SOT-23 pads. The schematic's link "
+         "buys MMBT3904LT1G, which is the SOT-23 part. Tracked in "
+         "pcbway-assembly/README.md.", "pcbway-assembly/README.md", "MMBT3904LT1G"),
+    ("2N3906", "MMBT3906LT1G"):
+        ("Q3's board Value is the TO-92 part number on SOT-23 pads. The schematic's link "
+         "buys MMBT3906LT1G, which is the SOT-23 part. Tracked in "
+         "pcbway-assembly/README.md.", "pcbway-assembly/README.md", "MMBT3906LT1G"),
 }
 
 

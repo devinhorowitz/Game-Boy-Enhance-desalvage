@@ -55,5 +55,5 @@ TP83,1,CXC CLK wire,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
 TP84,1,CXC V+ wire,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
 TP85,1,CXC V- wire,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
 TP9,1,TP9,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
-X1,1,4.194304MHz,ABLS-4.194304MHZ-B4-T,Abracon,Bucketmouse:AGB-Crystal,Active,2299,marked DNP by ECO-7 for ClockxControl builds
+X1,1,4.194304MHz,,,Bucketmouse:AGB-Crystal,,,DNP
 Z57 Z58,2,100p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP

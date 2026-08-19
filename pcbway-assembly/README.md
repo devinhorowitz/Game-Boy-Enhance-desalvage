@@ -80,42 +80,74 @@ but they are **Digi-Key short-links**, not part numbers: 68 unique links, 62 of 
 `curl` gets **HTTP 403** from Digi-Key (their bot protection, not the egress proxy, which reports no
 relay failures). WebFetch resolves them.
 
-**29 lines resolved so far, covering 65 reference designators** —
-[`resolved-mpns.json`](resolved-mpns.json). Priority went to the actives, the disputed parts, and
-anything the component review flagged. The ~35 unresolved links are almost all generic 0603
-resistor and capacitor values, which are trivially substitutable and carry no sourcing risk; they
-still need resolving before an order, but they are not where the problems are.
+**Resolved: 174 of 180 buyable reference designators. The other six have no distributor part
+by decision** — `U1`/`U2` are salvage and `P1`/`P4`/`SP1`/`MOD1` are aftermarket. **Zero
+unresolved.**
 
-Every part [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md) introduces is in that file
-with its datasheet numbers, its Digi-Key stock as of 2026-08-18, and a note saying what it replaced
-and why. All of them are 0603/0805/TSSOP-14 drop-ins on lands that are already on the board.
+[`resolved-mpns.json`](resolved-mpns.json) is **generated** by
+[`scripts/check_stock.py`](../scripts/check_stock.py) from three inputs:
+
+| | |
+|---|---|
+| [`scripts/mpn_overrides.json`](../scripts/mpn_overrides.json) | hand-maintained decisions, each with a reason. An override beats a schematic link — which is how ECO-8's swaps survive the fact that the upstream schematic still points at the parts they replaced. |
+| [`scripts/link_mpn.json`](../scripts/link_mpn.json) | the upstream schematic's own 34 per-symbol Digi-Key short-links, resolved to MPNs once and frozen. For a generic value like `1u` or `100k` this is the **only** record of which part MouseBiteLabs picked. |
+| the Digi-Key and Mouser APIs | everything volatile: lifecycle status, stock, unit price, the distributor's own part number. |
+
+**Frozen data and live data rot differently**, which is why they are separate. A short-link's
+MPN does not change; stock changes hourly. A distributor that could not be reached leaves its
+block marked `UNKNOWN`, never zero — that distinction is load-bearing, and it caught a real
+case on the first live run where a rate-limited Mouser query would otherwise have reported a
+resistor as unstocked while Mouser had 95,136 of them.
+
+**One board's 172 machine-placed parts cost about $54 at Digi-Key qty-1 pricing.**
 
 ## 4. What the resolution turned up, and why this is not ready to order
 
-### Five lines have real availability problems
+### Five lines are at zero, and every one now carries a verified alternate
 
-| Refs | Part | Problem |
-|---|---|---|
-| `C2 C12 C23 C37 C59 C60 C68` | Murata GRM188R61E106KA73J 10 µF 0603 | **out of stock**, 10,000 due 28 Dec 2026 |
-| `C1 C21 C42` | Murata GRM21BR61E226ME44L 22 µF 0805 | **out of stock**, 17-week lead |
-| `U11 U12 U18` | TI TPS22917DBVR | **out of stock**, due 6 Oct 2026 (`DBVT` is the same part on another reel, 10,916 in stock) |
-| `U14` | Microchip MIC1553YM5-TR | **0 in stock**, 3,000 due 14 Sep 2026 |
-| `U5` | ADI LTC3527EUD#PBF | **$8.78 qty 1**, only 119 in stock |
+Live figures, both distributors, 2026-08-19. Each `alternate` in
+[`resolved-mpns.json`](resolved-mpns.json) records the substitute *and* what accepting it costs.
 
-The two capacitor lines are the serious ones: ten placements between them, both bulk decoupling.
-Equivalents in the same case size and dielectric are easy, but they have to be chosen deliberately
-rather than left to a substitution desk, because the component review found `C21`'s DC-bias
-derating already matters on the 5 V rail.
+| Refs | Part | Digi-Key | Mouser | What to do |
+|---|---|---|---|---|
+| `C2 C12 C23 C37 C59 C60 C68` | Murata GRM188R61E106KA73J, 10 µF 25 V X5R 0603 | **0**, 17 wk | **0** | **`GRT188R61E106ME13D`** — same maker, same 25 V X5R 0603, GRT is Murata's soft-termination GRM. 192,278 in stock. Like-for-like. |
+| `C1 C21 C42` | Murata GRM21BR61E226ME44L, 22 µF 25 V X5R 0805 | **0**, 17 wk | **0** | **No like-for-like exists** — see below. |
+| `U11 U12 U18` | TI TPS22917DBVR | **0**, 16 wk | **0** | **`TPS22917DBVT`** — same die, different reel. 10,909 in stock. |
+| `U14` | Microchip MIC1553YM5-TR | **0**, **24 wk** | **0** | Nothing substitutes it. Not on the critical path — see below. |
+| `R26` | YAGEO RC0603FR-0733KL, 33 k | **0**, 17 wk | **95,136** | Buy it from Mouser. No decision needed. |
 
-The `U5` line is worth noting against the review's Tier-2 recommendation: at $8.78 and 119 in stock,
-the LTC3527 is both the most expensive active on the board and the thinnest supply. The TPS63802
-transplant is cheaper *and* better sourced, which strengthens a case that was already made on
-efficiency.
+**`C1`/`C21`/`C42` is the one that needs a human.** Every 22 µF 25 V X5R 0805 from a tier-1
+manufacturer is at zero — the part sits at the edge of what the case size supports, which is
+why the whole class is scarce. The closest in-stock parts are `GRM21BR61C226ME44L` (same Murata
+series at **16 V**, 95,529) and `GRM21BC81C226ME44K` (16 V X6S, 202,906). These three caps sit on
+`/VFILT` (≤3.2 V), `VOUT5` (5.014 V) and `VOUT3` (3.228 V), so 16 V is 3.2× headroom on
+*breakdown* — **the question is DC-bias capacitance, not breakdown.** A 16 V 0805 22 µF retains
+materially less at 5 V bias than a 25 V one, so `C21`'s effective capacitance on `VOUT5` falls,
+and the component review already flagged `C21`'s derating as mattering. Check the LTC3527's
+output-ripple requirement against the substitute's bias curve before committing. Going to 1206
+for a 25 V part is the other option and needs a footprint change.
+
+**`U14` is the longest lead on the board at 24 weeks, and it does not block a first build.** The
+MIC1553 drives the low-battery LED blink — which is already dead for an unrelated reason, the
+`Net-(Q5B-G)` break in [ECO-7](../clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md).
+
+`U5` (ADI LTC3527EUD#PBF) is no longer on this list — it is in stock — but it remains the most
+expensive active on the board, which strengthens the review's Tier-2 case for the TPS63802
+transplant on cost as well as efficiency.
 
 ### Three BOM defects that must be fixed before an order
 
-- **`SW1`'s value is not an orderable part number.** The schematic says `CSS-1310B`; the real Nidec
-  ordering code is **`CSS-1310TB`** (SP3T, SMD right-angle, 17,509 in stock).
+- **Three Values are part numbers for the wrong thing.** All three are the same defect: the
+  board's `Value` field names something a distributor will not ship, while the schematic's
+  own Digi-Key link buys the right part. Consistency check [6] holds each pair and reports
+  it until the board is corrected.
+  - **`SW1`** says `CSS-1310B`; the orderable Nidec code is **`CSS-1310TB`**.
+  - **`P3`** says `SJ-3524-SMT`; the Digi-Key API returns **no exact match** for it. The
+    orderable CUI code is **`SJ-3524-SMT-TR`** (98,898 in stock, $0.89).
+  - **`Q1`/`Q3`** say `2N3904`/`2N3906` — **TO-92 part numbers on SOT-23 pads.** There is no
+    2N3904 in SOT-23; the SOT-23 parts are **`MMBT3904LT1G`**/**`MMBT3906LT1G`**, which is
+    what the schematic links actually buy. The power review predicted this one and nobody
+    had flagged it.
 - **`D1`/`D2` are described as Schottky diodes and are not.** `1SS355VMTE-17` is a Rohm *standard*
   switching diode, 80 V, 100 mA. The review separately found `D1` is under-rated for the
   reverse-battery clamp duty the schematic assigns it.
@@ -158,12 +190,13 @@ rework and a re-pour. **No assembly order should be placed until that is closed.
 
 ## 6. Still to do
 
-1. Resolve the remaining MPNs. The number is no longer an estimate: **33 of 61 assembly
-   lines, 105 of 172 parts**, measured on every run by check [12]. Almost all are generic
-   0603 R and C values — the 20× `1u` line alone is a fifth of the shortfall — so this is
-   volume, not difficulty.
-2. Choose in-stock equivalents for the five problem lines, deliberately, with the review's derating
-   findings in hand.
+1. ~~Resolve the remaining MPNs.~~ **Done — zero unresolved.** Re-run
+   `python3 scripts/check_stock.py` before ordering to refresh stock and price; it needs
+   `DIGIKEY_CLIENT_ID`, `DIGIKEY_CLIENT_SECRET` and `MOUSER_PART_API_KEY` in the
+   environment.
+2. Decide the two substitutions that are engineering calls, not sourcing ones: the 22 µF
+   0805 line (DC-bias, above) and whether to apply the 10 µF `GRT` swap. The other three
+   are mechanical.
 3. Fix the remaining two BOM defects (`SW1`'s ordering code, the `D1`/`D2` Schottky
    mis-description) and the two footprint mismatches; add tantalum polarity marking. The
    `F1`/`PTC1` defect is closed by ECO-8.
