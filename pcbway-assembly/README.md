@@ -254,11 +254,19 @@ the one he physically fitted in a shell:
 | **ours** (ECO-5) | x = **+12.31** | 19.00 mm | x = **+2.81** |
 
 The obstruction Nick named was the front shell's plastic screen rim, and ECO-5's own README says
-front-shell fit is **unverified**. **Adopt AGBM-02's `Bucketmouse:AGB-SRAM_2` geometry, or verify
-ECO-5's in a real shell, before fabricating.** His is the land with a physical fit behind it. This
-is a 24-pad relocation and re-route — do it in the same pass as the two ECO-7 defects above, since
-all three are in the same corner of the board. Full comparison in
-[`wiki-audit/README.md`](../wiki-audit/README.md) §D.
+front-shell fit is **unverified**. His is the land with a physical fit behind it.
+
+**But it cannot be adopted as a footprint swap onto this layout, and that was tested.** On
+AGBM-01 the channel west of `U2`'s left pad column carries the entire RAM address-bus fanout — 37
+F.Cu segments on `MA_1`…`MA_15`, `~WE_RAM`, `~LB`, `~UB`, GND. Placing his pad field there
+**shorts 15 of the 24 new pads across 12 nets**. Nick could put the column there on AGBM-02
+because he re-routed the fanout; ECO-5 went east because east was comparatively empty.
+
+**The remedy is to rebase this fork onto AGBM-02**, which already carries the land, the straps and
+the shell fit — and whose layout is byte-identical to AGBM-01 at 217 of 230 shared footprints.
+That would also close both blockers above, since both are ECO-5's damage. Full comparison and the
+cost of the rebase in [`wiki-audit/README.md`](../wiki-audit/README.md) §D and §D2. **Until that
+decision is made, this board's `U2` land remains ECO-5's and its shell fit remains unverified.**
 
 **Two manual steps no assembly line performs**, for whichever land ends up on the board — record
 them in the build notes rather than expecting PCBWay to do them. Both apply *only* if you populate
@@ -287,8 +295,9 @@ pin-16-to-17 bridge instead.
 3. Fix the remaining two BOM defects (`SW1`'s ordering code, the `D1`/`D2` Schottky
    mis-description) and the two footprint mismatches; add tantalum polarity marking. The
    `F1`/`PTC1` defect is closed by ECO-8.
-4. Close the ECO-7 board defects **and the `U2` land direction (§5)** in one KiCad pass —
-   they are all in the same corner — then re-pour.
+4. Settle the base-board question in §5 first — rebasing onto AGBM-02 deletes ECO-5 and both
+   ECO-7 defects outright, so closing them by hand on AGBM-01 may be work spent on a board
+   that is about to be replaced. If AGBM-01 is kept, close both defects and re-pour.
 5. Generate the fab package: gerbers and drill. The BOM, the CPL and the DNP list now come
    out of `scripts/bom_split.py` — **but the CPL's rotation convention is unverified.** It
    emits the board's own `(at x y rot)` verbatim; PCBWay's expected zero-degree reference

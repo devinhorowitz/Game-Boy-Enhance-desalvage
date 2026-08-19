@@ -148,12 +148,71 @@ carries a warning about a part 46 mm away:
 > extra solder. If it's raised up too much, then you might have interference with the
 > screen.
 
-**Recommendation:** before fabricating, replace ECO-5's `U2` land with AGBM-02's
-`Bucketmouse:AGB-SRAM_2` geometry, or verify ECO-5's in a real front shell. Nick's land is
-the one with a physical fit behind it. This is a 24-pad relocation and re-route — real
-layout work, not a value edit — and ECO-5's own README already lists the routing as
-unfinished and front-shell fit as unverified, so it belongs in the same pass. Added to the
-pre-fab blockers in [`pcbway-assembly/README.md`](../pcbway-assembly/README.md).
+### Correction: this cannot be done as a footprint swap
+
+An earlier version of this section recommended replacing ECO-5's land with AGBM-02's
+`Bucketmouse:AGB-SRAM_2` geometry, calling it "a 24-pad relocation and re-route." **That was
+wrong, and testing it is what proved it wrong.**
+
+Nick's land and Nick's routing are one design. On AGBM-01 the channel immediately west of
+`U2`'s left pad column is where **the entire RAM address bus escapes** — 37 F.Cu segments
+carrying `MA_1`…`MA_15`, `~WE_RAM`, `~LB`, `~UB` and GND, fanning out from board x = 81.31
+toward the CPU. Dropping his pad field at x = −8.45 onto that copper was tested
+geometrically, segment against pad rectangle, and it **shorts 15 of the 24 new pads across
+12 nets**:
+
+```
+pin  7 (/CPU/MA_{9})  <- MA_{10}, MA_{11}, MA_{12}
+pin  9 (NC)           <- MA_{8},  MA_{9},  MA_{10}
+pin 12 (VDD2)         <- MA_{8},  ~WE_RAM, GND
+pin 16 (VDD2)         <- ~LB, ~UB
+                                        … 15 of 24 in total
+```
+
+This is exactly what Nick meant by *"it would be quite an undertaking to re-layout that
+portion of the board."* He could put the column there on AGBM-02 **because he re-routed the
+fanout**; ECO-5 went east because east was comparatively empty — 14 segments and no address
+bus against 58 segments and all of it.
+
+So the direction difference stands as a **finding**, and the mechanical risk stands, but the
+remedy is not a footprint swap onto this layout. See §D2.
+
+---
+
+## D2. The real remedy: AGBM-02 is the base this fork should have been built on
+
+The two layouts are far closer than "different board" suggests. Measured across every
+footprint:
+
+| | |
+|---|---|
+| shared reference designators | **230** |
+| **at byte-identical positions** | **217** |
+| moved | 13 — `U5`, `L1`, `L2`, `EM3`, and ten converter passives |
+| only on AGBM-01 | `C40 C41 R21 R22 R23 R55` — the LTC3527 feedback network |
+| only on AGBM-02 | `U13`, `JP2`, `JP3`, eight converter passives, `REF**` |
+
+**AGBM-02 is AGBM-01 with two regions redone**: the LTC3527 replaced by twin TPS63802s, and
+the RAM corner given the CY62157 land plus the `MA17` and `/BYTE` straps. Everything else is
+in the same place — including `C7` at exactly `(91.9, −41.1)`, the one part ECO-6 has to move
+out of the ClockxControl window, verified present at identical coordinates on both boards.
+
+Rebasing this fork onto AGBM-02 would therefore:
+
+* **delete ECO-5 outright** — the CY62157 land, `JP2`/`JP3` and the shell fit all come from
+  Nick, validated, instead of from us, unvalidated;
+* **close both ECO-7 blockers**, because both are ECO-5's damage — `U2` pin 37's missing
+  `VDD2` path and the severed `Net-(Q5B-G)` (AGBM-02 has it whole, one island, verified);
+* **delete ECO-12 §12.1**, because AGBM-02 already carries `5.1k/33k/200k`;
+* **delete ECO-10's LTC3527 divider work and ECO-12 §12.2**, because those six refs do not
+  exist on AGBM-02;
+* **carry ECO-6, ECO-7, ECO-8, ECO-9, ECO-11 and ECO-10's audio/decoupling work across**
+  largely unchanged, since their parts are all at identical positions; and
+* **pick up 29 mW** — Nick's measured 141 mW idle against AGBM-01's 170 mW.
+
+That is a real piece of work — a new generator base and six ECOs re-derived — and it changes
+which PCB you order and which converter you buy. **Recorded as a recommendation, not
+applied.**
 
 ### Two smaller things from the same comparison
 
