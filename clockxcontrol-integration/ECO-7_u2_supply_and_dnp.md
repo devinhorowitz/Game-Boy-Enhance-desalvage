@@ -104,10 +104,26 @@ there.
 
 ### `Net-(Q5B-G)` — a fix exists, and it still needs the router
 
+**It is not "open" — it is routed, and broken in exactly one place.** That distinction was blurred
+in the summaries of this document elsewhere in the repository and is now corrected there; the net
+carries ten track segments and one via, and every one of them is MouseBiteLabs' own routing.
+
 This one is tractable. The net runs from `U17` pin 1 on B.Cu, through a via at (104.380, −53.300),
 along 10.54 mm **inside the In1 ground plane**, to the deleted via at (100.800, −62.150), and back
 to B.Cu for `Q5` pin 3 and `R66` pin 2. With the via gone, `R66` holds `Q5B`'s gate high permanently
 and the low-battery LED indication is dead.
+
+**The stock board proves the diagnosis.** Consistency check [10] traces the net's islands on both
+boards and diffs them:
+
+| | islands | vias on the net |
+|---|---|---|
+| MouseBiteLabs AGBM-01 rev 1.2, as shipped | **1** — `U17.1`, `Q5.3`, `R66.2` all together | (104.382, −53.300) **and (100.800, −62.150)** |
+| this fork, ECO-5 onward | **2** — `U17.1` \| `Q5.3`, `R66.2` | (104.382, −53.300) only |
+
+Same ten segments on both. One via, deleted. This is unambiguously a fork regression against a
+known-good reference, not an upstream gap — and the check keeps the comparison rather than trusting
+that sentence, so if the stock board ever turns out to be broken too, it says so instead.
 
 Scanning the In1 diagonal for a site clear of the pad column gives a usable window at
 **t ≈ 0.10 along the run, (104.077, −59.240), 0.360 mm clearance and 1.55 mm hole-to-hole.** The via
@@ -126,4 +142,21 @@ is dense enough that geometry has to be checked against a live DRC engine, not a
 2. Rework the `U2` corner in KiCad to bring `VDD2` to pin 37, and re-pour. The zone fill in every
    board file in this repository is the stale stock fill; nothing has been re-poured since ECO-5.
 3. Restore `Net-(Q5B-G)` with the via at (104.077, −59.240) and route its two B.Cu links.
+   **Not at the stock site.** Restoring the deleted via where MouseBiteLabs had it is the same trap
+   as the `VDD2` vias: (100.800, −62.150) now sits with **0.000 mm** gap to `U2.45` (`/CPU/MD_15`,
+   pad 1.7 × 0.3 at (100.310, −62.050)) and 0.250 mm to `U2.46` (`GND`) — both inside a 0.7 mm
+   annulus. Measured, not assumed.
 4. Re-run the full differential check afterwards.
+
+
+---
+
+## 7.4 These blockers are now gated
+
+`scripts/check_consistency.py` check [10] asserts **both defects are still present**, and goes RED
+when either is fixed. That is deliberate. The moment somebody routes pin 37 or drops the missing
+via, this document and three others become wrong, with nothing to notice — so the check fails and
+names the four files that have to be corrected in the same commit.
+
+A blocker that gets quietly fixed and leaves its scary paragraph behind is how a repository starts
+lying about itself. See [`scripts/README.md`](../scripts/README.md).

@@ -1,0 +1,74 @@
+# .github/workflows/consistency.yml -- the drift guard for this fork.
+#
+# Runs scripts/check_consistency.py: the shipped board must rebuild byte-for-byte from
+# the committed ECO-5 base, the shipped package must match the tree, and every claim the
+# ECO documents make about part values, DNP flags, placement and the two open blockers
+# must still be true of the board.
+#
+# NO CONTAINER, NO PINNED IMAGE, NO pip INSTALL. That is a deliberate difference from the
+# SOLAR-GLOW suite this is borrowed from, which pins a KiCad image by digest in three
+# workflows and has to keep the three in step -- because several of its checks are
+# computed by KiCad itself. Nothing here needs KiCad: the board is a text s-expression and
+# scripts/kisexp.py reads it with the standard library. The whole gate runs in about five
+# seconds on a bare runner, and there is no digest that can rot underneath it.
+#
+# The one thing that IS pinned is the checkout action, by commit SHA, for the reason
+# SOLAR-GLOW pins everything: this job gates a board that goes to a fab, so a silently
+# updated dependency must not be able to change a verdict with no commit here to explain
+# it. The trailing comment is the human-readable version -- an action pinned with no
+# version comment is unauditable, which is a finding in its own right.
+name: Consistency check
+
+on:
+  push:
+    paths:
+      # check [7] reads EVERY .md in the tree and check [8] every image they display,
+      # so both have to trigger on every .md -- naming files individually is how a new
+      # document ends up with no gate at all.
+      - '**.md'
+      - 'scripts/**'
+      - '.github/workflows/consistency.yml'
+      # check [1] rebuilds from this and check [4] reads its DNP set.
+      - 'agbm-01-ram-desalvage.zip'
+      # checks [1]-[5], [9]-[11] all read the shipped board out of this.
+      - 'clockxcontrol-integration/board/**'
+      - 'clockxcontrol-integration/footprint/**'
+      - 'clockxcontrol-integration/render/**'
+      # checks [5] and [6] read the buy list.
+      - 'pcbway-assembly/resolved-mpns.json'
+      # check [10] diffs the broken net against the stock board that ships in here.
+      - 'AGBM-01 (AA Batteries)/**'
+  pull_request:
+    paths:
+      - '**.md'
+      - 'scripts/**'
+      - '.github/workflows/consistency.yml'
+      - 'agbm-01-ram-desalvage.zip'
+      - 'clockxcontrol-integration/board/**'
+      - 'clockxcontrol-integration/footprint/**'
+      - 'clockxcontrol-integration/render/**'
+      - 'pcbway-assembly/resolved-mpns.json'
+      - 'AGBM-01 (AA Batteries)/**'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+      # Provenance instead of a pin: this job commits nothing and depends on no third-party
+      # package, so a runner-image roll cannot change an artifact -- but if a verdict ever
+      # does move, the log says which interpreter produced it.
+      - name: Provenance
+        run: python3 --version
+      - name: The board is a function of its committed inputs
+        run: python3 scripts/build_board.py --check
+      - name: The shipped package matches the tree
+        run: python3 scripts/pack_board.py --check
+      # A check that has never gone red is not known to work. This mutates the board in
+      # memory and asserts each check FAILS on the mutation, so a matcher that silently
+      # stops matching is caught here rather than by a wrong board reaching a fab.
+      - name: The drift guard can still fail
+        run: python3 scripts/test_checks.py
+      - name: Drift guard
+        run: python3 scripts/check_consistency.py

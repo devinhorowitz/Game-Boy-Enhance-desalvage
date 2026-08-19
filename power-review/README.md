@@ -77,7 +77,10 @@ Detailed in [ECO-7](../clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md). In
   removed two `VDD2` vias and three tracks to make room for its third pad column and never finished
   the replacement ties. There is no `VDD2` via anywhere with x > 93, and the F.Cu zone that appears
   to cover the pin is an orphan island in a fill that has never been re-poured.
-- **`Net-(Q5B-G)` is open**, so the low-battery LED indication is dead. Undocumented: ECO-5's README
+- **`Net-(Q5B-G)` is broken at one deleted via**, so the low-battery LED indication is dead. The
+  net is fully routed — ten segments of MouseBiteLabs' own copper — but ECO-5 removed the In1↔B.Cu
+  transition via at (100.800, −62.150), leaving `U17`'s supervisor output on one island and `Q5B`'s
+  gate plus `R66` on another. The stock board has it whole; this fork does not. Undocumented: ECO-5's README
   says five GND vias were removed; only two of the five actually were.
 - The review's proposed fix for both — restore the vias at stock coordinates — **would short `VDD2`
   to two data lines**, because those coordinates are now inside ECO-5's pad column. ECO-7 documents

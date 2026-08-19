@@ -291,7 +291,8 @@ And settle `R3` / `R4` / `R64`, which disagree between the two files today.
 ## 8.7 The blockers are still blockers
 
 ECO-8 changes no copper, so nothing in [ECO-7](ECO-7_u2_supply_and_dnp.md) is resolved by it.
-`U2` pin 37 still has no path to `VDD2` and `Net-(Q5B-G)` is still open. **The board is not
+`U2` pin 37 still has no path to `VDD2` and `Net-(Q5B-G)` is still severed at the via ECO-5
+deleted at (100.800, −62.150). **The board is not
 fabricable until both are routed in KiCad.** `R65`'s new value sits downstream of the second of
-those — with `Q5B`'s gate open, the MIC1553's `CS` is indeterminate whatever `R65` is; 470 k does the
-right thing once the open is fixed.
+those — with `Q5B`'s gate cut off from the supervisor, the MIC1553's `CS` is indeterminate whatever
+`R65` is; 470 k does the right thing once the via is back.

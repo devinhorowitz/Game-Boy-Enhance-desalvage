@@ -125,7 +125,8 @@ manufacturer's own 1 V limit regardless of orientation.
 
 Independent of sourcing, the board is not fabricable as committed. See
 [`ECO-7`](../clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md): `U2` pin 37 is the SRAM's only
-`VCC` pin on the CY62157 and it has no path to `VDD2`, and `Net-(Q5B-G)` is open. Both need KiCad
+`VCC` pin on the CY62157 and it has no path to `VDD2`, and `Net-(Q5B-G)` is severed at one deleted
+via. Both need KiCad
 rework and a re-pour. **No assembly order should be placed until that is closed.**
 
 ## 6. Still to do
