@@ -103,7 +103,7 @@ resistor as unstocked while Mouser had 95,136 of them.
 
 ## 4. What the resolution turned up, and why this is not ready to order
 
-### One line was swapped; four remain at zero, each with a verified alternate
+### Two lines were swapped; three remain at zero, each with a verified alternate
 
 Live figures, both distributors, 2026-08-19. Each `alternate` in
 [`resolved-mpns.json`](resolved-mpns.json) records the substitute *and* what accepting it costs.
@@ -111,7 +111,7 @@ Live figures, both distributors, 2026-08-19. Each `alternate` in
 | Refs | Part | Digi-Key | Mouser | What to do |
 |---|---|---|---|---|
 | `C2 C12 C23 C37 C59 C60 C68` | ~~GRM188R61E106KA73J~~ → **Murata `GRT188R61E106ME13D`** | **192,299** | 0 | ✅ **Swapped.** See below. |
-| `C1 C21 C42` | Murata GRM21BR61E226ME44L, 22 µF 25 V X5R 0805 | **0**, 17 wk | **0** | **No like-for-like exists** — see below. |
+| `C1 C21 C42` | ~~GRM21BR61E226ME44L~~ → **Murata `GRT21BR61E226ME13L`** | **2,022** | 0 | ✅ **Swapped.** Exact match at 25 V — see below. |
 | `U11 U12 U18` | TI TPS22917DBVR | **0**, 16 wk | **0** | **`TPS22917DBVT`** — same die, different reel. 10,909 in stock. |
 | `U14` | Microchip MIC1553YM5-TR | **0**, **24 wk** | **0** | Nothing substitutes it. Not on the critical path — see below. |
 | `R26` | YAGEO RC0603FR-0733KL, 33 k | **0**, 17 wk | **95,136** | Buy it from Mouser. No decision needed. |
@@ -140,16 +140,43 @@ ECO-8's Value edits it cannot be reverted by a PCB-from-schematic sync. **But th
 own `Source` link for these seven still points at the GRM**, so update it there too before
 anyone regenerates a BOM from the schematic.
 
-**`C1`/`C21`/`C42` is the one that needs a human.** Every 22 µF 25 V X5R 0805 from a tier-1
-manufacturer is at zero — the part sits at the edge of what the case size supports, which is
-why the whole class is scarce. The closest in-stock parts are `GRM21BR61C226ME44L` (same Murata
-series at **16 V**, 95,529) and `GRM21BC81C226ME44K` (16 V X6S, 202,906). These three caps sit on
-`/VFILT` (≤3.2 V), `VOUT5` (5.014 V) and `VOUT3` (3.228 V), so 16 V is 3.2× headroom on
-*breakdown* — **the question is DC-bias capacitance, not breakdown.** A 16 V 0805 22 µF retains
-materially less at 5 V bias than a 25 V one, so `C21`'s effective capacitance on `VOUT5` falls,
-and the component review already flagged `C21`'s derating as mattering. Check the LTC3527's
-output-ripple requirement against the substitute's bias curve before committing. Going to 1206
-for a 25 V part is the other option and needs a footprint change.
+**The 22 µF swap, and a correction.** This section previously said *"no like-for-like exists —
+every 22 µF 25 V X5R 0805 from a tier-1 manufacturer is at zero"* and recommended dropping to a
+**16 V** part. **That was wrong.** It came from a keyword search that filtered on stock ≥ 5,000,
+which silently excluded every real 25 V candidate — all of which sit in the hundreds to low
+thousands. A threshold chosen to shorten a search result had turned into a claim about the
+market. A deeper sweep — 1,297 results across 15 query shapes with no stock floor, plus an
+independent Mouser keyword sweep — found three.
+
+`GRT21BR61E226ME13L` is the same GRM→GRT move already made on the 10 µF line, and it gives up
+**nothing**. Verified parameter by parameter against the incumbent:
+
+| | GRM (was) | GRT (now) |
+|---|---|---|
+| Capacitance / tolerance | 22 µF ±20 % | 22 µF ±20 % |
+| **Rated voltage** | **25 V** | **25 V** |
+| Dielectric | X5R | X5R |
+| Package / max thickness | 0805, 1.45 mm | 0805, 1.45 mm |
+| Operating range | −55…+85 °C | −55…+85 °C |
+| Qualification | — | **AEC-Q200** |
+| Stock | **0** | **2,022** |
+
+2,022 is 674 boards at three per board. Mouser has none, so **this line is single-sourced.**
+
+**If you want depth:** `GRM21BC81E226ME44K` — Murata, 25 V, 0805, same 1.45 mm, **7,338 in
+stock** (3.6×) and a wider −55…+105 °C range. The catch is that it is **X6S, a different
+dielectric formulation**, and DC-bias is exactly what holding 25 V was meant to protect. I could
+not verify its bias curve: Murata publishes that only through SimSurfing, whose API returns
+HTTP 500 from here, and the product PDFs do not carry the curve. So the conservative pick is the
+one that changes nothing. With SimSurfing access, compare the two at 5 V bias — the extra stock
+is real.
+
+**Checked and rejected:** `ZRA21CR61E226ME01L` (Murata, 25 V X5R, 5,330) looks ideal in a Mouser
+listing, but Digi-Key's parameters give its package as *Nonstandard SMD* at **1.65 mm** thick,
+not 0805/1.45 mm. Not a drop-in. `KGM21AR51E226MU` (Kyocera AVX, 612 + 5 at Mouser, $1.06,
+28-week lead) is a genuine second source if both Murata parts dry up.
+
+The 16 V part is **no longer recommended** now that 25 V is in stock.
 
 **`U14` is the longest lead on the board at 24 weeks, and it does not block a first build.** The
 MIC1553 drives the low-battery LED blink — which is already dead for an unrelated reason, the

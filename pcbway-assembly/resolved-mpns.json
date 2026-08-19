@@ -33,7 +33,8 @@
   }
  ],
  "distributor_notes": [
-  "Mouser unreachable for NCV8164ASN250T1G: HTTPError"
+  "Mouser unreachable for RC0603FR-077K5L: HTTPError",
+  "Mouser unreachable for RC0603FR-1315RL: HTTPError"
  ],
  "entries": [
   {
@@ -113,7 +114,7 @@
    "datasheet": "https://www.we-online.com/components/products/datasheet/150060RS75000.pdf",
    "mouser": {
     "mopn": "710-150060RS75000",
-    "stock": 315963,
+    "stock": 315863,
     "price1": "$0.16",
     "lifecycle": ""
    }
@@ -380,7 +381,7 @@
    "datasheet": "https://yageogroup.com/content/datasheet/asset/file/KEM_C1002_X7R_SMD",
    "mouser": {
     "mopn": "80-C0603C104K5R",
-    "stock": 4704580,
+    "stock": 4704400,
     "price1": "$0.13",
     "lifecycle": ""
    }
@@ -649,36 +650,6 @@
   },
   {
    "refs": [
-    "C1",
-    "C21",
-    "C42"
-   ],
-   "value": "22u",
-   "mpn": "GRM21BR61E226ME44L",
-   "mfr": "Murata",
-   "resolved_from": "override",
-   "note": "22 uF 25 V X5R +/-20%",
-   "alternate": "NO LIKE-FOR-LIKE EXISTS. Every 22 uF 25 V X5R 0805 from a tier-1 maker was at zero (verified 2026-08-19); the part is at the edge of what the case size supports, which is why the whole class is scarce. Closest in stock: GRM21BR61C226ME44L (Murata, same series, 16 V instead of 25 V, 95,529 in stock, $0.35, verified 2026-08-19) or GRM21BC81C226ME44K (Murata, 16 V X6S, 202,906, $0.40). READ BEFORE SUBSTITUTING: these three sit on /VFILT (<=3.2 V), VOUT5 (5.014 V) and VOUT3 (3.228 V), so 16 V is 3.2x headroom on BREAKDOWN -- the question is DC-BIAS CAPACITANCE. A 16 V 0805 22 uF retains materially less at 5 V bias than a 25 V one, so C21's effective capacitance on VOUT5 falls. The power review already flagged C21's derating as mattering. Check the LTC3527's output-ripple requirement against the substitute's bias curve before committing; 1206 for a 25 V part is the other option and needs a footprint change.",
-   "digikey": {
-    "dkpn": "490-10749-2-ND",
-    "status": "Active",
-    "stock": 0,
-    "price1": 0.36,
-    "lead_weeks": "17",
-    "eol": false,
-    "discontinued": false
-   },
-   "desc": "22 \u00b5F \u00b120% 25V Ceramic Capacitor X5R 0805 (2012 Metric)",
-   "datasheet": "//mm.digikey.com/Volume0/opasdata/d220001/medias/docus/8942/490_Chip_Multilayer_CAT2021_MLCC.pdf",
-   "mouser": {
-    "mopn": "81-GRM21BR61E226ME4L",
-    "stock": 0,
-    "price1": "$0.36",
-    "lifecycle": ""
-   }
-  },
-  {
-   "refs": [
     "C12",
     "C2",
     "C23",
@@ -708,6 +679,36 @@
     "mopn": "81-GRT188R61E106ME3D",
     "stock": 0,
     "price1": "$0.27",
+    "lifecycle": ""
+   }
+  },
+  {
+   "refs": [
+    "C1",
+    "C21",
+    "C42"
+   ],
+   "value": "22u",
+   "mpn": "GRT21BR61E226ME13L",
+   "mfr": "Murata Electronics",
+   "resolved_from": "override",
+   "note": "SWAPPED 2026-08-19 from GRM21BR61E226ME44L, which was at ZERO stock at both distributors with a 17-week lead (verified 2026-08-19). This is the SAME GRM->GRT move made on the 10 uF line, and for the same reason. Verified parameter-by-parameter on the Digi-Key API against the incumbent: capacitance 22 uF, tolerance +/-20%, RATED VOLTAGE 25 V, dielectric X5R, package 0805 (2012 Metric), max thickness 1.45 mm and operating range -55 to +85 C are ALL IDENTICAL. The only difference is that the GRT is Murata's soft-termination series and is AEC-Q200 automotive-qualified, which the GRM is not. Nothing is given up. 2,022 in stock at Digi-Key (verified 2026-08-19) = 674 boards' worth at 3 per board; Mouser has none, so this line is single-sourced. BOM-only: board Value stays `22u`, no board file moves -- but the SCHEMATIC's Source link for these three still points at the GRM and needs the same edit.\nCORRECTION TO AN EARLIER ENTRY IN THIS FILE: it previously said 'NO LIKE-FOR-LIKE EXISTS -- every 22 uF 25 V X5R 0805 from a tier-1 maker is at zero', and recommended dropping to a 16 V part. THAT WAS WRONG. It came from a keyword search that filtered on stock >= 5,000, which silently excluded every real 25 V candidate -- all of which sit in the hundreds-to-thousands. A threshold chosen to shorten a search result had turned into a claim about the market. The deep sweep that found this one scanned 1,297 results across 15 query shapes with no stock floor.",
+   "alternate": "GRM21BC81E226ME44K if you want depth: Murata, 25 V, 0805, +/-20%, same 1.45 mm max thickness, 7,338 in stock at Digi-Key (verified 2026-08-19) -- 3.6x the fitted part -- and a WIDER temperature range, -55 to +105 C against the X5R's -55 to +85 C. The catch is that it is X6S, a DIFFERENT DIELECTRIC FORMULATION, and DC-bias behaviour is exactly what holding 25 V was meant to protect. I could NOT verify its bias curve against the X5R's: Murata publishes that data only through SimSurfing, whose API returns HTTP 500 from here, and the product PDFs do not carry the curve. So the conservative pick is the part that changes nothing. If you have SimSurfing access, compare the two at 5 V bias and take the better one -- the extra stock is real.\nAlso checked and REJECTED: ZRA21CR61E226ME01L (Murata, 25 V X5R, 5,330 in stock) looks ideal in a Mouser listing but Digi-Key's parameters give its package as 'Nonstandard SMD' at 1.65 mm thick, not 0805/1.45 mm. It is not a drop-in. KGM21AR51E226MU (Kyocera AVX, 25 V X5R 0805, 612 at Digi-Key + 5 at Mouser, $1.06, 28-week lead) is a genuine second source if both Murata parts dry up.\nThe 16 V option remains available and is NO LONGER RECOMMENDED, since 25 V is in stock: GRM21BR61C226ME44L, 95,529 at Digi-Key. It costs DC-bias capacitance on C21's 5 V rail, which the component review flagged as mattering. Take it only if every 25 V part above is gone.",
+   "digikey": {
+    "dkpn": "490-12389-2-ND",
+    "status": "Active",
+    "stock": 2022,
+    "price1": 0.48,
+    "lead_weeks": "21",
+    "eol": false,
+    "discontinued": false
+   },
+   "desc": "22 \u00b5F \u00b120% 25V Ceramic Capacitor X5R 0805 (2012 Metric)",
+   "datasheet": "https://pim.murata.com/asset/pim4/ceramicCapacitorSMD/GRT21BR61E226ME13-01A-EN_PDF_CERAMICCAPACITORSMD",
+   "mouser": {
+    "mopn": "81-GRT21BR61E226ME3L",
+    "stock": 0,
+    "price1": "$0.48",
     "lifecycle": ""
    }
   },
@@ -925,7 +926,10 @@
    "desc": "Linear Voltage Regulator IC Positive Fixed 1 Output 300mA 5-TSOP",
    "datasheet": "https://www.onsemi.com/pdf/datasheet/ncv8164-d.pdf",
    "mouser": {
-    "error": "UNKNOWN -- Mouser could not be reached for this MPN. This is not a stock figure of zero."
+    "mopn": "863-NCV8164ASN250T1G",
+    "stock": 5139,
+    "price1": "$0.56",
+    "lifecycle": ""
    }
   },
   {
@@ -1197,7 +1201,7 @@
    "datasheet": "https://yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L",
    "mouser": {
     "mopn": "603-RC0603FR-071ML",
-    "stock": 1431595,
+    "stock": 1431395,
     "price1": "$0.10",
     "lifecycle": ""
    }
@@ -1296,7 +1300,7 @@
    "digikey": {
     "dkpn": "311-2.20KHRTR-ND",
     "status": "Active",
-    "stock": 709800,
+    "stock": 708329,
     "price1": 0.1,
     "lead_weeks": "17",
     "eol": false,
@@ -1441,10 +1445,7 @@
    "desc": "7.5 kOhms \u00b11% 0.1W, 1/10W Chip Resistor 0603 (1608 Metric) Moisture Resistant Thick Film",
    "datasheet": "https://yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L",
    "mouser": {
-    "mopn": "603-RC0603FR-077K5L",
-    "stock": 231777,
-    "price1": "$0.10",
-    "lifecycle": ""
+    "error": "UNKNOWN -- Mouser could not be reached for this MPN. This is not a stock figure of zero."
    }
   },
   {
@@ -1469,10 +1470,7 @@
    "desc": "15 Ohms \u00b11% 0.1W, 1/10W Chip Resistor 0603 (1608 Metric) Thick Film",
    "datasheet": "https://yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L",
    "mouser": {
-    "mopn": "603-RC0603FR-1315RL",
-    "stock": 5300,
-    "price1": "$0.10",
-    "lifecycle": ""
+    "error": "UNKNOWN -- Mouser could not be reached for this MPN. This is not a stock figure of zero."
    }
   },
   {

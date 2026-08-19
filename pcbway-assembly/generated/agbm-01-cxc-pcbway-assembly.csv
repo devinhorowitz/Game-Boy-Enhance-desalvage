@@ -1,5 +1,5 @@
 refs,qty,value,mpn,mfr,footprint,status,stock,note
-C1 C21 C42,3,22u,GRM21BR61E226ME44L,Murata,Bucketmouse:C_0805_2012Metric_Boxed_2,,,
+C1 C21 C42,3,22u,GRT21BR61E226ME13L,Murata Electronics,Bucketmouse:C_0805_2012Metric_Boxed_2,,,
 C18 C19 C20,3,100p,C0603C101J5GACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
 C12 C2 C23 C37 C59 C60 C68,7,10u,GRT188R61E106ME13D,Murata Electronics,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
 C10 C13 C14 C15 C16 C17 C34 C39 C43 C5 C52 C53 C6 C7 C72 C8,16,0.1u,C0603C104K5RACTU,KEMET,Bucketmouse:C_0603_1608Metric_Boxed_2,,,
