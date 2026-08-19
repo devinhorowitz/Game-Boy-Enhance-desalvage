@@ -34,6 +34,9 @@ WHAT IT DOES, IN ECO ORDER
     ECO-7  mark X1/C3/C4 DNP -- the ClockxControl drives CK1 directly, so an assembly
            house must not fit the crystal or its load caps.
     ECO-8  thirteen Value/Description edits from the power review. No copper.
+    ECO-9  mark the parts a pick-and-place cannot handle `exclude_from_bom` +
+           `exclude_from_pos_files`, so the board itself says what a machine can buy
+           and place. No copper either -- attributes only.
 
 EVERY EDIT ASSERTS ITS OWN PRECONDITION. A replacement whose target string is missing, or
 present more than once, fails the build instead of silently producing a different board.
@@ -104,6 +107,59 @@ ECO8 = [
     ("R24",  "Value",       "100k",          "1M"),
     ("R65",  "Value",       "100k",          "470k"),
 ]
+
+
+# --- ECO-9: the board should say what a machine can actually place --------------------
+# Until this, the board asked a pick-and-place to buy and place 179 parts -- including the
+# SALVAGED CPU and SRAM, which nobody sells at any price, and five parts with through-hole
+# pads, which a reflow line does not do. A BOM and a CPL generated from that describe a
+# build that cannot happen, and PCBWay would either quote the unbuyable parts or bounce
+# the order.
+#
+# So the split is encoded in the DESIGN, which is the whole point of the rule
+# `scripts/bom_split.py` runs on: a part moves between "the machine buys and places it"
+# and "you hand-solder it" by changing the board, never by editing a list.
+#
+# THE RULE IS MECHANICAL, not a hand-list. A part is hand-soldered if either:
+#   (a) it has ANY through-hole pad -- read off the board, no maintenance; or
+#   (b) it is in SALVAGE_ONLY below, which cannot be derived because a salvaged QFP is
+#       byte-identical in the file to a new one.
+# `np_thru_hole` (a plain mounting hole, no plating) does NOT count -- it is a hole, not
+# a joint.
+SALVAGE_ONLY = {
+    "U1": "AGB-CPU, 128-pin QFP recovered from a donor board. The schematic's own Source "
+          "field reads 'Salvage'. Not orderable at any price, so it cannot be on an "
+          "assembly BOM; hand-fit after the reflow.",
+    "U2": "AGB-SRAM, 96-pin TSOP, same donor. ECO-5 exists to let a CY62157EV30LL stand "
+          "in for it -- and if you fit that instead, it is a NEW part and this line comes "
+          "out. Note ECO-7: pin 37 has no supply yet either way.",
+}
+# Parts whose through-hole pads make them hand-solder by rule (a). Listed only so the
+# generator can state WHY in one place; membership is still derived from the pads.
+THRU_HOLE_REASONS = {
+    "P1":  "AGB cartridge slot, 36 through-hole pins",
+    "P3":  "CUI SJ-3524-SMT headphone jack -- 4 SMD + 4 through-hole signal pins and 2 "
+           "unplated posts, so a selective-solder or hand step either way",
+    "P4":  "AGB link port, 8 through-hole pins",
+    "SP1": "speaker, 2 through-hole pads and a wired mechanical part",
+    "VR2": "Alps RK10J12R0A0B volume pot -- 7 SMD pads plus 2 through-hole anchors",
+}
+# NOT hand-soldered, and worth recording because they look like they should be:
+#   P2   42 SMD pads, an FFC connector -- a machine's job
+#   SW1  5 SMD pads
+#   VR1  3 SMD pads
+#   BT1, SW2, SW3  already DNP in the ECO-5 base
+#
+# MOD1 carries the same pair, set where its footprint is built rather than here: the
+# ClockxControl is a mezzanine whose plated holes are filled with solder FROM ABOVE
+# onto the pads below. No pick-and-place operation does that. It was
+# `exclude_from_bom` only until bom_split noticed it was still in the position file
+# -- a part the machine had never been sold and could not have placed if it had been.
+#
+# IF YOU CONSIGN THE CPU AND SRAM TO PCBWAY INSTEAD of fitting them yourself, take U1 and
+# U2 out of SALVAGE_ONLY: they go back into the position file (the machine places them)
+# while staying off the assembly BOM (you still supply the parts). That is one of the four
+# open build decisions in pcbway-assembly/README.md, and this is the switch for it.
 
 
 def uid(seed):
@@ -180,6 +236,52 @@ def build():
         replace_in(ref, f'(property "{field}" "{old}"',
                    f'(property "{field}" "{new}"', f"{field} swap")
 
+    # ---------- ECO-9  what a machine cannot place -----------------------------------
+    hand = dict(THRU_HOLE_REASONS)
+    hand.update(SALVAGE_ONLY)
+    derived = set()
+    for ref in sorted(hand):
+        s, e, bfp = fp_span(ref)
+        has_th = '" thru_hole ' in bfp
+        if ref not in SALVAGE_ONLY and not has_th:
+            raise AssertionError(
+                f"{ref}: listed as through-hole but the board has no thru_hole pad. The "
+                f"rule is mechanical -- fix the list or the board, do not paper over it.")
+        if "(attr " not in bfp:
+            raise AssertionError(f"{ref}: no (attr ...) line to extend")
+        line_start = bfp.index("(attr ")
+        line_end = bfp.index(")", line_start)
+        cur = bfp[line_start + 6:line_end].split()
+        for flag in ("exclude_from_bom", "exclude_from_pos_files"):
+            if flag not in cur:
+                cur.append(flag)
+        nb = bfp[:line_start] + "(attr " + " ".join(cur) + bfp[line_end:]
+        txt = txt[:s] + nb + txt[e:]
+        derived.add(ref)
+    # Nothing else on the board may carry a through-hole pad and still be machine-placed.
+    # This is the rule checking itself: if a future ECO adds a through-hole part, the
+    # build fails here rather than quietly shipping a CPL a machine cannot execute.
+    i2 = 0
+    stragglers = []
+    while True:
+        i2 = txt.find("\n\t(footprint ", i2)
+        if i2 < 0:
+            break
+        j2 = txt.find("\n\t)\n", i2 + 1)
+        bfp = txt[i2 + 1:j2 + 4]
+        m2 = re.search(r'\(property "Reference" "([^"]+)"', bfp)
+        am = re.search(r"\(attr ([^)]*)\)", bfp)
+        flags = set(am.group(1).split()) if am else set()
+        if (m2 and '" thru_hole ' in bfp and "dnp" not in flags
+                and "exclude_from_pos_files" not in flags and "*" not in m2.group(1)):
+            stragglers.append(m2.group(1))
+        i2 = j2 + 1
+    if stragglers:
+        raise AssertionError(
+            "footprint(s) with a through-hole pad are still in the position file: "
+            + ", ".join(sorted(stragglers))
+            + " -- add them to THRU_HOLE_REASONS, or mark them DNP.")
+
     # ---------- ECO-6.4  the new footprints ----------------------------------------
     ghost = "".join(f'''\t\t(fp_circle
 \t\t\t(center {cx} {cy})
@@ -218,7 +320,7 @@ def build():
 \t\t(at {MOD_X} {MOD_Y} 180)
 \t\t(descr "insideGadgets GBA/GBC ClockxControl mezzanine landing pattern. Module floats flat on this footprint; its plated through-hole pads are filled with solder from above to bond it to these pads. Geometry from MouseBiteLabs DMGC-CPU-01 rev 2.5.")
 \t\t(tags "clockxcontrol insidegadgets mezzanine")
-\t\t(attr smd exclude_from_bom)
+\t\t(attr smd exclude_from_bom exclude_from_pos_files)
 \t\t(property "Reference" "MOD1"
 \t\t\t(at 0 -7.4 180)
 \t\t\t(layer "F.SilkS")
@@ -434,7 +536,7 @@ def build():
         raise AssertionError("board has no closing paren")
     txt = txt[:k + 1] + MOD + LANDINGS + JP3 + seg_txt + via_txt + txt[k + 1:]
     return txt, dict(orig_len=orig_len, new_len=len(txt), segs=len(segs),
-                     vias=len(vias), net=NEWNET)
+                     vias=len(vias), net=NEWNET, hand=sorted(derived))
 
 
 def main():
@@ -446,7 +548,8 @@ def main():
     txt, st = build()
     print(f"built {st['orig_len']} -> {st['new_len']} chars "
           f"(+{st['new_len'] - st['orig_len']}); {st['segs']} segments, {st['vias']} vias, "
-          f"6 footprints, net {st['net']} CXC_CLK")
+          f"6 footprints, net {st['net']} CXC_CLK; "
+          f"hand-solder set {', '.join(st['hand'])}")
     if a.check:
         try:
             want = zipfile.ZipFile(SHIPPED_ZIP).read(SHIPPED_MEMBER).decode("utf-8")

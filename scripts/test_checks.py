@@ -73,7 +73,25 @@ def main():
                       '(property "Reference" "R24"', 1)),
     ]
 
-    failures = 0
+    # [12] is tested separately: it reads the board through bom_split, not through the
+    # cache, so the mutation has to be injected there instead.
+    import bom_split
+    stripped = good.replace("(attr smd exclude_from_bom exclude_from_pos_files)",
+                            "(attr smd exclude_from_bom)", 1)
+    extra_failed = 0
+    if stripped == good:
+        print("  BLIND:  [12] the mutation found nothing to strip -- ECO-9's flags moved")
+        extra_failed += 1
+    else:
+        _asm, _hand, _none, _cpl, probs = bom_split.build(board=stripped)
+        if probs:
+            print("  ok:     [12] a hand-buy part left in the position file -> caught")
+        else:
+            print("  BLIND:  [12] a hand-buy part left in the position file -> NOT caught. "
+                  "The machine would be asked to place a part it was never sold.")
+            extra_failed += 1
+
+    failures = extra_failed
     for label, fn, mutated in cases:
         if mutated == good:
             print(f"  BLIND:  {label} -- the mutation did not change the board, so this "

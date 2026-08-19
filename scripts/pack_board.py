@@ -37,6 +37,7 @@ MEMBERS = [
     ("ECO-6_clockxcontrol_footprint.md", "ECO-6_clockxcontrol_footprint.md"),
     ("ECO-7_u2_supply_and_dnp.md", "ECO-7_u2_supply_and_dnp.md"),
     ("ECO-8_component_swaps.md", "ECO-8_component_swaps.md"),
+    ("ECO-9_assembly_split.md", "ECO-9_assembly_split.md"),
 ]
 
 

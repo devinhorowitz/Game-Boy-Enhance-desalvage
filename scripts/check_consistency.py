@@ -28,6 +28,9 @@ not mirrored in the other fails loudly instead of rotting.
   [10] BLOCKER LEDGER -- the two ECO-7 blockers are still open, exactly as documented.
                          GOES RED WHEN THEY ARE FIXED -- see the check.     [ERROR]
   [11] STRUCTURE      -- the board parses, parens balance, no duplicate refdes. [ERROR]
+  [12] ASSEMBLY SPLIT -- nothing reaches the pick-and-place without a BOM line to buy it,
+                         nothing is on both buy documents, and the generated buy documents
+                         are what a fresh run produces.                     [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -138,6 +141,8 @@ def check_package_parity():
             "clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md",
         f"{ZIP_ROOT}/ECO-8_component_swaps.md":
             "clockxcontrol-integration/ECO-8_component_swaps.md",
+        f"{ZIP_ROOT}/ECO-9_assembly_split.md":
+            "clockxcontrol-integration/ECO-9_assembly_split.md",
         f"{ZIP_ROOT}/ClockxControl_GBA_GBC.kicad_mod":
             "clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod",
     }
@@ -436,12 +441,17 @@ def check_cited_paths():
     bare = re.compile(r"(?<![\w./-])((?:[\w.-]+/)*[\w.-]+\.(?:%s))(?![\w/])" % ext_re)
     missing = []
     for md in _md_files(files):
+        here = os.path.dirname(md)
         lines = open(os.path.join(ROOT, md), encoding="utf-8").read().split("\n")
         for i, line in enumerate(lines):
             for path in set(bare.findall(line)):
                 if path in files or os.path.basename(path) in basenames:
                     continue
-                if os.path.exists(os.path.join(ROOT, path)):
+                # Resolve BOTH ways: from the repo root, and relative to the document
+                # doing the citing -- a link in pcbway-assembly/README.md that reads
+                # "../scripts/bom_split.py" is correct and must not read as rot.
+                if (os.path.exists(os.path.join(ROOT, path))
+                        or os.path.exists(os.path.normpath(os.path.join(ROOT, here, path)))):
                     continue
                 if path in EXPECTED_ABSENT or os.path.basename(path) in EXPECTED_ABSENT:
                     continue
@@ -671,6 +681,76 @@ def check_structure():
         ok(f"{len(seen)} footprints, {len(nets)} declared nets, parens balanced")
 
 
+# =====================================================================================
+# [12] nothing reaches the pick-and-place without a BOM line to buy it
+# =====================================================================================
+# SOLAR-GLOW check [15], ported. It was written there after a pre-order sweep found ten
+# reference designators excluded from the BOM but NOT from the position file -- a CPL that
+# named ten parts the assembler had never been sold. The same defect was live here: before
+# ECO-9 the board asked a machine to buy and place the SALVAGED CPU, and `MOD1` sat in the
+# position file with no BOM line at all. The splitter found the second one; this check is
+# what stops either coming back.
+#
+# It also gates the generated buy documents against a fresh run, the same relationship
+# check [2] has with the shipped package.
+def check_assembly_split():
+    print("[12] the assembly BOM, the hand-buy list and the CPL describe one build")
+    try:
+        import bom_split
+        asm, hand, none, cpl, problems = bom_split.build()
+    except Exception as e:                                        # noqa: BLE001
+        err(f"the BOM splitter cannot run: {type(e).__name__}: {e}")
+        return
+    for p in problems:
+        err(p)
+    cpl_refs = {r["ref"] for r in cpl}
+    asm_refs = {r for line in asm for r in line["refs"]}
+    hand_refs = {r for line in hand for r in line["refs"] if isinstance(line["refs"], list)}
+    unsold = sorted(cpl_refs - asm_refs)
+    if unsold:
+        err("in the position file with no assembly-BOM line to buy them -- the machine "
+            "would be asked to place parts it was never sold: " + ", ".join(unsold))
+    both = sorted(asm_refs & hand_refs)
+    if both:
+        err("on BOTH buy documents, so they would be bought twice: " + ", ".join(both))
+    missing_pos = sorted(asm_refs - cpl_refs)
+    if missing_pos:
+        err("on the assembly BOM but absent from the position file -- bought and never "
+            "placed: " + ", ".join(missing_pos))
+
+    # the committed artifacts must be what a fresh run produces
+    stale = []
+    outdir = os.path.join(ROOT, "pcbway-assembly", "generated")
+    if not os.path.isdir(outdir):
+        warn("pcbway-assembly/generated/ does not exist -- run scripts/bom_split.py")
+    else:
+        want = {
+            f"{bom_split.STEM}-pcbway-assembly.csv": bom_split._csv(asm),
+            f"{bom_split.STEM}-handbuy.csv": bom_split._csv(hand),
+            f"{bom_split.STEM}-handbuy.md": bom_split._handbuy_md(hand, 1),
+            f"{bom_split.STEM}-cpl.csv": bom_split._csv(
+                cpl, ["ref", "value", "footprint", "x", "y", "rot", "layer"]),
+            f"{bom_split.STEM}-not-populated.csv": bom_split._csv(none),
+        }
+        for name, text in want.items():
+            path = os.path.join(outdir, name)
+            if not os.path.exists(path):
+                stale.append(f"{name} missing")
+            elif open(path, encoding="utf-8").read() != text:
+                stale.append(f"{name} differs from a fresh run")
+        if stale:
+            err("the generated buy documents are stale -- run scripts/bom_split.py: "
+                + "; ".join(stale))
+    if not problems and not unsold and not both and not missing_pos and not stale:
+        ok(f"{len(asm)} assembly lines ({len(asm_refs)} parts) / {len(hand)} hand-buy / "
+           f"{len(cpl)} placements, all consistent")
+    unresolved = [r for r in asm if r.get("unresolved")]
+    if unresolved:
+        warn(f"{len(unresolved)} of {len(asm)} assembly lines "
+             f"({sum(r['qty'] for r in unresolved)} of {sum(r['qty'] for r in asm)} parts) "
+             f"still have no resolved MPN -- not an error, but not an orderable BOM either")
+
+
 def main():
     global verbose
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -679,7 +759,7 @@ def main():
     for fn in (check_reproducible, check_package_parity, check_eco8_ledger,
                check_dnp_ledger, check_bom_vs_board, check_supplier_pns,
                check_cited_paths, check_doc_imagery, check_module_window,
-               check_blockers, check_structure):
+               check_blockers, check_structure, check_assembly_split):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

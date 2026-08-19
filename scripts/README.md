@@ -12,7 +12,9 @@ Everything here exists to make two claims true and keep them true:
 ```sh
 python3 scripts/build_board.py --check     # the shipped board is what the generator makes
 python3 scripts/pack_board.py  --check     # the shipped package is what the tree holds
+python3 scripts/bom_split.py   --check     # the two buy documents agree with the board
 python3 scripts/check_consistency.py       # everything else
+python3 scripts/test_checks.py             # ...and the checks can still fail
 ```
 
 All three run in CI on every push that touches anything they read
@@ -61,16 +63,11 @@ Monday. There is nothing pinned here to rot. If this repo ever grows a live stoc
 against distributor APIs, that workflow is the model — including its hard-won lesson that
 **a probe that could not reach upstream must report UNKNOWN, never "current."**
 
-**The BOM splitter** — SOLAR-GLOW's `bom_split.py`, which is **not written here yet**. Its rule
-is the right one for the queued PCBWay work: a part moves between "the machine buys and places
-it" and "you hand-solder it" **by changing the design**, never by editing a list, because the
-board's own `exclude_from_bom` / `dnp` flags decide. `kisexp.Footprint` already exposes those
-three flags for exactly this.
-
-*(That paragraph originally put "Not written yet." at the end, three lines below the filename.
-Check [7] failed it — its context window is the citing line and the one above, on purpose, so a
-disclaimer that drifts away from the thing it disclaims does not count. The fix was to move the
-words, not to widen the window. That is the discipline doing its job on its own README.)*
+*(This section used to say the BOM splitter was "not written here yet". It is now
+`bom_split.py`, below. The paragraph is kept only for the story in it: the disclaimer
+originally sat three lines under the filename, check [7] failed it — its context window is the
+citing line and the one above, on purpose, so a disclaimer that drifts away from the thing it
+disclaims does not count — and the fix was to move the words, not widen the window.)*
 
 ---
 
@@ -82,7 +79,8 @@ words, not to widen the window. That is the discipline doing its job on its own 
 | `build_board.py` | ECO-5 base → the ClockxControl board. Every edit asserts its own precondition. |
 | `routes.json` | the frozen ECO-6 routing. Frozen because the router is not deterministic and the ECO-6 clearance analysis was done against *these* paths. |
 | `pack_board.py` | tree → the deliverable zip, with fixed timestamps so two runs over an unchanged tree produce identical bytes. |
-| `check_consistency.py` | the eleven checks. |
+| `bom_split.py` | board → the two buy documents. **A part moves between them by changing the design, never by editing a list** — the board's own `exclude_from_bom` / `dnp` decide, which is what [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) made true. |
+| `check_consistency.py` | the twelve checks. |
 | `test_checks.py` | mutates the board in memory and asserts each check **fails**. A check that has never gone red is not known to work. |
 
 ## The checks
@@ -100,6 +98,7 @@ words, not to widen the window. That is the discipline doing its job on its own 
 | [9] | the ECO-6 module window is component-free and its parts have not moved | a part lands where the module has to go |
 | [10] | both ECO-7 blockers are still open, and the stock board still proves the diagnosis | **they get fixed** — see above |
 | [11] | the board parses, parens balance, no duplicate refdes, no orphan net numbers | the file is corrupt |
+| [12] | nothing reaches the pick-and-place without a BOM line to buy it, nothing is on both buy documents, and the generated buy documents are what a fresh run produces | a CPL names a part nobody bought |
 
 ## What it found on its first run
 
@@ -122,3 +121,20 @@ Worth recording, because it is the argument for having built it.
   outside ECO-7 §7.2. It is not open: it carries ten segments of MouseBiteLabs' own
   routing and is severed at exactly one deleted via. Check [10]'s island trace found it,
   and the stock-board diff proved the cause. Corrected in all four.
+
+## What it found on its second run
+
+`bom_split.py` landed after the checks, and the first thing it did was fail:
+
+- **`MOD1` was in the position file.** The ClockxControl footprint carried
+  `exclude_from_bom` from ECO-6 — so it was off the BOM — and nothing had ever taken it out
+  of the CPL. A part the assembler was never sold, queued for a nozzle, on a mezzanine
+  whose plated holes are filled with solder *from above*. No human table catches that,
+  because both halves look right on their own.
+- **The board was asking a machine to buy the salvaged CPU.** 179 parts on the assembly
+  BOM, including `U1` and `U2`, which nobody sells at any price, and five parts with
+  through-hole pads. [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) encodes
+  the split so the board itself says what a machine can do — and the rule is *mechanical*
+  (any through-hole pad, plus a two-entry salvage ledger), not a list to maintain.
+- **The sourcing gap got a number.** "~35 unresolved links" is now **33 of 61 assembly
+  lines, 105 of 172 parts**, measured every run.

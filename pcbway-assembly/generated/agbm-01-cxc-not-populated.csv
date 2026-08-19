@@ -1,0 +1,59 @@
+refs,qty,value,mpn,mfr,footprint,status,stock,note
+BT1,1,Battery,,,Bucketmouse:AGB-Battery,,,DNP
+C3 C70 C71,3,27p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP
+C4,1,33p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP
+FID1 FID2 FID3 FID4 FID5 FID6,6,Fiducial,,,Fiducial:Fiducial_1mm_Mask2mm,,,"optical alignment target -- copper and mask, no part"
+JP1,1,Jumper_2_Open,,,Bucketmouse:SJ,,,DNP
+JP2,1,BYTE-x16,,,Jumper:SolderJumper-2_P1.3mm_Open,,,"copper, closed with solder"
+JP3,1,CXC CLK,,,CXC:SolderJumper_2_Open,,,"copper, closed with solder"
+NT1,1,NetTie_2,,,Bucketmouse:NetTie-2_SMD_Pad0.5mm,,,DNP
+R70 R71,2,100k,,,Bucketmouse:R_0603_1608Metric_Boxed,,,DNP
+SW2,1,1825027-5,,,Bucketmouse:AGB-L,,,DNP
+SW3,1,1825027-5,,,Bucketmouse:AGB-R,,,DNP
+SW4,1,SKRRABE010,,,Bucketmouse:AGB-AB-Tact,,,DNP
+SW5,1,SKRRABE010,,,Bucketmouse:AGB-Start-Select-Tact,,,DNP
+SW6,1,SKRRABE010,,,Bucketmouse:AGB-DPAD-Tact,,,DNP
+TP0,1,TP0,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP1,1,TP1,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP10,1,TOUCH1,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP11,1,TOUCH2,,,Bucketmouse:TestPoint_Pad_D1.25mm_VIA,,,DNP
+TP114,1,R-OUT,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,bare pad for a probe
+TP115,1,L-OUT,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,bare pad for a probe
+TP12,1,TestPoint,,,Bucketmouse:TestPoint_Pad_D1.25mm_VIA,,,DNP
+TP13,1,VOUT5,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP14,1,VDD5,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP15,1,~{RESET},,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP16,1,VOUT3,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP17,1,~{MR},,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP18,1,VDD2,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP19,1,VBATT,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP2,1,TP2,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP20,1,SW,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP21,1,VDD3,,,Bucketmouse:TestPoint_Pad_D1.25mm_VIA,,,DNP
+TP22,1,VAUD,,,Bucketmouse:TestPoint_Pad_D1.25mm_VIA,,,DNP
+TP23,1,PG3,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP24,1,EN,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP25,1,SCK,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
+TP26,1,VFILT,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP27,1,R,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP28,1,L,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP29,1,SEL,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP3,1,TP3,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP30,1,PG2V5,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP31,1,TOUCH2B,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP32,1,VCC,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,DNP
+TP33,1,LIN,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,bare pad for a probe
+TP34,1,RIN,,,Bucketmouse:TestPoint_Pad_D1.0mm_VIA,,,bare pad for a probe
+TP4,1,TP4,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP5,1,TP5,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP6,1,TP6,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP7,1,TP7,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP8,1,TP8,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+TP80,1,CK1,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
+TP81,1,CK2,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
+TP83,1,CXC CLK wire,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
+TP84,1,CXC V+ wire,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
+TP85,1,CXC V- wire,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,bare pad for a probe
+TP9,1,TP9,,,Bucketmouse:TestPoint_Pad_D1.0mm,,,DNP
+X1,1,4.194304MHz,ABLS-4.194304MHZ-B4-T,Abracon,Bucketmouse:AGB-Crystal,Active,2299,marked DNP by ECO-7 for ClockxControl builds
+Z57 Z58,2,100p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP

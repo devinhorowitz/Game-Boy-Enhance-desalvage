@@ -34,8 +34,8 @@ on:
       - 'clockxcontrol-integration/board/**'
       - 'clockxcontrol-integration/footprint/**'
       - 'clockxcontrol-integration/render/**'
-      # checks [5] and [6] read the buy list.
-      - 'pcbway-assembly/resolved-mpns.json'
+      # checks [5], [6] and [12] read the buy list and the generated buy documents.
+      - 'pcbway-assembly/**'
       # check [10] diffs the broken net against the stock board that ships in here.
       - 'AGBM-01 (AA Batteries)/**'
   pull_request:
@@ -65,6 +65,10 @@ jobs:
         run: python3 scripts/build_board.py --check
       - name: The shipped package matches the tree
         run: python3 scripts/pack_board.py --check
+      # Structural only -- an unresolved MPN is a known state of this work, not a
+      # regression, so it warns in check [12] rather than failing the build here.
+      - name: The two buy documents agree with the board
+        run: python3 scripts/bom_split.py --check
       # A check that has never gone red is not known to work. This mutates the board in
       # memory and asserts each check FAILS on the mutation, so a matcher that silently
       # stops matching is caught here rather than by a wrong board reaching a fab.

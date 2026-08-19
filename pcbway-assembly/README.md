@@ -3,7 +3,22 @@
 Goal: take this fork from a bare board to something PCBWay can deliver largely assembled, with only
 the CPU, the cartridge connector, and the other consigned or oversized parts left to hand-solder.
 
-**Status: scoping and BOM resolution. Not ready to order — see §4.**
+**Status: the split is now derived from the board, not from this document. Not ready to
+order — see §4.**
+
+[`generated/`](generated/) holds the five buy documents, written by
+[`scripts/bom_split.py`](../scripts/bom_split.py) from the board's own flags:
+
+| | |
+|---|---|
+| `agbm-01-cxc-pcbway-assembly.csv` | **61 lines, 172 parts** — what PCBWay buys and places |
+| `agbm-01-cxc-cpl.csv` | **172 placements** — the position file for those, and only those |
+| `agbm-01-cxc-handbuy.csv` / `.md` | **8 lines** — what you buy and solder, each with its reason |
+| `agbm-01-cxc-not-populated.csv` | **58 lines, 67 footprints** — DNP, fiducials, jumpers, test pads |
+
+**Do not edit them.** A part moves between the two buy lists by changing the *design* —
+see [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) — and consistency check
+[12] fails if the committed files are not what a fresh run produces.
 
 ---
 
@@ -28,6 +43,12 @@ for ClockxControl builds, bringing it to 52.
 
 ## 2. Consigned / hand-solder set
 
+**As of [ECO-9](../clockxcontrol-integration/ECO-9_assembly_split.md) this table is
+generated, not maintained** — `generated/agbm-01-cxc-handbuy.md` is the live version, and
+the board's own `exclude_from_bom` flag is what puts a part on it. The prose below is kept
+because it records *why* each one was picked, and because it was the source the ECO-9 rule
+was checked against.
+
 Six schematic `Source` fields are not Digi-Key links, and they map almost exactly onto the parts a
 human has to fit:
 
@@ -43,6 +64,12 @@ human has to fit:
 
 `P2`, `P3`, `VR1`, `VR2`, `SW1` and `SW4`–`SW6` all have Digi-Key links, so they are orderable even
 though several are mechanical.
+
+**The derived set differs from this table in two places, and both are corrections.** `P3`
+and `VR2` are on the hand-buy list — they have through-hole pads, which no reflow line
+does, whatever their sourcing looks like. And `MOD1` was already `exclude_from_bom` but
+**still in the position file**: a part the assembler had never been sold, queued for a
+nozzle. The splitter found that one; a human table could not have.
 
 ## 3. BOM resolution
 
@@ -131,15 +158,21 @@ rework and a re-pour. **No assembly order should be placed until that is closed.
 
 ## 6. Still to do
 
-1. Resolve the remaining ~41 Digi-Key short-links to MPNs.
+1. Resolve the remaining MPNs. The number is no longer an estimate: **33 of 61 assembly
+   lines, 105 of 172 parts**, measured on every run by check [12]. Almost all are generic
+   0603 R and C values — the 20× `1u` line alone is a fifth of the shortfall — so this is
+   volume, not difficulty.
 2. Choose in-stock equivalents for the five problem lines, deliberately, with the review's derating
    findings in hand.
 3. Fix the remaining two BOM defects (`SW1`'s ordering code, the `D1`/`D2` Schottky
    mis-description) and the two footprint mismatches; add tantalum polarity marking. The
    `F1`/`PTC1` defect is closed by ECO-8.
 4. Close the ECO-7 board defects and re-pour.
-5. Generate the fab and assembly package: gerbers, drill, **CPL/centroid for both sides with the
-   rotation convention PCBWay expects**, the BOM in PCBWay's format, and a fab/assembly note sheet
-   naming the DNP set and the consigned set.
+5. Generate the fab package: gerbers and drill. The BOM, the CPL and the DNP list now come
+   out of `scripts/bom_split.py` — **but the CPL's rotation convention is unverified.** It
+   emits the board's own `(at x y rot)` verbatim; PCBWay's expected zero-degree reference
+   per package family has not been checked against a single part, and a wrong convention
+   puts every polarised part in backwards. Verify before ordering, then record what was
+   verified against.
 6. Decide the four open questions: which variant is the target, consign the CPU/SRAM or fit them
    yourself, both sides or back only, and whether a ClockxControl build is the default.

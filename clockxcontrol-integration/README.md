@@ -35,6 +35,7 @@ The engineering record, in order:
 | [ECO-6](ECO-6_clockxcontrol_footprint.md) | the land pattern, the `C7` relocation, the wire pads, `JP3`, and the rev B shift west |
 | [ECO-7](ECO-7_u2_supply_and_dnp.md) | `X1`/`C3`/`C4` marked DNP; the `U2` pin-37 and `Net-(Q5B-G)` blockers, and why the review's fix for them must not be applied |
 | [ECO-8](ECO-8_component_swaps.md) | thirteen part swaps from the [power review](../power-review/README.md) — `U7` off a rail it is not specified for, `PTC1` off a hold current it is under, and ~26 mW |
+| [ECO-9](ECO-9_assembly_split.md) | make the board say what a pick-and-place can actually buy and place — it was asking for the salvaged CPU |
 
 ---
 
