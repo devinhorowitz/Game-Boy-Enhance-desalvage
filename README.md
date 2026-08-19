@@ -10,6 +10,12 @@
 > | [`pcbway-assembly/`](pcbway-assembly/) | preparing the board for PCBWay's assembly service — BOM resolution, sourcing audit, the consign/hand-solder split |
 > | [`scripts/`](scripts/) | the board is a **function** of committed inputs, and the documents are **gated** against it |
 >
+> **Upstream:** synced to `MouseBiteLabs/Game-Boy-Enhance` @ `48e2dc3` (2026-08-19). Every
+> design file in this fork is **byte-identical to upstream's current state** — the ECO chain
+> below is built on today's upstream, not a stale snapshot. The root `.gitignore` is
+> upstream's and is deliberately left untouched so future syncs never conflict; this fork's
+> own ignore patterns live in scoped `.gitignore` files beside what they cover.
+>
 > **The board is not fabricable as committed.** `U2` pin 37 has no path to `VDD2`, and
 > `Net-(Q5B-G)` is severed at a via ECO-5 deleted. Both need KiCad's interactive router —
 > [ECO-7](clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md) is the accounting, and

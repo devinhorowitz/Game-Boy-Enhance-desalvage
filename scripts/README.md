@@ -130,6 +130,35 @@ Worth recording, because it is the argument for having built it.
   routing and is severed at exactly one deleted via. Check [10]'s island trace found it,
   and the stock-board diff proved the cause. Corrected in all four.
 
+## Upstream
+
+```sh
+git remote add upstream https://github.com/MouseBiteLabs/Game-Boy-Enhance
+git fetch upstream && git merge upstream/main
+```
+
+Synced 2026-08-19 to `48e2dc3`. **Every design file here is byte-identical to upstream's**,
+which is the property the whole ECO chain rests on — `build_board.py` regenerates the board
+from `agbm-01-ram-desalvage.zip`, which is ECO-5's fork of upstream's `AGBM-01_Design Files`.
+If that ever stops being true, every number in ECO-6 through ECO-10 is describing a board
+nobody has.
+
+**Do not edit the root `.gitignore`.** It is upstream's, contributed by `bytendomods`; leaving
+it alone means a future sync is always a fast-forward. This fork's patterns live in scoped
+files beside what they cover (`scripts/.gitignore`, `clockxcontrol-integration/board/.gitignore`).
+
+Two of upstream's patterns are worth knowing before they bite:
+
+| Pattern | What it would swallow |
+|---|---|
+| `*.net` | a KiCad netlist export. Intended — netlists regenerate — but a netlist shipped as a *deliverable* would vanish silently. |
+| `*.log` | a fab or check log. Same. |
+
+`*.csv` is present but **commented out** upstream, which is the only reason
+`pcbway-assembly/generated/*.csv` survives. If a future sync uncomments it, the buy documents
+stop being tracked and check [12] starts failing on files that are simply invisible. Verified
+today with `git check-ignore` against every generated path.
+
 ## What it found on its second run
 
 `bom_split.py` landed after the checks, and the first thing it did was fail:
