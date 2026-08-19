@@ -71,6 +71,7 @@ BOARD_MEMBER = f"{ZIP_ROOT}/AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb"
 MPNS = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
 ECO8_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-8_component_swaps.md")
 ECO10_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-10_precision_pass.md")
+ECO11_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-11_gate_drive_and_D1.md")
 
 errors, warnings, verbose = [], [], False
 
@@ -146,6 +147,8 @@ def check_package_parity():
             "clockxcontrol-integration/ECO-9_assembly_split.md",
         f"{ZIP_ROOT}/ECO-10_precision_pass.md":
             "clockxcontrol-integration/ECO-10_precision_pass.md",
+        f"{ZIP_ROOT}/ECO-11_gate_drive_and_D1.md":
+            "clockxcontrol-integration/ECO-11_gate_drive_and_D1.md",
         f"{ZIP_ROOT}/ClockxControl_GBA_GBC.kicad_mod":
             "clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod",
     }
@@ -188,7 +191,8 @@ def check_package_parity():
 def check_eco8_ledger():
     """Every ECO whose table names a Value change is held to the generator and the board."""
     for label, doc_path, gen in (("ECO-8", ECO8_DOC, build_board.ECO8),
-                                 ("ECO-10", ECO10_DOC, build_board.ECO10)):
+                                 ("ECO-10", ECO10_DOC, build_board.ECO10),
+                                 ("ECO-11", ECO11_DOC, build_board.ECO11)):
         _check_one_eco(label, doc_path, gen)
 
 
@@ -198,7 +202,7 @@ def check_eco8_ledger():
 # the BOARD is checked only against where the whole chain ends up.
 def _eco_chain_final():
     out = {}
-    for lst in (build_board.ECO8, build_board.ECO10):
+    for lst in (build_board.ECO8, build_board.ECO10, build_board.ECO11):
         for ref, field, _o, n in lst:
             if field == "Value":
                 out[ref] = n

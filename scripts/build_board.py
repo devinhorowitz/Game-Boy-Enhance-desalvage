@@ -40,6 +40,8 @@ WHAT IT DOES, IN ECO ORDER
     ECO-10 rescale both LTC3527 feedback dividers 10x down, same ratios, so the
            converter's own FB input current stops being the dominant rail error. Six
            Values, no copper.
+    ECO-11 Q9 and Q10 to a logic-level FET, because the NDC7002N's worst-case gate
+           threshold is ABOVE the gate drive those two are given. Two Values, no copper.
 
 EVERY EDIT ASSERTS ITS OWN PRECONDITION. A replacement whose target string is missing, or
 present more than once, fails the build instead of silently producing a different board.
@@ -145,6 +147,48 @@ ECO10 = [
     ("R55", "Value", "1M",    "100k"),    # VOUT3 bottom leg
     ("C40", "Value", "15p",   "150p"),    # FB1 feedforward
     ("C41", "Value", "15p",   "150p"),    # FB2 feedforward
+]
+
+# --- ECO-11: the brownout latch is not guaranteed to arm --------------------------------
+# NDC7002N gate threshold, read off onsemi's own table: VGS(th) = 1.0 min / 1.9 typ /
+# **2.5 V max** at VDS = VGS, ID = 250 uA. There is no RDS(on) specification below
+# VGS = 4.5 V at all. Now the gate drive those two parts actually get:
+#
+#   Q10A  must pull /~MR down through the TPS3840's 100 kOhm INTERNAL MR pull-up
+#         (datasheet: "Manual reset internal pull-up resistance ... 100 kOhm"), i.e. sink
+#         ~14 uA, with VGS = SW - Vce(sat) ~= 2.0 V at the 2.07 V trip point.
+#   Q10B  run state, VGS = 0.990 x SW -- 2.05 V at the trip, 3.17 V on a fresh pack.
+#   Q9B   low-battery state, gate = /D1A ~= 3.0 V after ECO-8's InGaN LED raised the
+#         forward drop; it must pass DL2's ~165 uA through R10.
+#
+# A worst-case NDC7002N is at or BELOW its own threshold in all three, and the threshold is
+# defined as the VGS that produces 250 uA. Sub-threshold conduction falls a decade every
+# 60-100 mV, so half a volt short is five to eight decades short. The latch does not arm and
+# the low-battery LED does not light. It is worse cold: VGS(th) has a negative tempco, so a
+# cold console pushes a TYPICAL part into the same place.
+#
+# FDC6301N: VGS(th) = 0.65 / 0.85 / **1.5 V max**, same SUPERSOT-6 / TSOT-23-6 land, same
+# pin assignment. Every one of those nodes gains at least 0.5 V of worst-case overdrive.
+#
+# THE ONE OBJECTION, AND WHY IT DOES NOT HOLD. The FDC6301N's gate rating is asymmetric,
+# -0.5 to +8 V, against the NDC7002N's 20 V. Q10A is the only node that ever sees a negative
+# VGS: at power-up /EN rises through R11 while Q10A's gate is still held down by R17, so
+# VGS goes to about -SW. But the datasheet's own feature list reads "Gate-Source Zener for
+# ESD Ruggedness. >6 kV Human Body Model" -- the part carries an integrated clamp, which
+# forward-conducts at ~-0.7 V with the current set by R16. ECO-8 raised R16 from 10k to
+# 100k, so that clamp current is (3.2-0.7)/100k = 25 uA. This is what the Zener is for.
+#
+# Headroom: FDC6301N is 25 V / 0.22 A against a 5.0 V maximum VDS anywhere here and drain
+# currents of 14 uA (Q10A), ~41 uA (Q10B), 124 uA (Q9A's LED after ECO-8) and ~165 uA (Q9B).
+# Three orders of margin. RDS(on) 5 Ohm max at VGS = 2.7 V costs Q9A 0.6 mV.
+#
+# Q2, Q5 and Q7 keep the NDC7002N, deliberately: Q5's gates are driven to VOUT5 = 5.0 V so
+# there is no margin problem to fix, and Q2/Q7 switch display signals from U16 where the
+# worst-case overdrive is already 0.73 V and where changing RDS(on) and Ciss would be an
+# unanalysed timing risk bought for no stated benefit.
+ECO11 = [
+    ("Q9",  "Value", "NDC7002N", "FDC6301N"),
+    ("Q10", "Value", "NDC7002N", "FDC6301N"),
 ]
 
 
@@ -270,8 +314,8 @@ def build():
     for ref in DNP_REFS:
         replace_in(ref, "(attr smd)", "(attr smd dnp)", "DNP flag")
 
-    # ---------- ECO-8 / ECO-10  the part swaps ---------------------------------------
-    for ref, field, old, new in ECO8 + ECO10:
+    # ---------- ECO-8 / ECO-10 / ECO-11  the part swaps ------------------------------
+    for ref, field, old, new in ECO8 + ECO10 + ECO11:
         replace_in(ref, f'(property "{field}" "{old}"',
                    f'(property "{field}" "{new}"', f"{field} swap")
     # The rails must come out where they went in. 1.20 V is the LTC3527's feedback

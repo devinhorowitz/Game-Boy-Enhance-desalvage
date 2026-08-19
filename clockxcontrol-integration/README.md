@@ -37,6 +37,7 @@ The engineering record, in order:
 | [ECO-8](ECO-8_component_swaps.md) | thirteen part swaps from the [power review](../power-review/README.md) — `U7` off a rail it is not specified for, `PTC1` off a hold current it is under, and ~26 mW |
 | [ECO-9](ECO-9_assembly_split.md) | make the board say what a pick-and-place can actually buy and place — it was asking for the salvaged CPU |
 | [ECO-10](ECO-10_precision_pass.md) | the precision and longevity pass — and the finding that the converter's own feedback current was moving the rails more than the resistors were |
+| [ECO-11](ECO-11_gate_drive_and_D1.md) | `Q9`/`Q10` to a logic-level FET, because the brownout latch was not guaranteed to arm — and why the `D1` finding was refused |
 
 ---
 

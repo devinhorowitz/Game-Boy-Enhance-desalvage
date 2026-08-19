@@ -216,9 +216,17 @@ which inverts to −8 mW** once you use the designer's own annotated 130 mA for 
 ## Correctness and stability findings
 
 - **`U7` runs outside its datasheet** (above). Upstream bug, worth reporting to MouseBiteLabs.
-- **`D1`/`D2` are not Schottky diodes.** Verified: Rohm 1SS355VMTE-17, *standard* switching diodes,
-  80 V, 100 mA. `D1` is 7–13× under-rated for the reverse-battery clamp duty the schematic assigns
-  it, and sits on the wrong side of `F1`.
+- ~~**`D1`/`D2` are not Schottky diodes** … `D1` is 7–13× under-rated for the reverse-battery
+  clamp duty the schematic assigns it~~ — **this finding does not survive checking. See
+  [ECO-11 §11.2](../clockxcontrol-integration/ECO-11_gate_drive_and_D1.md).** The parts are
+  indeed Rohm 1SS355VMTE-17 switching diodes rather than Schottkys, but **the schematic
+  assigns `D1` no duty at all** — there is no note anywhere, and "Schottky" appears only in
+  the KiCad symbol name and that symbol's stock Description. The real numbers are worse and
+  point elsewhere: `D1`'s surge rating is **500 mA at 1 s** against 4–7 A available, `F1` is
+  not in the reverse loop, and moving it there does not help because `F1` needs *seconds* at
+  that current. **No part fixes it**, so nothing was changed — and the honest statement is
+  that the board has no effective reverse-battery protection, which a bigger diode would
+  have disguised.
 - **`SW1`'s value is not an orderable part number** — `CSS-1310B` should be `CSS-1310TB`.
 - ~~**`F1` and `PTC1` carry three different part numbers**~~ — fixed in
   [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md).

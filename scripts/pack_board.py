@@ -39,6 +39,7 @@ MEMBERS = [
     ("ECO-8_component_swaps.md", "ECO-8_component_swaps.md"),
     ("ECO-9_assembly_split.md", "ECO-9_assembly_split.md"),
     ("ECO-10_precision_pass.md", "ECO-10_precision_pass.md"),
+    ("ECO-11_gate_drive_and_D1.md", "ECO-11_gate_drive_and_D1.md"),
 ]
 
 

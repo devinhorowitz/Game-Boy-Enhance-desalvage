@@ -158,13 +158,11 @@
    "refs": [
     "Q2",
     "Q5",
-    "Q7",
-    "Q9",
-    "Q10"
+    "Q7"
    ],
    "mpn": "NDC7002N",
    "mfr": "onsemi",
-   "flag": "VGS(th) max 2.5 V is the basis of the review's brownout-latch gate-drive concern",
+   "flag": "VGS(th) max 2.5 V with no RDS(on) spec below VGS = 4.5 V. Fine for Q2/Q5/Q7, whose gates are driven to 3.23-5.0 V. Q9 and Q10 moved to the FDC6301N by ECO-11 because their gate drive is BELOW this threshold -- see that document.",
    "note": "Dual N-channel MOSFET, 50 V, 510 mA, RDS(on) 2 ohm at 10 V, VGS(th) up to 2.5 V"
   },
   {
@@ -485,6 +483,15 @@
    "mpn": "CGA3E1X7R1E105K080AC",
    "mfr": "TDK",
    "eco": "ECO-10, longevity. The fitted KEMET C0603C105K4RACTU is X7R but only 16 V; TDK's CGA is the AUTOMOTIVE (AEC-Q200) grade of the C-series at 25 V in the same 0603 x 0.90 mm body. Higher rated voltage means less capacitance lost to DC bias on every rail these sit on, and the automotive grade is screened harder. 1,435,431 in stock, $0.17 (verified 2026-08-19). NOT CHANGED, and worth saying why: the 0.1 uF line is already KEMET C0603C104K5RACTU, X7R at 50 V -- that is already the right part and churning it would buy nothing."
+  },
+  {
+   "refs": [
+    "Q9",
+    "Q10"
+   ],
+   "mpn": "FDC6301N",
+   "mfr": "onsemi",
+   "eco": "ECO-11. NDC7002N VGS(th) is 1.0/1.9/2.5 V max and Q10A must sink ~14 uA through the TPS3840's 100 kOhm internal MR pull-up at VGS ~= 2.0 V, Q10B runs at 0.990 x SW, and Q9B opens the low-battery LED at /D1A ~= 3.0 V. A worst-case part is at or below threshold in all three, so the brownout latch may never arm and the low-battery LED may never light -- invisibly, since the console works normally until the protection was meant to act. FDC6301N is 0.65/0.85/1.5 V max on the identical SUPERSOT-6 land with the same pin assignment, giving >=0.5 V of worst-case overdrive everywhere. Its asymmetric -0.5 V gate rating is covered by its own integrated gate-source Zener ('>6 kV HBM'), whose clamp current at Q10A's power-up excursion is set by R16 -- which ECO-8 had already raised from 10k to 100k, making it 25 uA. Headroom: 25 V / 0.22 A against 5.0 V and <=165 uA."
   }
  ]
 }
