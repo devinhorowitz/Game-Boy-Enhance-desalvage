@@ -191,6 +191,55 @@ ECO11 = [
     ("Q10", "Value", "NDC7002N", "FDC6301N"),
 ]
 
+# --- ECO-12: the wiki audit -- put back what this fork drifted away from ---------------
+# MouseBiteLabs' project wiki, read end to end, settles two things this fork had open.
+#
+# 12.1  R3 / R4 / R64 -- the schematic-vs-PCB conflict is a STALE PCB ANNOTATION.
+# The AGBM-01 PCB carries 1k / 10k / 100k; the AGBM-01 schematic, the AGBM-01 README's
+# own BOM, the AGBM-02 README's BOM and -- decisively -- the AGBM-02 PCB itself all carry
+# 5.1k / 33k / 200k. AGBM-02 is the same AA design one revision later with the identical
+# supervisor circuit, and Nick fixed the annotation there. Four independent confirmations:
+#
+#   * Power-Draw-and-Battery-Curves: "The low battery LED turns on when the voltage passes
+#     2.3V ... The LED begins blinking when the voltage passes 2.1V."
+#   * AGBM-01 Build/Test Order, Test 4: "sweeping it from 2V to 3V ... It should go from
+#     green to red at 2.3V (when voltage is dropping)". This is an ACCEPTANCE TEST.
+#   * The netlist: SW -> R3 -> (U10.VDD, C10, R4) -> GND, so the TPS3840DL20's 2.0 V
+#     threshold appears at SW as 2.0 x (R3+R4)/R4.
+#         5.1k / 33k  -> 2.309 V   matches the wiki
+#         1k   / 10k  -> 2.200 V   does not
+#     U17's leg, which is NOT in conflict, is 5.1k/100k -> 2.102 V and matches the wiki's
+#     2.1 V. Both AA supervisors use a 5.1k top leg; the PCB's "1k" is the odd one out.
+#   * R64 with C44 = 1u sets the 555's blink rate. 200k -> 3.6 Hz, 100k -> 7.2 Hz.
+#
+# THIS FORK HAD THE REGRESSION LIVE. ECO-9 derives the PCBWay BOM from the board's Value
+# fields, so the stale annotations were being ORDERED: a built board would have warned
+# 100 mV late (Nick puts 2.3 V at 5-7 % of pack and 2.1 V at under 1 %, so the warning
+# window roughly halves) and blinked at twice the intended rate. It also made U10's
+# anti-flicker filter 4.9x lighter than designed -- R3||R4 x C10 falls from 0.44 ms to
+# 0.09 ms -- which attacks the exact symptom the wiki says C10 and C12 exist to prevent.
+#
+# 12.2  R23 -- give VOUT3 its 108 mV back.
+# ECO-8 trimmed VOUT3 from 3.336 V to 3.228 V for 6.1 mW. That trade is wrong for THIS
+# fork. The stated goal here is margin on a board that is deliberately overclocked, and
+# VDD3 is the CPU's 3.3 V I/O ring and the cartridge supply VDD35 -- the bus the overclock
+# actually stresses. 8.2 mW at 1.75x is 0.86 % of 951 mW, about three and a half minutes
+# of a 6 h 47 m session, bought with 3.2 % of the rail. Nick's Test 3 reads "VDD3 to GND:
+# 3.3V". (The RAM is unaffected either way: it runs on VDD2 from LDO U8.)
+#
+# It also repairs something ECO-8 broke silently. C41 was sized against 1.78M; moving R23
+# to 1.69M shifted the feedforward zero 5.3 % and ECO-10 then preserved that SHIFTED
+# constant. 178k with C41 = 150p restores MouseBiteLabs' compensation exactly:
+#     R_top x C     1.78M x 15p = 26.7 us   ==  178k x 150p = 26.7 us
+#     R_top||R_bot  640.3k x 15p = 9.60 us  ==  64.03k x 150p = 9.60 us
+# R23 takes R21's part number, so this removes a BOM line rather than adding one.
+ECO12 = [
+    ("R3",  "Value", "1k",   "5.1k"),   # U10 top leg   -- stale annotation
+    ("R4",  "Value", "10k",  "33k"),    # U10 bottom leg -- stale annotation
+    ("R64", "Value", "100k", "200k"),   # 555 blink rate -- stale annotation
+    ("R23", "Value", "169k", "178k"),   # VOUT3 top leg -- reverts ECO-8's trim
+]
+
 
 # --- ECO-9: the board should say what a machine can actually place --------------------
 # Until this, the board asked a pick-and-place to buy and place 179 parts -- including the
@@ -315,16 +364,31 @@ def build():
         replace_in(ref, "(attr smd)", "(attr smd dnp)", "DNP flag")
 
     # ---------- ECO-8 / ECO-10 / ECO-11  the part swaps ------------------------------
-    for ref, field, old, new in ECO8 + ECO10 + ECO11:
+    for ref, field, old, new in ECO8 + ECO10 + ECO11 + ECO12:
         replace_in(ref, f'(property "{field}" "{old}"',
                    f'(property "{field}" "{new}"', f"{field} swap")
-    # The rails must come out where they went in. 1.20 V is the LTC3527's feedback
-    # reference; if a future edit breaks a ratio, the build fails here rather than
-    # shipping a board that quietly regulates somewhere else.
-    for name, top, bot, want in (("VOUT5", 178e3, 56e3, 5.014), ("VOUT3", 169e3, 100e3, 3.228)):
-        got = 1.20 * (1 + top / bot)
-        if abs(got - want) > 0.002:
-            raise AssertionError(f"{name}: rescaled divider gives {got:.4f} V, not {want} V")
+    # ---------- the four thresholds this board is FOR ---------------------------------
+    # Every one of these is a divider ratio, and a divider ratio is the kind of thing a
+    # later edit changes by accident. If one moves, the BUILD fails here rather than
+    # shipping a board that quietly regulates -- or warns -- somewhere else.
+    #
+    # 1.20 V is the LTC3527's feedback reference; 2.00 V is the TPS3840DL20's threshold.
+    # The two supervisor targets are MouseBiteLabs' own published figures, not a
+    # derivation: the wiki states 2.3 V and 2.1 V, and the AGBM-01 build guide's Test 4
+    # sweeps the supply looking for exactly those. See ECO-12 and wiki-audit/README.md.
+    for name, vref, top, bot, want, tol in (
+            ("VOUT5 (LTC3527 FB1)", 1.20, 178e3,  56e3, 5.014, 0.002),
+            ("VOUT3 (LTC3527 FB2)", 1.20, 178e3, 100e3, 3.336, 0.002),
+            ("U10 low-battery trip", 2.00,  5.1e3, 33e3, 2.309, 0.002),
+            ("U17 blink trip",       2.00,  5.1e3, 100e3, 2.102, 0.002)):
+        got = vref * (1 + top / bot)
+        if abs(got - want) > tol:
+            raise AssertionError(f"{name}: divider gives {got:.4f} V, not {want} V")
+    # The 555's blink rate, same reasoning. R64 with C44 = 1 uF in the OUT-to-RC astable
+    # KiCad's netlist shows (R64 between OUT and the tied TRIG/THRES node): T = 2*ln2*R*C.
+    blink = 1.0 / (2 * 0.6931 * 200e3 * 1e-6)
+    if not 3.5 < blink < 3.7:
+        raise AssertionError(f"critical-battery blink rate is {blink:.2f} Hz, not ~3.6 Hz")
 
     # ---------- ECO-9  what a machine cannot place -----------------------------------
     hand = dict(THRU_HOLE_REASONS)

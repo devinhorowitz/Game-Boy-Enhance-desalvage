@@ -221,9 +221,9 @@
    "refs": [
     "R23"
    ],
-   "mpn": "RT0603BRD07169KL",
+   "mpn": "RT0603BRD07178KL",
    "mfr": "YAGEO",
-   "eco": "ECO-8 changed R23 from 1.78M to 1.69M to bring VOUT3 from 3.336 V to 3.228 V. ECO-10. The LTC3527 specifies FB input current as 1 nA typ / 50 nA MAX. With the original 1.69M/1.00M and 1.78M/560k dividers that worst case moves VOUT3 by +/-85 mV (+/-2.62%) and VOUT5 by +/-89 mV (+/-1.77%) -- more than the resistors' own tolerance, and more than the 108 mV ECO-8 trimmed off VOUT3 to save 6.1 mW. Scaling both dividers 10x down keeps the ratio and therefore the rail, cuts the bias error to +/-8.4 / +/-8.9 mV, and lands on values where 0.1% +/-25ppm thin film exists -- which it does not at 1.69M or 1.78M, because nobody builds precision resistors that high for exactly this reason. Costs 0.13 mW of extra divider current. All four legs are YAGEO RT0603 so both dividers track on ONE film system. ECO-10 then rescaled that 1.69M to 169k. Same rail, 10x lower impedance, 0.1% instead of 1%."
+   "eco": "ECO-12 reverts ECO-8's VOUT3 trim: 169k -> 178k, so VOUT3 returns to MouseBiteLabs' 3.336 V from the 3.228 V ECO-8 set to save 6.1 mW. Wrong trade for this fork -- VDD3 is the CPU's 3.3 V I/O ring and the cartridge supply VDD35, the bus a 1.75x overclock actually stresses, and 8.2 mW at 1.75x is 0.86% of the load, about three and a half minutes. Nick's build guide Test 3 reads \"VDD3 to GND: 3.3V\". It also restores the feedforward compensation exactly: C41 was sized against 1.78M, ECO-8 shifted that zero 5.3% and ECO-10 preserved the shifted value; 178k x 150p = 26.7 us is the original 1.78M x 15p. R23 now shares R21's part number, so this REMOVES a BOM line. 14,673 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -352,25 +352,25 @@
    "refs": [
     "R3"
    ],
-   "mpn": "RC0603FR-071KL",
-   "mfr": "YAGEO",
-   "flag": "UNRESOLVED SCHEMATIC/PCB CONFLICT -- the MPN here follows the BOARD, because the board is what gets fabricated and a PCB-derived BOM reads its Value. The upstream SCHEMATIC says 5.1k and its own Digi-Key link buys RC0603FR-075K1L. Both files ship in this repository and they have disagreed since before this fork. This is the conflict that blocks the supervisor-divider change in ECO-8 section 8.4: R3/R4 set U10's battery-sense divider and R64 sets U17's, so the two candidate value sets put the low-battery and brownout trip points in different places. SETTLE IT AGAINST HARDWARE BEFORE ORDERING -- measure the trip point on a built board, or ask MouseBiteLabs."
+   "mpn": "RG1608P-512-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-12, the wiki audit. The schematic-vs-PCB conflict is SETTLED: the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R3 is U10's top leg. Value corrected 1k -> 5.1k, and it now takes the SAME part as R58 -- U17's top leg -- so both AA supervisor dividers run on one film system. Susumu RG1608: 0.1%, +/-25 ppm, anti-sulfur, AEC-Q200. Anti-sulfur matters here specifically: this divider hangs off SW, inches from two AA cells, and sulfur creep is how a thick-film chip resistor goes open. $0.10, 141,038 in stock, verified 2026-08-19."
   },
   {
    "refs": [
     "R4"
    ],
-   "mpn": "RC0603FR-0710KL",
-   "mfr": "YAGEO",
-   "flag": "UNRESOLVED SCHEMATIC/PCB CONFLICT -- the MPN here follows the BOARD, because the board is what gets fabricated and a PCB-derived BOM reads its Value. The upstream SCHEMATIC says 33k and its own Digi-Key link buys RC0603FR-0733KL. Both files ship in this repository and they have disagreed since before this fork. This is the conflict that blocks the supervisor-divider change in ECO-8 section 8.4: R3/R4 set U10's battery-sense divider and R64 sets U17's, so the two candidate value sets put the low-battery and brownout trip points in different places. SETTLE IT AGAINST HARDWARE BEFORE ORDERING -- measure the trip point on a built board, or ask MouseBiteLabs."
+   "mpn": "RG1608P-333-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-12, the wiki audit. The schematic-vs-PCB conflict is SETTLED: the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R4 is U10's bottom leg. Value corrected 10k -> 33k. Same Susumu RG1608 film as R3 so the RATIO -- which is the whole quantity that sets the trip point -- tracks instead of drifting on two independent films. 0.1% +/-25 ppm against the previous 1% +/-100 ppm takes the trip-point spread from about +/-21 mV to +/-2 mV, which on Nick's own battery curves is the difference between a few minutes of the 20-60 minute low-battery warning and none of it. $0.10, 18,495 in stock, verified 2026-08-19."
   },
   {
    "refs": [
     "R64"
    ],
-   "mpn": "RC0603FR-07100KL",
+   "mpn": "RC0603FR-07200KL",
    "mfr": "YAGEO",
-   "flag": "UNRESOLVED SCHEMATIC/PCB CONFLICT -- the MPN here follows the BOARD, because the board is what gets fabricated and a PCB-derived BOM reads its Value. The upstream SCHEMATIC says 200k and its own Digi-Key link buys RC0603FR-07200KL. Both files ship in this repository and they have disagreed since before this fork. This is the conflict that blocks the supervisor-divider change in ECO-8 section 8.4: R3/R4 set U10's battery-sense divider and R64 sets U17's, so the two candidate value sets put the low-battery and brownout trip points in different places. SETTLE IT AGAINST HARDWARE BEFORE ORDERING -- measure the trip point on a built board, or ask MouseBiteLabs."
+   "eco": "ECO-12, the wiki audit. The schematic-vs-PCB conflict is SETTLED: the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R64 is not a divider leg -- it is the 555's timing resistor, and with C44 = 1 uF it sets the critical-battery blink rate: 200k gives 3.6 Hz, the 100k annotation gives 7.2 Hz. Value corrected 100k -> 200k, buying exactly the part the upstream schematic's own Digi-Key link buys. DELIBERATELY LEFT AT 1%: a blink rate does not need 0.1%, and buying precision where it buys nothing is waste -- the same rule that deferred all three of these in ECO-10."
   },
   {
    "refs": [
@@ -454,9 +454,9 @@
    "refs": [
     "R63"
    ],
-   "mpn": "RT0603BRD07100KL",
-   "mfr": "YAGEO",
-   "eco": "ECO-10. U17's lower divider leg -- with R58 it sets the low-battery trip point. 1% +/-100ppm -> 0.1% +/-25ppm. R3/R4/R64 are the OTHER supervisor legs and are deliberately NOT upgraded yet: they still carry the unresolved schematic-vs-PCB value conflict, and buying precision parts of a value that may be wrong is waste."
+   "mpn": "RG1608P-104-B-T5",
+   "mfr": "Susumu",
+   "eco": "ECO-12. U17's lower divider leg. ECO-10 upgraded it to 0.1% but left it on YAGEO RT0603 while its partner R58 went to Susumu RG1608 -- a divider split across two film systems, which is the one thing ECO-10's own reasoning says not to do, since only the RATIO sets the trip point. Now both legs are Susumu RG1608 (0.1%, +/-25 ppm, anti-sulfur, AEC-Q200), matching what R3/R4 do for U10. $0.11, 488,743 in stock, verified 2026-08-19. R55 keeps RT0603BRD07100KL: it is the VOUT3 bottom leg and belongs to the all-YAGEO LTC3527 pair."
   },
   {
    "refs": [

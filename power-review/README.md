@@ -100,6 +100,12 @@ and `VOUT5` = **5.014 V**. Both `NCV8164` LDOs drop that to 2.500 V, making them
 efficient — an arithmetic match to MouseBiteLabs' own "roughly 75 % efficient" remark about the
 audio supply, which is what confirms the model is on the right rails.
 
+*(ECO-8 later trimmed `VOUT3` to 3.228 V and **[ECO-12
+§12.2](../clockxcontrol-integration/ECO-12_wiki_audit_corrections.md) reverted it**, so this
+model's 3.336 V is again the rail the board actually produces. The trim was worth 6.1 mW and cost
+108 mV of headroom on the bus a 1.75× overclock stresses — the wrong trade for this fork, and
+against the build guide's own Test 3.)*
+
 At idle, 148 of the measured 170 mW is accounted for and **22 mW is not**. That residual is almost
 certainly LTC3527 light-load overhead — it is the same energy as the measured AGBM-01/AGBM-02 gap —
 but the published curves say the converter should be doing better than the measurement shows, and
@@ -192,6 +198,33 @@ never leaves reset. The buck alternative needs a fourth supervisor to avoid a de
 because a buck's input power is set by its output power. Tier 1 + core rail, de-duplicated, is
 **48.6 mW at 1× and 65.6 mW at 1.75×**.
 
+#### MouseBiteLabs already tried this and rejected it — on audio
+
+Added by the [wiki audit](../wiki-audit/README.md). The *Schematic Explanation* page:
+
+> LDOs are (usually) less efficient than a switch mode power supply, but in my (admittedly early)
+> testing I found that **with a SMPS for the 2.5V supply I could hear more audio noise than with an
+> LDO**, so the minimal lost power is worth it in my view.
+
+`U8` **is** the 2.5 V supply. This is not an adjacent finding — it is the same swap, tried on real
+hardware, and rejected against the project's stated primary goal. The review's largest single lever
+therefore has a prior negative result standing against it, and any table that lists 66 mW without
+that caveat is overselling.
+
+Two things keep it from being a flat "no":
+
+* Nick raises the caveat himself — *"since my original testing I have done a lot to improve the
+  audio quality in other ways that a 2.5V SMPS might not affect the audio quality as it used to,
+  but at this point in the design I am done messing with things for such minimal gain."* The
+  single-point ground and the `U9` buffer both post-date that test.
+* His objection is to a switcher on **this rail**, not to switchers: **AGBM-02 is the twin-TPS63802
+  board**, and he shipped it.
+
+But `VAUD` and `VDD2` come off the same 2.5 V generation stage in his reasoning, and the buffer `U9`
+that removed *all* the audible noise runs on `VAUD`, referenced to the audio ground. **Do not take
+this lever without a listening test**, and note the asymmetry: the power is worth about 40 mW at 1×,
+and the failure mode is the one thing this project exists to get right.
+
 ### The converter transplant is last, not first
 
 The AGBM-02 twin-TPS63802 swap is the **only measured number in the review** — 170 vs 141 mW on two
@@ -219,14 +252,19 @@ which inverts to −8 mW** once you use the designer's own annotated 130 mA for 
 - ~~**`D1`/`D2` are not Schottky diodes** … `D1` is 7–13× under-rated for the reverse-battery
   clamp duty the schematic assigns it~~ — **this finding does not survive checking. See
   [ECO-11 §11.2](../clockxcontrol-integration/ECO-11_gate_drive_and_D1.md).** The parts are
-  indeed Rohm 1SS355VMTE-17 switching diodes rather than Schottkys, but **the schematic
-  assigns `D1` no duty at all** — there is no note anywhere, and "Schottky" appears only in
-  the KiCad symbol name and that symbol's stock Description. The real numbers are worse and
-  point elsewhere: `D1`'s surge rating is **500 mA at 1 s** against 4–7 A available, `F1` is
-  not in the reverse loop, and moving it there does not help because `F1` needs *seconds* at
-  that current. **No part fixes it**, so nothing was changed — and the honest statement is
-  that the board has no effective reverse-battery protection, which a bigger diode would
-  have disguised.
+  indeed Rohm 1SS355VMTE-17 switching diodes rather than Schottkys, and the *rating* number
+  is right — but the duty is real and the conclusion is still no-change. The
+  [wiki audit](../wiki-audit/README.md) found MouseBiteLabs documenting `D1`'s purpose
+  outright: *"`D1` provides reverse polarity protection … **the batteries will short
+  circuit** and a (large) negative voltage will be prevented from hitting the rest of the
+  system."* It is a **sacrificial crowbar by design** — the shorted pack is the stated
+  mechanism, not a failure. `D1`'s surge rating is **500 mA at 1 s** against 4–7 A
+  available, `F1` is not in the reverse loop, and moving it there does not help because
+  `F1` needs *seconds* at that current — but a diode driven past `IFSM` fails **short**,
+  which clamps harder than the working diode did, so the specified function is delivered
+  either way. **No part swap improves it**, and nothing was changed. What is worth saying
+  plainly: `D1` protects the console, not the pack, and was never meant to — so a reversal
+  is a *thermal, self-sustaining* event whose remedy is removing the cells.
 - **`SW1`'s value is not an orderable part number** — `CSS-1310B` should be `CSS-1310TB`.
 - ~~**`F1` and `PTC1` carry three different part numbers**~~ — fixed in
   [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md).

@@ -106,26 +106,38 @@ The cost is one extra BOM line. That is the right trade.
 > diodes, 80 V, 100 mA. `D1` is 7–13× under-rated for the reverse-battery clamp duty the
 > schematic assigns it, and sits on the wrong side of `F1`.
 
-### What the schematic actually says
+### What MouseBiteLabs actually says
 
-**Nothing.** There is no text note anywhere in `AGBM-01_AA_1-2.kicad_sch` describing `D1`'s
-purpose. The word "Schottky" appears only in two places, and neither is a design statement:
-the KiCad symbol chosen is `Device:D_Schottky`, and that symbol's stock `Description` field
-reads "Schottky diode". The AGBM-01 README's own BOM table calls `D1` simply **"Diode."**
+**The intent is documented, and it is reverse-polarity protection.** The project wiki's
+*Schematic Explanation*, first paragraph:
 
-MouseBiteLabs *does* annotate diodes when they have a specific job — the AGBM-11 schematic
-carries *"D2 protects against backfeeding into VDD5 if solder bridge on LEDs"*. `D1` has no
-such note. **The duty the review says the schematic assigns was never assigned.**
+> Starting from the batteries on the left, **`D1` provides reverse polarity protection** in
+> the event a user somehow jams the AA batteries in backwards. In this instance, **the
+> batteries will short circuit** and a (large) negative voltage will be prevented from
+> hitting the rest of the system.
 
-### The numbers, either way
+*(An earlier draft of this section said the schematic assigns `D1` no duty and inferred it
+was an ESD clamp. The schematic file carries no note — that part was right — but the wiki
+does, and the wiki is the design record. The inference was wrong. The numbers below, and
+the decision they lead to, are unchanged.)*
+
+Read it closely, because it changes what "correct" means here. Nick is not describing a
+diode that survives the fault. **He says the batteries short circuit** — that is the
+mechanism, not an accident. `D1`'s job in his design is to *clamp the node*, so that the
+rest of the system never sees a large negative voltage. It is a **sacrificial crowbar**,
+and it is meant to be.
+
+### The numbers
 
 `D1` sits between `Net-(BT1-+)` and `GND`, cathode to the battery — reverse-biased in normal
 use. `F1` is between `Net-(BT1-+)` and `VBATT`. So on a reversal the loop is
-`pack → D1 → pack`, and **`F1` is not in it.**
+`pack → D1 → pack`, and **`F1` is not in it.** (Verified from the netlist:
+`Net-(BT1-+) = {BT1.1, D1.1, F1.1}`, `D1.2 → GND`, `VBATT = {F1.2, PTC1.1, R9.1, SW1.1,
+D2.2}`.)
 
 - **`1SS355VMTE-17`: `IFSM` = 500 mA at t = 1 s.** That is the entire surge rating.
 - Available reverse current: 3.2 V into a 300–600 mΩ pack plus contacts and trace ≈ **4–7 A**.
-- Nothing opens. Ever.
+- The die does not survive. Nothing opens.
 
 **Moving `D1` to the `VBATT` side so `F1` joins the loop does not rescue it either.** The
 Accu-Guard II `F0805B2R00` has a **fusing current of 4.00 A within 5 seconds** — at 4–7 A
@@ -133,38 +145,50 @@ this fuse takes *seconds*, because the available fault is only 2–3.5× its rat
 the region where a thin-film fuse is slow. The event is then 36–180 A²s. The best 2 A
 Schottky that fits the `SOD-323F` land carries perhaps 4 A²s. **Still 10–40× short.**
 
-### Therefore
+### Therefore — and this is why the conclusion survives the correction
 
-**No part swap makes this work, and no reasonable topology change does either.** A 2 A
-Schottky would cost money, survive nothing, and leave behind the impression of protection
-that a future reader would trust.
+The review's finding was that `D1` is "7–13× under-rated for the reverse-battery clamp
+duty." The rating number is right. **The finding is still refused, for a better reason than
+the one first given.**
 
-Two readings of `D1` are consistent with the board, and the numbers choose between them:
+A crowbar clamps by conducting. A diode that is driven past `IFSM` fails, and a failed
+silicon die **fails short** — which clamps *harder* than the working diode did. The
+function Nick specifies, *"a large negative voltage will be prevented from hitting the rest
+of the system,"* is delivered either way. Uprating the part would buy a clamp that survives
+an event the console does not survive anyway, in a fault whose whole premise is that the
+pack is already shorted.
 
-1. **As a reverse-polarity crowbar** it is absurdly under-rated *and placed where the fuse
-   cannot help it* — which is not a mistake a designer makes twice.
-2. **As a negative-transient / ESD clamp across the battery input** — a reverse-biased
-   500 mA diode upstream of the fuse — it is **correctly chosen and correctly placed.**
-
-Reading 2 is the one consistent with the part, the position and the absence of any note.
-**`D1` is not changed.**
+**No part swap makes this better, and no reasonable topology change does either.** A 2 A
+Schottky would cost money, survive nothing that matters, and leave behind an impression of
+robustness a future reader would trust. **`D1` is not changed.**
 
 ### What is true, and should be said plainly
 
-**The AGBM-01 has no effective reverse-battery protection.** Not "weak" — none. If both
-cells go in backwards, `D1` fails within milliseconds, and a failed diode is usually a
-short, at which point the pack is hard-shorted through the failed die until someone removes
-it. Alkaline cells into a dead short get hot and can vent.
+`D1` protects **the console**, as designed and as documented. It does not protect **the
+pack**, and it is not meant to: Nick says so in the same sentence. If both cells go in
+backwards, `D1` conducts, then fails, then holds the pack in a dead short through its own
+failed die until someone takes the batteries out. `F1` is not in that loop and cannot end
+it. NiMH cells — the ones Nick recommends and tests with — tolerate this poorly; alkaline
+cells into a dead short get hot and can vent.
+
+The exposure is genuinely low, and Nick's *"somehow jams the AA batteries in backwards"*
+is fair: in a 2×AA series holder, **one** cell reversed gives 1.6 − 1.6 ≈ 0 V and harms
+nothing; **both** reversed requires defeating the compartment keying twice. The point of
+recording it is not that the design is wrong — it is that a builder should know the
+failure is *thermal and self-sustaining*, so the response is "get the cells out," not
+"cycle the switch."
 
 The exposure is genuinely low: in a 2×AA series holder, **one** cell reversed gives
 1.6 − 1.6 ≈ 0 V and harms nothing; **both** reversed requires defeating the compartment
-keying twice. But low probability is not protection, and the fix is not a diode:
+keying twice. If a future revision ever wants the pack protected too, the fix is not a bigger diode:
 
-> **The real fix is series protection — a P-channel MOSFET ideal-diode in the `VBATT`
-> path** — which is a board revision, and one with a real power cost, since its `RDS(on)`
-> sits in the main current path on a board whose review fights for single milliwatts.
+> **Series protection — a P-channel MOSFET ideal-diode in the `VBATT` path** — which
+> blocks instead of crowbarring, so nothing shorts. It is a board revision, and one with a
+> real power cost, since its `RDS(on)` sits in the main current path on a board whose
+> review fights for single milliwatts.
 
-Recorded, not applied. It is a design decision, not a part swap.
+Recorded, not applied, and explicitly **not** proposed as a correction to MouseBiteLabs'
+design — it is a different trade, not a better answer to the one he made.
 
 ### `D2` is fine, and here is why it looked suspect
 

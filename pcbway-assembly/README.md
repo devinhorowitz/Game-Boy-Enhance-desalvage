@@ -239,6 +239,42 @@ Independent of sourcing, the board is not fabricable as committed. See
 via. Both need KiCad
 rework and a re-pour. **No assembly order should be placed until that is closed.**
 
+### And a third, found by the wiki audit: `U2`'s land goes the wrong way
+
+MouseBiteLabs has **shipped** the CY62157EV30LL — on AGBM-02 and AGBM-12, documented on the wiki's
+*Feature Configurations* and *Required Parts* pages. The AGBM-02 design-files archive committed in this repository
+contains his land, and it is not ours. Both are 96-pad supersets of the stock salvage footprint at
+the same origin `(88.0, −57.8)`, both keep the same pin ordering — but **he extended the pad field
+toward −x and ECO-5 extended it toward +x**, putting our package body **1.55 mm further +x** than
+the one he physically fitted in a shell:
+
+| | added column | pad-row span | body centre |
+|---|---|---|---|
+| **AGBM-02** `AGB-SRAM_2` | x = **−8.45** | 19.42 mm | x = **+1.26** |
+| **ours** (ECO-5) | x = **+12.31** | 19.00 mm | x = **+2.81** |
+
+The obstruction Nick named was the front shell's plastic screen rim, and ECO-5's own README says
+front-shell fit is **unverified**. **Adopt AGBM-02's `Bucketmouse:AGB-SRAM_2` geometry, or verify
+ECO-5's in a real shell, before fabricating.** His is the land with a physical fit behind it. This
+is a 24-pad relocation and re-route — do it in the same pass as the two ECO-7 defects above, since
+all three are in the same corner of the board. Full comparison in
+[`wiki-audit/README.md`](../wiki-audit/README.md) §D.
+
+**Two manual steps no assembly line performs**, for whichever land ends up on the board — record
+them in the build notes rather than expecting PCBWay to do them. Both apply *only* if you populate
+a CY62157EV30LL, and both must be left open for a salvaged OEM chip:
+
+* bridge **`JP2`** — ties `U2` pin 47 (`/BYTE`) to `VDD2` for ×16 word mode;
+* solder-bridge **`U2` pins 16 to 17** — ties `MA17` to `VDD2`. Zero copper by design; verified
+  adjacent on 0.5 mm pitch at `(−6.69, 1.75)` and `(−6.69, 2.25)`.
+
+**Do not follow the wiki's `JP2`/`JP3` instruction literally on this board.** Nick's *Feature
+Configurations* says to bridge `JP2` **and** `JP3` for a new RAM chip, because on AGBM-02 those are
+the `MA17`→GND and `/BYTE`→`VDD2` straps. On this fork **`JP3` is ECO-6's ClockxControl clock
+jumper** (`/CPU/CK1` ↔ `CXC_CLK`) and has nothing to do with the RAM. Bridging it is harmless — on
+a module build it is the configuration you want — but it is not the RAM strap, and `MA17` is the
+pin-16-to-17 bridge instead.
+
 ## 6. Still to do
 
 1. ~~Resolve the remaining MPNs.~~ **Done — zero unresolved.** Re-run
@@ -251,7 +287,8 @@ rework and a re-pour. **No assembly order should be placed until that is closed.
 3. Fix the remaining two BOM defects (`SW1`'s ordering code, the `D1`/`D2` Schottky
    mis-description) and the two footprint mismatches; add tantalum polarity marking. The
    `F1`/`PTC1` defect is closed by ECO-8.
-4. Close the ECO-7 board defects and re-pour.
+4. Close the ECO-7 board defects **and the `U2` land direction (§5)** in one KiCad pass —
+   they are all in the same corner — then re-pour.
 5. Generate the fab package: gerbers and drill. The BOM, the CPL and the DNP list now come
    out of `scripts/bom_split.py` — **but the CPL's rotation convention is unverified.** It
    emits the board's own `(at x y rot)` verbatim; PCBWay's expected zero-degree reference

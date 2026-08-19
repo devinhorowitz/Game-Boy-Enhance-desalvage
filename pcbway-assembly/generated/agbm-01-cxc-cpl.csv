@@ -37,7 +37,7 @@ R34,5.1k,Bucketmouse:R_0603_1608Metric_Boxed,120.0,-32.4,0.0,top
 R6,100k,Bucketmouse:R_0603_1608Metric_Boxed,44.2,-42.3,-90.0,top
 C52,0.1u,Bucketmouse:C_0603_1608Metric_Boxed_2,48.6,-50.8,180.0,top
 U16,SN74HC02PWR,Bucketmouse:TSSOP-14_4.4x5mm_P0.65mm,33.5,-53.7,0.0,top
-R3,1k,Bucketmouse:R_0603_1608Metric_Boxed,104.9,-50.1,0.0,top
+R3,5.1k,Bucketmouse:R_0603_1608Metric_Boxed,104.9,-50.1,0.0,top
 C7,0.1u,Bucketmouse:C_0603_1608Metric_Boxed_2,93.1,-37.4,180.0,top
 R2,10k,Bucketmouse:R_0603_1608Metric_Boxed,45.9,-42.3,-90.0,top
 R12,100k,Bucketmouse:R_0603_1608Metric_Boxed,14.0,-22.9,0.0,top
@@ -53,7 +53,7 @@ Q7,NDC7002N,Bucketmouse:TSOT-23-6,33.9,-58.9,90.0,top
 R41,2.2k,Bucketmouse:R_0603_1608Metric_Boxed,45.9,-54.3,-90.0,top
 C17,0.1u,Bucketmouse:C_0603_1608Metric_Boxed_2,86.0,-67.0,0.0,top
 C47,1u,Bucketmouse:C_0603_1608Metric_Boxed_2,48.6,-54.4,180.0,top
-R4,10k,Bucketmouse:R_0603_1608Metric_Boxed,108.7,-50.1,0.0,top
+R4,33k,Bucketmouse:R_0603_1608Metric_Boxed,108.7,-50.1,0.0,top
 R40,15,Bucketmouse:R_0603_1608Metric_Boxed,57.5,-42.1,90.0,top
 C16,0.1u,Bucketmouse:C_0603_1608Metric_Boxed_2,72.4,-63.8,0.0,top
 R38,47,Bucketmouse:R_0603_1608Metric_Boxed,72.8,-42.1,90.0,top
@@ -105,7 +105,7 @@ U12,TPS22917DBV,Bucketmouse:TSOT-23-6,57.0,-59.7,90.0,bottom
 R46,100k,Bucketmouse:R_0603_1608Metric_Boxed,122.3,-33.95,0.0,bottom
 C18,100p,Bucketmouse:C_0603_1608Metric_Boxed_2,76.4,-59.5,-90.0,bottom
 U14,MIC1553,Bucketmouse:SOT-23-5,97.6,-58.5,90.0,bottom
-R23,169k,Bucketmouse:R_0603_1608Metric_Boxed,25.45,-34.3,180.0,bottom
+R23,178k,Bucketmouse:R_0603_1608Metric_Boxed,25.45,-34.3,180.0,bottom
 C28,3300p,Bucketmouse:C_0603_1608Metric_Boxed_2,112.4,-24.3,180.0,bottom
 U11,TPS22917DBV,Bucketmouse:TSOT-23-6,31.4,-49.1,90.0,bottom
 SW1,CSS-1310B,Bucketmouse:AGB-Switch_CSS-1X10B_Uncentered,18.5,-11.6,163.0,bottom
@@ -123,7 +123,7 @@ C35,3300p,Bucketmouse:C_0603_1608Metric_Boxed_2,120.0,-24.3,180.0,bottom
 C27,330p,Bucketmouse:C_0603_1608Metric_Boxed_2,110.1,-26.8,180.0,bottom
 C10,0.1u,Bucketmouse:C_0603_1608Metric_Boxed_2,108.4,-52.7,0.0,bottom
 Q5,NDC7002N,Bucketmouse:TSOT-23-6,103.5,-61.2,0.0,bottom
-R64,100k,Bucketmouse:R_0603_1608Metric_Boxed,101.9,-57.3,-90.0,bottom
+R64,200k,Bucketmouse:R_0603_1608Metric_Boxed,101.9,-57.3,-90.0,bottom
 C37,10u,Bucketmouse:C_0603_1608Metric_Boxed_2,23.3522,-39.9,-90.0,bottom
 C9,1u,Bucketmouse:C_0603_1608Metric_Boxed_2,110.6,-45.8,90.0,bottom
 R31,100k,Bucketmouse:R_0603_1608Metric_Boxed,104.85,-21.0,0.0,bottom

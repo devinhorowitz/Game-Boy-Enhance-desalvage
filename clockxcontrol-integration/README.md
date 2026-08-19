@@ -38,6 +38,7 @@ The engineering record, in order:
 | [ECO-9](ECO-9_assembly_split.md) | make the board say what a pick-and-place can actually buy and place — it was asking for the salvaged CPU |
 | [ECO-10](ECO-10_precision_pass.md) | the precision and longevity pass — and the finding that the converter's own feedback current was moving the rails more than the resistors were |
 | [ECO-11](ECO-11_gate_drive_and_D1.md) | `Q9`/`Q10` to a logic-level FET, because the brownout latch was not guaranteed to arm — and why the `D1` finding was refused |
+| [ECO-12](ECO-12_wiki_audit_corrections.md) | the [wiki audit](../wiki-audit/README.md)'s two board changes — the stale `R3`/`R4`/`R64` annotation this fork was ordering, and giving `VOUT3` back the 108 mV ECO-8 trimmed |
 
 ---
 

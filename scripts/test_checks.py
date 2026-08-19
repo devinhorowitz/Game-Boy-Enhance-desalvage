@@ -41,11 +41,29 @@ def _run(fn, board):
 
 def main():
     good = cc.board()
-    # the final Value of the first ref the ECO chain touches -- whatever it is today
-    import build_board
-    chain = {r: n for lst in (build_board.ECO8, build_board.ECO10)
-             for r, f, _o, n in lst if f == "Value"}
-    VICTIM = chain["R23"]
+    # WHICH VALUE TO CORRUPT. It has to be the value R23 carries TODAY, at the end of the
+    # whole ECO chain -- and it has to be scoped to R23's own footprint, because the chain
+    # can land two refs on the same value (ECO-12 put R23 on 178k, which is also R21's).
+    # Reading it from cc._eco_chain_final() rather than a literal is what stops an ECO
+    # that moves R23 from silently turning these cases into no-ops; the "BLIND" guard
+    # below is what caught it the two times it happened, at ECO-10 and again at ECO-12.
+    VICTIM = cc._eco_chain_final()["R23"]
+
+    def corrupt(ref, prop, was, now, src=None):
+        """Replace one property inside ONE named footprint. Returns the board unchanged
+        if it cannot find it, which the BLIND guard then reports."""
+        src = good if src is None else src
+        i = 0
+        while True:
+            i = src.find("\n\t(footprint ", i)
+            if i < 0:
+                return src
+            j = src.find("\n\t)\n", i + 1)
+            b = src[i + 1:j + 4]
+            if f'(property "Reference" "{ref}"' in b:
+                return src[:i + 1] + b.replace(f'(property "{prop}" "{was}"',
+                                               f'(property "{prop}" "{now}"', 1) + src[j + 4:]
+            i = j + 1
     k = good.rstrip().rfind("\n)")
     m = re.search(r'\(footprint "[^"]+"\n\t\t\(layer "F\.Cu"\)\n\t\t\(uuid "[^"]+"\)\n'
                   r'\t\t\(at ([-\d.]+) ([-\d.]+)', good)
@@ -57,10 +75,10 @@ def main():
         # below is what said so.
         ("[1]  a hand-edited board no longer rebuilds",
          cc.check_reproducible,
-         good.replace(f'(property "Value" "{VICTIM}"', '(property "Value" "12345"', 1)),
+         corrupt("R23", "Value", VICTIM, "12345")),
         ("[3]  an ECO table and the board disagree",
          cc.check_eco8_ledger,
-         good.replace(f'(property "Value" "{VICTIM}"', '(property "Value" "12345"', 1)),
+         corrupt("R23", "Value", VICTIM, "12345")),
         ("[4]  a stray DNP flag",
          cc.check_dnp_ledger,
          good.replace("(attr smd)", "(attr smd dnp)", 1)),
@@ -78,8 +96,7 @@ def main():
          good[:k] + VIA_AT_THE_BREAK + good[k:]),
         ("[11] a duplicate reference designator",
          cc.check_structure,
-         good.replace('(property "Reference" "R23"',
-                      '(property "Reference" "R24"', 1)),
+         corrupt("R23", "Reference", "R23", "R24")),
     ]
 
     # [12] is tested separately: it reads the board through bom_split, not through the
