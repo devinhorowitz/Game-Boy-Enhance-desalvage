@@ -39,7 +39,30 @@ def _run(fn, board):
     cc._board_cache["b"] = board
     with contextlib.redirect_stdout(io.StringIO()) as s:
         fn()
-    return list(cc.errors), s.getvalue()
+    return list(cc.errors), s.getvalue(), list(cc.warnings)
+
+
+# A CHECK THAT DECLINES TO RUN IS NOT THE SAME AS A CHECK THAT READS NOTHING, and this
+# file could not tell them apart until 2026-08-20. Two of the checks need something the
+# gate deliberately does not install -- [15] needs Pillow, [18] needs kicad-footprints --
+# and on a bare runner each says so and returns. Their mutation cases then reported BLIND,
+# `test_checks.py` exited 1, and CI went red on every commit from ECO-16 onward while
+# every local run was green. Seven commits of a red build nobody looked at.
+#
+# The distinction is the check's OWN announcement. `check_consistency` warns with this
+# phrase, and a stated reason, exactly where it gives up; a check that silently matches
+# nothing produces no such warning and is still BLIND. So a skip has to be EARNED by the
+# check saying why -- and it is printed and counted separately, because "25 cases, 0
+# blind, 2 not run here" must never be mistaken for full coverage.
+_DECLINED = "did not run"
+
+
+def _declined(warnings):
+    """The check's own reason for not running, or None if it ran."""
+    for w in warnings:
+        if _DECLINED in w.lower():
+            return w
+    return None
 
 
 def _repour(board):
@@ -245,7 +268,7 @@ def main():
             d = json.loads(keep)
             mutate(d)
             io.open(path, "w", encoding="utf-8", newline="").write(json.dumps(d, indent=1))
-            errs, _ = _run(cc.check_upstream_links, good)
+            errs, _, _w = _run(cc.check_upstream_links, good)
             print(f"  {'ok:     ' if errs else 'BLIND:  '}{label}"
                   f"{' -> caught' if errs else ' -> the check did NOT fire'}")
             return 0 if errs else 1
@@ -289,7 +312,7 @@ def main():
         extra_failed += _json_case(
             f"[16] {_victim} silently stops matching his part", OVERS, _strip)
 
-    failures = extra_failed
+    failures, skipped = extra_failed, []
     for case in cases:
         label, fn, mutated = case[:3]
         # A FOURTH ELEMENT MAKES THE CASE PROVE SOMETHING SPECIFIC. Check [13] pins every
@@ -303,8 +326,12 @@ def main():
                   f"case proves nothing")
             failures += 1
             continue
-        errs, _out = _run(fn, mutated)
-        if errs and (want is None or any(want in e for e in errs)):
+        errs, _out, warns = _run(fn, mutated)
+        why = None if errs else _declined(warns)
+        if why:
+            print(f"  SKIP:   {label} -> the check declined to run here: {why}")
+            skipped.append(label)
+        elif errs and (want is None or any(want in e for e in errs)):
             print(f"  ok:     {label} -> caught")
         elif errs:
             print(f"  BLIND:  {label} -> the check fired, but not for the reason this case "
@@ -317,7 +344,7 @@ def main():
             failures += 1
 
     cc._board_cache["b"] = good
-    errs, _ = _run(cc.check_reproducible, good)
+    errs, _, _w = _run(cc.check_reproducible, good)
     if errs:
         print("  BLIND:  the unmutated board does not pass -- every result above is suspect")
         failures += 1
@@ -326,7 +353,13 @@ def main():
 
     # +1 for the unmutated control, +extra_cases for the ones that mutate JSON on disk and
     # so run outside `cases`. Reporting len(cases)+1 under-counted the suite by two.
-    print(f"\n== {len(cases) + 1 + extra_cases} cases, {failures} blind ==")
+    tail = f", {len(skipped)} not run here" if skipped else ""
+    print(f"\n== {len(cases) + 1 + extra_cases} cases, {failures} blind{tail} ==")
+    if skipped:
+        print("   NOT FULL COVERAGE. These cases need something this environment does not\n"
+              "   have; run them on a machine with Pillow and kicad-footprints installed:")
+        for s in skipped:
+            print(f"     - {s}")
     return 1 if failures else 0
 
 

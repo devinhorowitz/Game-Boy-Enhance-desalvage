@@ -78,6 +78,15 @@ jobs:
       # A check that has never gone red is not known to work. This mutates the board in
       # memory and asserts each check FAILS on the mutation, so a matcher that silently
       # stops matching is caught here rather than by a wrong board reaching a fab.
+      #
+      # TWO OF ITS 25 CASES CANNOT RUN HERE, and the run says so rather than passing
+      # quietly: [15] needs Pillow and [18] needs kicad-footprints, neither of which this
+      # job installs -- see the no-container note at the top of this file. Both checks
+      # announce that they are giving up and why, which is what lets the meta-test tell
+      # "declined, with a reason" from "read nothing"; only the second is BLIND. Run
+      # test_checks.py locally, where both are installed, for full coverage. That
+      # distinction did not exist until 2026-08-20 and its absence made this workflow
+      # RED on every commit from ECO-16 to ECO-20 while every local run was green.
       - name: The drift guard can still fail
         run: python3 scripts/test_checks.py
       - name: Drift guard
