@@ -959,7 +959,25 @@ def build():
     add(NEWNET, [("F.Cu", [[97.9, -38.6], [97.9, -37.95]])])   # tail to the moved pad row
     vdd3 = [list(r) for r in E["VDD3"]["runs"]]
     vdd3[0] = ("F.Cu", [[99.45, -37.95], [99.25, -37.85], [99.25, -35.9]])
-    add(NET["VDD3"], vdd3, E["VDD3"]["vias"])
+    # ---------- ECO-22  the VDD3 tail loses a via it never needed --------------------
+    # ECO-6 brought VDD3 across on B.Cu, punched a via at (97.1, -34.1), and ran the last
+    # 1.3 mm to P1 pad S1 on F.Cu. That via's DRILL sits 0.4680 mm from S1's own 1.0 mm
+    # hole, against MouseBiteLabs' 0.5 mm min_hole_to_hole -- 32 microns short, a DRILL
+    # rule, so being on the same net buys nothing. Nothing in this repository had ever
+    # seen it: check_drc.py wrote the board to a temp directory with NO PROJECT FILE, so
+    # KiCad fell back to its own defaults, where min_hole_to_hole is 0.25.
+    #
+    # P1 pad S1 is `thru_hole` on `*.Cu`. It is already on every layer, so the B.Cu run
+    # can land on it directly and the via is redundant. Measured along the new corridor
+    # (97.4, -34.4) -> (96.9, -35.2):
+    #     B.Cu  0.8260 mm to the nearest foreign copper (seg VDD5)
+    #     F.Cu  0.1679 mm -- which is why ECO-6 went to F.Cu at all, and it was the
+    #           wrong trade: it bought 0.30 mm of track clearance for a drill collision.
+    # Moving the via instead needs ~0.8 mm of travel to find a legal spot, and the best
+    # one clears by 8 microns. Deleting a hole beats relocating one.
+    vdd3[1] = ("B.Cu", vdd3[1][1][:-1] + [[96.9, -35.2]])
+    del vdd3[2]
+    add(NET["VDD3"], vdd3, [v for v in E["VDD3"]["vias"] if list(v) != [97.1, -34.1]])
     add(NET["GND"], [("F.Cu", [[101.0, -37.95], [100.2, -37.15], [100.2, -35.3]])])
     add(NET["VDD35"], [("F.Cu", [[93.875, -37.4], [93.5, -37.2]])])   # C7's VDD35 pad
     add(NET["GND"], [("F.Cu", [[92.325, -37.4], [93.3, -38.7]])], [(93.3, -38.7)])

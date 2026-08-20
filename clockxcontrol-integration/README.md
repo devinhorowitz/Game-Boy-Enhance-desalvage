@@ -51,6 +51,7 @@ The engineering record, in order:
 | [ECO-19](ECO-19_stock_c7_land_restored.md) | the stock `C7` land back at (91.9, −41.1) as a DNP alternate, so this fork stops being a side-grade for mods that solder there — and KiCad's own DRC, which found `U1` pad 39 with no ground and all six fiducials placed on things |
 | [ECO-20](ECO-20_drc_defects_closed.md) | **both of those closed.** Pin 39 gets 2.368 mm of copper to `C15`, because the pour was 41 µm short of fitting; all six fiducials re-placed by a search that finally models shell holes, keepouts and mask apertures — and stops pretending a front mark cares what the back is doing. Unconnected pads: 1 → **0** |
 | [ECO-21](ECO-21_22uf_line_to_25v.md) | the 22 µF bulk line goes to **25 V** for DC-bias headroom, on YAGEO's `CC0805MKX5R8BB226`. A sweep of all 22 parts in that body found that **no 25 V part preserves both AEC-Q200 and Murata's soft termination** — both 25 V `GRT` parts are at zero — so the trade is stated rather than smoothed over. BOM only; the board does not move |
+| [ECO-22](ECO-22_the_project_file.md) | **the DRC had never read this board's rules.** `check_drc.py` ran with no `.kicad_pro`, so KiCad used its own defaults: 489 of the 710 violations in a KiCad 10 report are checks MouseBiteLabs sets to `ignore`. Against his actual project file the base has 203 and this fork has 204. The right rulebook also found a real one — a `VDD3` via drilled 0.468 mm from `P1.S1` against his 0.5 mm rule — now deleted, because `P1.S1` is through-hole and `B.Cu` reaches it directly |
 
 ---
 

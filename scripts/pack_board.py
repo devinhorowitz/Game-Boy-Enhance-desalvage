@@ -54,6 +54,7 @@ MEMBERS = [
     ("ECO-19_stock_c7_land_restored.md", "ECO-19_stock_c7_land_restored.md"),
     ("ECO-20_drc_defects_closed.md", "ECO-20_drc_defects_closed.md"),
     ("ECO-21_22uf_line_to_25v.md", "ECO-21_22uf_line_to_25v.md"),
+    ("ECO-22_the_project_file.md", "ECO-22_the_project_file.md"),
 ]
 
 
@@ -68,6 +69,16 @@ def contents():
             out[f"{STEM}/render/{name}"] = open(os.path.join(rdir, name), "rb").read()
     board, _st = build_board.build()
     out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"] = board.encode("utf-8")
+    # ECO-22: THE PROJECT FILE SHIPS WITH THE BOARD, because KiCad keeps the design rules
+    # in the project and not in the .kicad_pcb. Open this board without it and KiCad falls
+    # back to its own defaults -- which report ~710 violations on a board that has 204
+    # against the rules it is actually designed to, because MouseBiteLabs sets silk_overlap,
+    # silk_over_copper, text_height, lib_footprint_issues, lib_footprint_mismatch and
+    # silk_edge_clearance to `ignore` and runs min_hole_to_hole at 0.5 rather than 0.25.
+    # It is HIS file, taken from the base zip unmodified, so it cannot drift from the rules
+    # check_drc.py gates against: both read the same bytes from the same place.
+    import check_drc
+    out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pro"] = check_drc.project_file().encode("utf-8")
     return out
 
 

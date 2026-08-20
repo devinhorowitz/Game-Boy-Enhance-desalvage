@@ -1,5 +1,5 @@
 {
-  "kicad": "9.0.9",
+  "kicad": "10.0.5",
   "models": "/usr/share/kicad/3dmodels",
   "targets": {
     "agbm02_finished_bottom.png": {
@@ -9,7 +9,7 @@
         "P4",
         "SP1"
       ],
-      "bytes": 424384,
+      "bytes": 451949,
       "desc": "back, after you have hand-soldered the rest too",
       "keeps": [
         "+hand-fitted",
@@ -42,7 +42,7 @@
         "P4",
         "SP1"
       ],
-      "bytes": 414691,
+      "bytes": 439465,
       "desc": "front, after you have hand-soldered the rest too",
       "keeps": [
         "+hand-fitted",
@@ -70,7 +70,7 @@
     },
     "agbm02_pcbway_bottom.png": {
       "bodyless": [],
-      "bytes": 423466,
+      "bytes": 451565,
       "desc": "back, exactly the parts PCBWay's line places",
       "keeps": [
         "assembly"
@@ -92,7 +92,7 @@
     },
     "agbm02_pcbway_top.png": {
       "bodyless": [],
-      "bytes": 406969,
+      "bytes": 433904,
       "desc": "front, exactly the parts PCBWay's line places",
       "keeps": [
         "assembly"
