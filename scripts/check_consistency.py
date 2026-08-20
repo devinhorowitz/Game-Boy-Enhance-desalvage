@@ -46,6 +46,9 @@ not mirrored in the other fails loudly instead of rotting.
                          their bodies resolved.                              [ERROR]
   [16] UPSTREAM LINKS -- every Digi-Key link in MouseBiteLabs' schematic is resolved, and
                          every buy line that departs from one says why.      [ERROR]
+  [17] PASTE vs PLACE -- solder paste exists only on pads a machine will put a part on, and
+                         U2's dual land is pasted on exactly the pattern the RAM this fork
+                         buys actually uses.                                 [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -545,6 +548,11 @@ def check_supplier_pns():
 # may name a file that is not there only if the sentence itself says so, or the path
 # carries a reason below.
 EXPECTED_ABSENT = {
+    "scripts/render.py":
+        "ANOTHER REPOSITORY'S file. devinhorowitz/solar-business-card ships it; ECO-16 "
+        "borrowed its three disciplines and cites it as the source. This fork's equivalent "
+        "is scripts/render_assembled.py, which does exist here",
+    "render.py": "same -- Solar-Glow's, cited by basename in ECO-16",
     "AGBM-01_AA_1-2.kicad_sch":
         "the upstream schematic -- inside 'AGBM-01 (AA Batteries)/AGBM-01_Design Files.zip', "
         "not loose in the tree. ECO-8 section 8.5 cites it as the file to edit, which is "
@@ -1326,6 +1334,118 @@ def check_upstream_links():
 
 
 # =====================================================================================
+# [17] solder paste is on exactly the pads a machine will put a part on
+# =====================================================================================
+# A stencil is cut from F.Paste/B.Paste and knows nothing about `dnp` or
+# `exclude_from_pos_files`. Paste goes down on every aperture and reflows whether a part
+# lands on it or not, so an aperture on a part nobody places is a solder bump on a bare pad.
+# ECO-17 strips 254 of them. This is the gate that keeps them off.
+#
+# Two rules, and the second is the one that would ruin a board rather than annoy someone:
+#
+#   NOTHING UNPLACED IS PASTED. The A/B, Start-Select and D-pad footprints are DUAL-PURPOSE
+#   -- each carries the Alps tact-switch land AND THE MEMBRANE CONTACT PADS. A default build
+#   uses the rubber membrane, so they are `dnp`, and paste on a membrane contact reflows into
+#   a bump on the flat gold surface the rubber pad has to sit on.
+#
+#   U2 IS PASTED ON EXACTLY ONE OF ITS TWO NESTED LAND PATTERNS. Every one of its 48 pins has
+#   two pads on the same net, so the footprint takes either RAM. But the INNER pads of
+#   ADJACENT pins sit 0.5 mm apart with a 0.2 mm gap on DIFFERENT nets, so pasting the unused
+#   pattern reflows solder under the body of the chip that IS fitted, where a bridge between
+#   two address lines can be neither inspected nor reworked.
+def check_cpl_datum():
+    """Every CPL coordinate must land INSIDE the board outline.
+
+    The position file now carries two coordinate pairs: the board file's own (where y is
+    negative, because KiCad's origin sits above the board) and millimetres from the board's
+    LOWER-LEFT corner with y up, which is what an assembly house expects. Getting the datum
+    backwards mirrors every placement about the board's mid-line -- an error that looks
+    entirely plausible on a spreadsheet. This is the arithmetic that would catch it.
+    """
+    import bom_split, geom
+    b = board()
+    try:
+        _a, _h, _n, cpl, _p = bom_split.build(board=b)
+    except Exception as e:                                        # noqa: BLE001
+        err(f"the splitter cannot run: {type(e).__name__}: {e}")
+        return
+    segs = geom.edge_segments(b)
+    xs = [v for sg in segs for v in (sg[0], sg[2])]
+    ys = [v for sg in segs for v in (sg[1], sg[3])]
+    W, H = max(xs) - min(xs), max(ys) - min(ys)
+    out = [f"{r['ref']} ({r['x_mm']}, {r['y_mm']})" for r in cpl
+           if not (-0.5 <= r["x_mm"] <= W + 0.5 and -0.5 <= r["y_mm"] <= H + 0.5)]
+    if out:
+        err(f"{len(out)} CPL placement(s) fall outside the {W:.2f} x {H:.2f} mm board -- "
+            f"the datum is wrong, and a wrong datum mirrors every part on the panel: "
+            + ", ".join(out[:6]))
+    else:
+        ok(f"all {len(cpl)} CPL placements land inside the {W:.2f} x {H:.2f} mm outline, "
+           f"measured from the lower-left corner with y up")
+
+
+def check_paste():
+    print("[17] paste is only where a machine will put a part, and U2 has one land pasted")
+    b = board()
+    import bom_split, build_board as BB
+    bad, pasted, total = [], 0, 0
+    for fp in kisexp.footprints(b):
+        if fp.at is None:
+            continue
+        n = len(re.findall(r'\(layers [^)]*Paste', fp.body))
+        total += n
+        flags = set()
+        am = re.search(r"\(attr ([^)]*)\)", fp.body)
+        if am:
+            flags = set(am.group(1).split())
+        placed = not (flags & {"dnp", "exclude_from_pos_files"})
+        if placed:
+            pasted += n
+        elif n:
+            bad.append(f"{fp.ref} ({bom_split.classify(fp)[0]}, {n} aperture(s))")
+    if bad:
+        err("solder paste on pad(s) of part(s) the machine will not place -- the stencil "
+            "does not read `dnp`, so every one of these reflows into a bump on a bare pad: "
+            + "; ".join(sorted(bad)))
+    else:
+        ok(f"{pasted} paste aperture(s), every one on a part the position file places")
+
+    # --- U2's dual land -------------------------------------------------------------
+    fp = kisexp.by_ref(b).get("U2")
+    if fp is None:
+        err("U2 is not on the board")
+        return
+    cols = {}
+    for blk in kisexp.pad_blocks(fp.body):
+        at = re.search(r"\(at ([-\d.]+) ([-\d.]+)", blk)
+        lay = re.search(r"\(layers ([^)]*)\)", blk)
+        if at and lay and "Paste" in lay.group(1):
+            x = round(float(at.group(1)), 4)
+            cols[x] = cols.get(x, 0) + 1
+    want = {x for x, which in BB.U2_PATTERN_X.items() if which == BB.RAM_FITTED}
+    if set(cols) != want:
+        err(f"U2's pasted column(s) are {sorted(cols)}, not the {sorted(want)} that "
+            f"{BB.RAM_FITTED} needs. Pasting the wrong land -- or both -- puts solder under "
+            f"the body of the fitted chip, between adjacent pins on different nets.")
+    elif sum(cols.values()) != 48:
+        err(f"U2 has {sum(cols.values())} apertures on the right columns, not 48")
+    else:
+        span = max(cols) - min(cols) + 1.575
+        model = re.search(r'\(model "[^"]*/([^"/]+)"', fp.body)
+        stem = model.group(1).rsplit(".", 1)[0] if model else "(none)"
+        want_model = BB.U2_MODEL[BB.RAM_FITTED][0]
+        ok(f"U2 pasted on the {BB.RAM_FITTED} land only (48 apertures, {span:.3f} mm "
+           f"lead-tip span)")
+        if stem != want_model:
+            err(f"U2's 3D body is {stem}, but the pasted land and the BOM are "
+                f"{BB.RAM_FITTED}, whose package is {want_model}. Every assembled render "
+                f"would show the wrong chip.")
+        else:
+            ok(f"U2's 3D body is {stem}, matching the land that is pasted and the part the "
+               f"BOM buys")
+
+
+# =====================================================================================
 # [11] the board is structurally sound
 # =====================================================================================
 def check_structure():
@@ -1402,8 +1522,7 @@ def check_assembly_split():
             f"{bom_split.STEM}-pcbway-assembly.csv": bom_split._csv(asm),
             f"{bom_split.STEM}-handbuy.csv": bom_split._csv(hand),
             f"{bom_split.STEM}-handbuy.md": bom_split._handbuy_md(hand, 1),
-            f"{bom_split.STEM}-cpl.csv": bom_split._csv(
-                cpl, ["ref", "value", "footprint", "x", "y", "rot", "layer"]),
+            f"{bom_split.STEM}-cpl.csv": bom_split._csv(cpl, bom_split.CPL_COLUMNS),
             f"{bom_split.STEM}-not-populated.csv": bom_split._csv(none),
         }
         for name, text in want.items():
@@ -1436,7 +1555,7 @@ def main():
                check_cited_paths, check_doc_imagery, check_module_window,
                check_blockers, check_structure, check_assembly_split,
                check_geometry, check_zone_fill, check_renders,
-               check_upstream_links):
+               check_upstream_links, check_paste, check_cpl_datum):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

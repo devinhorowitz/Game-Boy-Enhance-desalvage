@@ -3,13 +3,14 @@
 **Board:** `AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb` — **unchanged.** No copper, no attributes.
 **New:** `scripts/render_assembled.py`, four raytraced views, `render/assembled-manifest.json`
 **Changed:** `scripts/check_consistency.py` (checks [13] and [15])
-**Borrowed from:** `devinhorowitz/solar-business-card`, `scripts/render.py`
+**Borrowed from:** `devinhorowitz/solar-business-card` — its `scripts/render.py`, which is
+in THAT repository, not this one
 
 ---
 
 ## 16.1 What was borrowed, and what was left behind
 
-Solar-Glow's `scripts/render.py` raytraces that project's presentation imagery through
+Solar-Glow's own `render.py` (in that repository) raytraces its presentation imagery through
 `kicad-cli`. Its *targets* were no use here — it renders **bare** boards and deliberately
 strips every component body. What was worth taking is the three disciplines wrapped around
 the four-line `kicad-cli` call, each of which exists because that project got burned:

@@ -397,7 +397,11 @@ def main() -> int:
     live = {fn for fn, _k, _s, _d in TARGETS.values()}
     man["targets"] = {k: v for k, v in man["targets"].items() if k in live}
     MANIFEST.write_text(json.dumps(man, indent=2, sort_keys=True) + "\n", newline="")
-    print(f"wrote {len(man['targets'])} render(s) + {MANIFEST.name}")
+    # len(man["targets"]) is the MANIFEST's size, which after the merge is every target
+    # this repository knows about -- so a --only run used to announce "wrote 4 render(s)"
+    # having written one.
+    print(f"wrote {len(todo) - failed} of {len(todo)} render(s) this run "
+          f"({len(man['targets'])} in the manifest) + {MANIFEST.name}")
     return 1 if failed else 0
 
 

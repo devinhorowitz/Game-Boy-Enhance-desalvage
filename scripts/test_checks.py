@@ -149,6 +149,17 @@ def main():
         ("[2b] the board's MOD1 changes and the library copy does not",
          cc.check_library_footprint,
          good.replace('"CLOCKXCONTROL"', '"CLOCKXCONTROLX"', 1)),
+        # [17] paste vs placement, ECO-17. Two ways it rots, and the second is the one that
+        # would ruin a board: restoring an aperture on a membrane contact, and pasting U2's
+        # unused land so solder reflows under the body of the RAM that IS fitted.
+        ("[17] paste comes back on a DNP membrane-contact pad",
+         cc.check_paste,
+         good.replace('(at -7.395 2.78)\n\t\t\t(size 0.3 0.3)\n\t\t\t(layers "F.Cu" "F.Mask")',
+                      '(at -7.395 2.78)\n\t\t\t(size 0.3 0.3)\n\t\t\t(layers "F.Cu" "F.Mask" "F.Paste")', 1)),
+        ("[17] U2's unused land pattern gets pasted again",
+         cc.check_paste,
+         good.replace('(at -6.69 -5.75)\n\t\t\t(size 1.525 0.3)\n\t\t\t(layers "F.Cu" "F.Mask")',
+                      '(at -6.69 -5.75)\n\t\t\t(size 1.525 0.3)\n\t\t\t(layers "F.Cu" "F.Mask" "F.Paste")', 1)),
         # [14] guards the stale zone fill and is built to go RED the day someone re-pours,
         # because three documents say "re-pour before fab" and become wrong at that moment.
         # The mutation stands in for a re-pour: perturb one fill vertex so the signature

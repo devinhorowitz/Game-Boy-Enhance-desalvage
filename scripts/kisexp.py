@@ -277,3 +277,27 @@ def net_islands(board, net_number, tol=0.02):
     for ref, _px, _py in pad_positions(board, net_number):
         groups.setdefault(find(("pad", ref, 0)), []).append(ref)
     return [sorted(v) for v in groups.values()]
+
+
+def pad_blocks(body):
+    """Yield each pad's full s-expression from a footprint body, paren-balanced.
+
+    THE BOUNDED-REGEX VERSION OF THIS IS A TRAP. `\(pad "..." ... ([\s\S]{0,300}?)\n\t\t\)`
+    reads correctly for a plain SMD pad and does two different wrong things elsewhere: a
+    `custom` pad whose primitives run past the bound is SKIPPED ENTIRELY AND SILENTLY, and a
+    non-anchored variant happily pairs one pad's `(at ...)` with the NEXT pad's `(layers
+    ...)`. Both were live here -- the second reported U2 as pasted on three of its four lead
+    columns when the board has exactly two. Walk the parens.
+    """
+    import re as _re
+    for m in _re.finditer(r'\(pad "', body):
+        i, d = m.start(), 0
+        for j in range(i, len(body)):
+            c = body[j]
+            if c == "(":
+                d += 1
+            elif c == ")":
+                d -= 1
+                if d == 0:
+                    yield body[i:j + 1]
+                    break

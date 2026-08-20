@@ -44,6 +44,9 @@ The engineering record, in order:
 | [ECO-12](ECO-12_wiki_audit_corrections.md) | the [wiki audit](../wiki-audit/README.md)'s two board changes — the stale `R3`/`R4`/`R64` annotation this fork was ordering, and giving `VOUT3` back the 108 mV ECO-8 trimmed |
 | [ECO-13](ECO-13_rebase_onto_agbm02.md) | **the base board is now MouseBiteLabs' AGBM-02.** ECO-5 culled, both ECO-7 blockers closed, `U2` becomes an orderable part — a build needs one donor chip, not two |
 | [ECO-14](ECO-14_clock_domain_and_audit_fixes.md) | a 44-agent audit of ECO-6/7 on the new base: the module is powered at 3.3 V but drives a pin in a 2.5 V domain; one real DRC violation; the `JP3`→`JP4` rename that never reached the docs; a rotation-sign bug in our own reader |
+| [ECO-15](ECO-15_upstream_link_sync.md) | 30 of MouseBiteLabs' 57 part links had never been read, so three "BOM defects we found" were his answers all along — and three lines this fork had substituted were at zero stock |
+| [ECO-16](ECO-16_assembled_renders.md) | the board raytraced as PCBWay assembles it, borrowing Solar-Glow's render pipeline; found an unannotated crystal parked off the board that `classify()` calls placeable |
+| [ECO-17](ECO-17_paste_and_the_right_ram.md) | **254 solder-paste apertures on parts nobody places — including the membrane contacts** — and `U2` pasted on both of its two nested lands. Also the RAM's 3D body, which named the salvage package while the BOM buys the bigger one |
 
 ---
 
@@ -335,6 +338,11 @@ as bare land patterns, and the crystal is absent because ECO-7 marks it DNP for 
 builds.
 
 ![As PCBWay assembles it, front](render/agbm02_pcbway_top.png)
+
+The bare **gold** pads are the tell. Every one of them — the D-pad and button membrane contacts,
+`X1`'s crystal pads, `U1`'s 128-pad CPU land — carried a solder-paste aperture until
+[ECO-17](ECO-17_paste_and_the_right_ram.md) removed 254 of them. A stencil cannot read `dnp`, so
+each would have reflowed into a bump on a pad no part was coming to.
 
 110 of the 180 placements are on the back:
 

@@ -120,6 +120,30 @@ def classify(fp):
     return "assembly", ""
 
 
+# The CPL's columns live HERE and nowhere else. check [12] used to carry its own copy of
+# this list to regenerate the file for comparison, so adding a column made the check report
+# the freshly-written file as stale against its own stale idea of the format.
+CPL_COLUMNS = ["ref", "value", "footprint", "x_mm", "y_mm", "rot", "layer",
+               "kicad_x", "kicad_y"]
+
+
+def _board_origin(board):
+    """(x_min, y_max) of Edge.Cuts -- the board's LOWER-LEFT corner in KiCad coordinates.
+
+    y_max because KiCad's y grows DOWNWARD, so the largest (least negative) y is the bottom
+    edge. Getting that backwards mirrors every placement about the board's mid-line, which
+    is the kind of error that looks plausible on a spreadsheet and is obvious on a render.
+    """
+    import geom
+    segs = geom.edge_segments(board)
+    xs = [v for s in segs for v in (s[0], s[2])]
+    ys = [v for s in segs for v in (s[1], s[3])]
+    return (min(xs), max(ys))
+
+
+_ORIGIN = (0.0, 0.0)
+
+
 def build(boards=1, board=None):
     """(assembly, hand, none, cpl, problems) -- the whole split, as plain dicts.
 
@@ -128,6 +152,8 @@ def build(boards=1, board=None):
     """
     if board is None:
         board = kisexp.load(f"{ZIP}::{MEMBER}")
+    global _ORIGIN
+    _ORIGIN = _board_origin(board)
     idx = _mpn_index()
     rows = {"assembly": {}, "hand": {}, "none": {}}
     cpl, problems = [], []
@@ -157,10 +183,18 @@ def build(boards=1, board=None):
             if fp.at is None:
                 problems.append(f"{fp.ref}: no placement -- cannot go in the CPL")
             else:
+                # TWO COORDINATE PAIRS, and the datum of each is named in the header.
+                # `kicad_x/kicad_y` are the board file's own numbers, where y is NEGATIVE
+                # because KiCad's origin sits above the board and y grows downward. A CPL
+                # with negative y and no stated datum is ambiguous to a fab: every part
+                # reads as off-board. `x_mm/y_mm` are the unambiguous form every assembly
+                # house expects -- millimetres from the board's LOWER-LEFT corner, y up.
                 cpl.append({"ref": fp.ref, "value": fp.value, "footprint": fp.name,
-                            "x": round(fp.at[0], 4), "y": round(fp.at[1], 4),
+                            "x_mm": round(fp.at[0] - _ORIGIN[0], 4),
+                            "y_mm": round(_ORIGIN[1] - fp.at[1], 4),
                             "rot": round(fp.at[2], 2),
-                            "layer": "top" if fp.layer == "F.Cu" else "bottom"})
+                            "layer": "top" if fp.layer == "F.Cu" else "bottom",
+                            "kicad_x": round(fp.at[0], 4), "kicad_y": round(fp.at[1], 4)})
         # A part a machine is asked to PLACE but not to BUY is a consignment, and this
         # board has none -- so if one appears it is almost certainly a mistake.
         if kind == "hand" and fp.placed:
@@ -254,8 +288,7 @@ def main():
         f"{STEM}-pcbway-assembly.csv": _csv(asm),
         f"{STEM}-handbuy.csv": _csv(hand),
         f"{STEM}-handbuy.md": _handbuy_md(hand, a.boards),
-        f"{STEM}-cpl.csv": _csv(cpl, ["ref", "value", "footprint",
-                                      "x", "y", "rot", "layer"]),
+        f"{STEM}-cpl.csv": _csv(cpl, CPL_COLUMNS),
         f"{STEM}-not-populated.csv": _csv(none),
     }
     for name, text in writes.items():

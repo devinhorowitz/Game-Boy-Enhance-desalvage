@@ -303,6 +303,120 @@ THRU_HOLE_REASONS = {
 # open build decisions in pcbway-assembly/README.md, and this is the switch for it.
 
 
+# --- ECO-17: solder paste must agree with the placement list -------------------------
+# ECO-9 encoded WHO PLACES WHAT in the board's attributes. The paste layer never got the
+# memo. A stencil is cut from F.Paste/B.Paste and knows nothing about `dnp` or
+# `exclude_from_pos_files`, so paste is deposited on every aperture and reflowed whether a
+# part lands on it or not. On this board that was 194 pads across twelve parts nobody
+# places:
+#
+#   U1   128 pads. The SALVAGED CPU, hand-fitted after the reflow. 128 apertures at 0.5 mm
+#        pitch reflow into 128 solder bumps on a fine-pitch land, which then has to be
+#        wicked clean before the CPU it was meant for can be seated.
+#   SW4/SW5/SW6  the A/B, Start-Select and D-pad footprints. These are DUAL-PURPOSE: each
+#        carries the Alps tact-switch land AND THE MEMBRANE CONTACT PADS. A default build
+#        uses the rubber membrane, so they are `dnp` -- and paste on a membrane contact
+#        reflows into a bump on the flat gold surface the rubber pad has to sit on. This
+#        is the one that actually ruins a board.
+#   P3, VR2   hand-soldered, so their SMD pads get bumps too.
+#   C3, C4, X1   the crystal network ECO-7 marks DNP for ClockxControl builds.
+#   JP1   a solder jumper that is meant to be OPEN. Paste bridges it CLOSED on reflow.
+#   R70, R71   DNP.
+#
+# THE RULE IS MECHANICAL, like ECO-9's: a pad keeps its paste aperture only if the machine
+# is going to put a part on it. "Not placed" is read off the board -- `dnp` or
+# `exclude_from_pos_files` -- never from a hand-list here.
+PASTE_KEEP_NOTES = {
+    "MOD1": "no paste to begin with: its plated holes are filled from above onto the pads "
+            "below, which is why ECO-9 makes it hand-solder in the first place",
+    "SP1":  "no paste to begin with, two through-hole pads",
+}
+
+# --- ECO-17b: U2 carries TWO nested land patterns, and only one may be pasted ---------
+# MouseBiteLabs' `AGB-SRAM_2` is a dual land: every one of the 48 pins has TWO pads on the
+# same net, an inner and an outer, so one footprint accepts either RAM.
+#
+#   INNER  centres +/-6.690 / +7.100, tip span 15.34 mm -> TSOP-I-48 12.4x12mm, the
+#          SALVAGED OEM AGB-SRAM.
+#   OUTER  centres -8.450 / +10.967, tip span 20.950 mm -> TSOP-I-48 18.4x12mm. Identical
+#          to three decimals to KiCad's own TSOP-I-48_18.4x12mm_P0.5mm, which is the
+#          package Digi-Key lists for the CY62157EV30LL-45ZXIT ("48-TSOP I").
+#
+# Pasting both is not a redundant belt-and-braces: the inner pads of ADJACENT PINS sit
+# 0.5 mm apart with a 0.2 mm gap and carry DIFFERENT nets (MA15, MA14, ...). Paste on the
+# unused pattern reflows UNDER THE BODY of the chip that is fitted, where a bridge between
+# two address lines cannot be inspected and cannot be reworked.
+#
+# So exactly one pattern is pasted, chosen by which RAM the BOM buys. Flip this and the
+# JP2/JP3 straps together -- MouseBiteLabs' wiki: both bridged for the CY62157EV30LL, both
+# left open for a salvaged OEM part.
+RAM_FITTED = "CY62157EV30LL"          # or "salvage" for an OEM AGB-SRAM off a donor board
+U2_PATTERN_X = {                       # pad centre x -> which RAM that column belongs to
+    -6.690: "salvage",  7.100: "salvage",
+    -8.450: "CY62157EV30LL", 10.9675: "CY62157EV30LL",
+}
+# ...and the BODY has to match the land, or every assembled render shows the wrong chip.
+# The footprint origin is not the package centre for either pattern, so the model carries
+# an offset: the midpoint of the two columns it belongs to.
+U2_MODEL = {
+    "salvage":       ("TSOP-I-48_12.4x12mm_P0.5mm", (-6.690 + 7.100) / 2),
+    "CY62157EV30LL": ("TSOP-I-48_18.4x12mm_P0.5mm", (-8.450 + 10.9675) / 2),
+}
+
+
+def strip_paste(block, only_x=None):
+    """Drop F.Paste/B.Paste from a footprint block's pads. Returns (block, pads_changed).
+
+    `only_x` limits the strip to pads whose local x is in that set, which is how U2's
+    unused land pattern is cleared without touching the one being fitted.
+
+    A PASTE-ONLY PAD IS DELETED, NOT EMPTIED. SW6 carries an unnamed `smd circle` on
+    `"F.Paste"` and nothing else -- a bare stencil dot with no copper under it. Taking the
+    paste layer off that leaves `(layers )`, a pad on no layer at all, which is meaningless
+    and which KiCad is under no obligation to keep. If the aperture is the whole pad, the
+    pad goes with it.
+
+    Walks pad blocks with balanced parens. The bounded-regex version silently skips a
+    `custom` pad whose primitives run long -- and SW4/SW5/SW6, the three footprints this
+    exists to clear, are exactly the ones built from custom pads.
+    """
+    spans = []
+    for m in re.finditer(r'\(pad "', block):
+        i, d = m.start(), 0
+        for j in range(i, len(block)):
+            if block[j] == "(":
+                d += 1
+            elif block[j] == ")":
+                d -= 1
+                if d == 0:
+                    spans.append((i, j + 1))
+                    break
+    out, last, n = [], 0, 0
+    for a, b in spans:
+        blk = block[a:b]
+        at = re.search(r"\(at ([-\d.]+) ([-\d.]+)", blk)
+        lay = re.search(r"\(layers ([^)]*)\)", blk)
+        if not at or not lay:
+            continue
+        if only_x is not None and round(float(at.group(1)), 4) not in only_x:
+            continue
+        keep = [t for t in lay.group(1).split() if "Paste" not in t]
+        if len(keep) == len(lay.group(1).split()):
+            continue
+        before = block[last:a]
+        if keep:
+            out.append(before)
+            out.append(blk[:lay.start(1)] + " ".join(keep) + blk[lay.end(1):])
+        else:
+            # Paste-only pad: the aperture IS the pad, so drop the whole thing along with
+            # the newline and indent that led into it, or the file gains a blank line.
+            out.append(before.rstrip("\t").rstrip("\n"))
+        last = b
+        n += 1
+    out.append(block[last:])
+    return "".join(out), n
+
+
 def uid(seed):
     """Deterministic UUIDs. A random uuid4 per run would make the board unreproducible
     and check [1] impossible; these are a hash of a stable seed instead."""
@@ -490,6 +604,92 @@ def build():
             "footprint(s) with a through-hole pad are still in the position file: "
             + ", ".join(sorted(stragglers))
             + " -- add them to THRU_HOLE_REASONS, or mark them DNP.")
+
+    # ---------- ECO-17  paste follows the placement list ------------------------------
+    # ONE PASS over spans collected up front, then a rebuild. An earlier version walked and
+    # spliced in the same loop and its indices drifted after each replacement, which made
+    # the walk skip a footprint -- SW4, the A/B buttons, still holding all sixteen
+    # apertures. The self-check below is what said so.
+    if RAM_FITTED not in set(U2_PATTERN_X.values()):
+        raise AssertionError(f"RAM_FITTED={RAM_FITTED!r} is not one of "
+                             f"{sorted(set(U2_PATTERN_X.values()))}")
+    unused_x = {x for x, which in U2_PATTERN_X.items() if which != RAM_FITTED}
+
+    def fp_spans(text):
+        out, i = [], 0
+        while True:
+            i = text.find("\n\t(footprint ", i)
+            if i < 0:
+                return out
+            j = text.find("\n\t)\n", i + 1)
+            out.append((i + 1, j + 4))
+            i = j + 1
+
+    pieces, last, paste_stripped, paste_refs = [], 0, 0, []
+    for a0, b0 in fp_spans(txt):
+        bfp = txt[a0:b0]
+        m3 = re.search(r'\(property "Reference" "([^"]+)"', bfp)
+        ref = m3.group(1) if m3 else "?"
+        am3 = re.search(r"\(attr ([^)]*)\)", bfp)
+        flags = set(am3.group(1).split()) if am3 else set()
+        placed = not (flags & {"dnp", "exclude_from_pos_files"})
+        if not placed:
+            nb, n = strip_paste(bfp)
+        elif ref == "U2":
+            nb, n = strip_paste(bfp, only_x=unused_x)
+        else:
+            nb, n = bfp, 0
+        if n:
+            paste_stripped += n
+            paste_refs.append(f"{ref}({n})")
+            pieces.append(txt[last:a0])
+            pieces.append(nb)
+            last = b0
+    pieces.append(txt[last:])
+    txt = "".join(pieces)
+
+    # The rule checking itself: no unplaced footprint may still hold an aperture, and U2
+    # must hold exactly 48 -- one per pin, on one pattern.
+    left = []
+    for a0, b0 in fp_spans(txt):
+        bfp = txt[a0:b0]
+        m3 = re.search(r'\(property "Reference" "([^"]+)"', bfp)
+        am3 = re.search(r"\(attr ([^)]*)\)", bfp)
+        flags = set(am3.group(1).split()) if am3 else set()
+        npaste = len(re.findall(r"\(layers [^)]*Paste", bfp))
+        if (flags & {"dnp", "exclude_from_pos_files"}) and npaste:
+            left.append(f"{m3.group(1) if m3 else '?'}:{npaste}")
+        if m3 and m3.group(1) == "U2" and npaste != 48:
+            raise AssertionError(
+                f"U2 holds {npaste} paste aperture(s), not the 48 one land pattern needs. "
+                f"Pasting both nested patterns puts solder under the body of the fitted "
+                f"chip, between adjacent pins on different nets.")
+    if left:
+        raise AssertionError("paste apertures survive on parts nobody places: "
+                             + ", ".join(sorted(left)))
+
+    # ---------- ECO-17c  the 3D body must be the RAM we buy ---------------------------
+    # MouseBiteLabs' model names the 12.4 mm package, which is the SALVAGED OEM part -- the
+    # right default for his build and the wrong one for ours, because this fork's BOM buys
+    # the CY62157EV30LL. Left alone, every "as PCBWay assembles it" render shows a chip two
+    # thirds the size of the one that will be on the board.
+    want_model, want_off = U2_MODEL[RAM_FITTED]
+    s_u2, e_u2, b_u2 = fp_span("U2")
+    mm = re.search(r'\(model "([^"]+)"([\s\S]*?)\n\t\t\)', b_u2)
+    if not mm:
+        raise AssertionError("U2 has no (model ...) block to correct")
+    old_stem = os.path.basename(mm.group(1)).rsplit(".", 1)[0]
+    if old_stem not in {v[0] for v in U2_MODEL.values()}:
+        raise AssertionError(
+            f"U2's model is {old_stem!r}, which is neither land pattern's package. "
+            f"MouseBiteLabs changed it; re-derive U2_MODEL before trusting this.")
+    nb_u2 = b_u2[:mm.start()] + (
+        f'(model "{os.path.dirname(mm.group(1))}/{want_model}.wrl"\n'
+        f'\t\t\t(offset\n\t\t\t\t(xyz {want_off:g} 0 0)\n\t\t\t)\n'
+        f'\t\t\t(scale\n\t\t\t\t(xyz 1 1 1)\n\t\t\t)\n'
+        f'\t\t\t(rotate\n\t\t\t\t(xyz 0 0 0)\n\t\t\t)\n\t\t)'
+    ) + b_u2[mm.end():]
+    txt = txt[:s_u2] + nb_u2 + txt[e_u2:]
 
     # ---------- ECO-6.4  the new footprints ----------------------------------------
     ghost = "".join(f'''\t\t(fp_circle
@@ -798,7 +998,8 @@ def build():
     if k <= 0:
         raise AssertionError("board has no closing paren")
     txt = txt[:k + 1] + MOD + LANDINGS + FIDS + JP4 + seg_txt + via_txt + txt[k + 1:]
-    return txt, dict(orig_len=orig_len, new_len=len(txt), segs=len(segs),
+    return txt, dict(paste_stripped=paste_stripped, paste_refs=paste_refs,
+                     orig_len=orig_len, new_len=len(txt), segs=len(segs),
                      vias=len(vias), net=NEWNET, hand=sorted(derived))
 
 
