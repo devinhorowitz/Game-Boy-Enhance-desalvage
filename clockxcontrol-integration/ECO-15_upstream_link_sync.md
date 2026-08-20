@@ -92,6 +92,12 @@ keeps the soft-termination `GRT` family and gives up DC-bias headroom: a 16 V X5
 capacitance at a given working voltage than a 25 V one. **Accepted deliberately, and worth a
 scope on the first build** if bulk capacitance turns out to matter.
 
+> **Superseded by [ECO-21](ECO-21_22uf_line_to_25v.md).** That headroom was bought back: the
+> line now buys YAGEO's 25 V `CC0805MKX5R8BB226`. What this ECO could not know is that the
+> choice was never "his `GRT` at 16 V or a `GRT` at 25 V" — **no 25 V `GRT` exists in stock at
+> all**, so keeping the soft-termination family and going to 25 V is not an available option.
+> ECO-21 gives up the `GRT` family and AEC-Q200 to take the voltage, and says so plainly.
+
 **`R26`.** The `-07`/`-10`/`-13` field in a Yageo `RC0603FR` part number is an internal spec
 code; `-07` and `-13` are the moisture-resistant grade and `-10` is not. Nothing on this board
 needs 85/85 grade on `R26`, so his part is taken. A sweep of all eleven Yageo lines this fork

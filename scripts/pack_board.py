@@ -53,6 +53,7 @@ MEMBERS = [
     ("ECO-18_rotation_convention.md", "ECO-18_rotation_convention.md"),
     ("ECO-19_stock_c7_land_restored.md", "ECO-19_stock_c7_land_restored.md"),
     ("ECO-20_drc_defects_closed.md", "ECO-20_drc_defects_closed.md"),
+    ("ECO-21_22uf_line_to_25v.md", "ECO-21_22uf_line_to_25v.md"),
 ]
 
 
