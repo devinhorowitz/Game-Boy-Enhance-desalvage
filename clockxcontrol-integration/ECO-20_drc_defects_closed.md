@@ -141,7 +141,7 @@ move and "caught" alone would not distinguish a keepout case from an edge case �
 all fire for the same reason are one case wearing five hats. The courtyard case is the only one
 KiCad would not have caught for us: that axis has no DRC rule behind it.
 
-## 20.4 Five bugs this turned up in our own tooling
+## 20.4 Six bugs this turned up in our own tooling
 
 **`geom.swallowed()` read eight fields from a nine-field tuple.** ECO-18 gave `collect()` a
 ninth — the pad's own rotation — and this call site was never updated. It had never run: it
@@ -167,6 +167,18 @@ violations were described as "`FID1`'s mask aperture bridges `BT1`" — six of t
 seventh was `FID5` sitting in the cartridge-contact mask opening on the back. A count that
 matches for the wrong reason.
 
+**CI had been red since ECO-16 and nobody looked.** `test_checks.py` counts a case as
+BLIND when its check does not fire — but two checks legitimately *cannot* run on the bare
+runner this gate is built for: **[15] needs Pillow and [18] needs `kicad-footprints`**,
+neither of which the workflow installs, by the same deliberate no-container choice that
+keeps it dependency-free. Both announce that they are giving up and why. The meta-test
+could not tell that from a matcher that silently reads nothing, so it exited 1 and the
+build went red on **every commit from ECO-16 through ECO-20** while every local run — with
+both installed — was green. The fix is the distinction itself: a skip has to be **earned**
+by the check stating its reason, and it is counted and printed separately, because
+`25 cases, 0 blind, 2 not run here` must never be mistaken for full coverage. A check that
+reads nothing and says nothing is still BLIND.
+
 **The shipped package's contents list stopped at ECO-14.** `pack_board.MEMBERS` had not been
 extended since, so the zip's own `README.md` linked forward to **five ECOs the zip did not
 contain** — including ECO-14 §14.6 and ECO-19, which carry the *do not plot Gerbers from this
@@ -185,7 +197,8 @@ and the one `courtyards_overlap` ECO-19 put there on purpose.
 
 * `python3 scripts/build_board.py --check` — byte-identical rebuild
 * `python3 scripts/check_consistency.py` — **0 errors**, 2 pre-existing warnings
-* `python3 scripts/test_checks.py` — **25 cases, 0 blind**
+* `python3 scripts/test_checks.py` — **25 cases, 0 blind** locally; on a runner
+  without Pillow, **0 blind, 1 not run here**, named in the output and exit 0
 * `python3 scripts/check_drc.py` — **55 new violations, 0 unconnected**, every one ledgered
 * `python3 scripts/place_fiducials.py --grid 0.25` — reproduces all six spots from the board
   they are already on
