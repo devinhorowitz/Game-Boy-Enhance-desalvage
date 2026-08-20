@@ -324,6 +324,31 @@ neighbour:
 
 ![Fit check](render/agbm02_cxc_fit.png)
 
+### What PCBWay actually ships
+
+The views above are drawn by this repository's own Python renderer, from copper. These two are
+**raytraced by KiCad** with the component bodies on, from a throwaway copy of the board whose
+zones have been re-poured first — see
+[ECO-16](ECO-16_assembled_renders.md). They show **exactly the 180 parts PCBWay's line places**,
+which is not the same thing as the board with all its parts on: `P3`, `VR2` and `SP1` come back
+as bare land patterns, and the crystal is absent because ECO-7 marks it DNP for ClockxControl
+builds.
+
+![As PCBWay assembles it, front](render/agbm02_pcbway_top.png)
+
+110 of the 180 placements are on the back:
+
+![As PCBWay assembles it, back](render/agbm02_pcbway_bottom.png)
+
+And the same board once you have hand-soldered the rest — the salvaged `U1`, the cartridge
+connector `P1`, `P3`, `P4`, `SP1` and `VR2`. `MOD1`, `P1`, `P4` and `SP1` carry no 3D model at
+all, and `P3`/`VR2`'s models are MouseBiteLabs' own vendor downloads that his design-files zip
+does not ship — so they are fitted here and still invisible. The renderer names every one on
+every run rather than leaving you to wonder:
+
+![Finished, front](render/agbm02_finished_top.png)
+![Finished, back](render/agbm02_finished_bottom.png)
+
 Print this one at 100% with no scaling and lay a real module on the paper. The 10 mm ruler drawn
 above the body is there to catch a scaled print before you measure anything against it:
 
@@ -425,6 +450,11 @@ render/agbm02_cxc_landings.png                the three landed lattice sites, cl
 render/agbm02_cxc_fit.png                     fit check: module body and courtyard, all six lattice sites
 render/agbm02_cxc_1to1_600dpi.png             1:1 print sheet - print at 100% and lay a module on it
 render/render-manifest.json                   pixel digest of each view, and the Pillow that drew it
+render/agbm02_pcbway_top.png                  RAYTRACED: front, exactly the parts PCBWay places
+render/agbm02_pcbway_bottom.png               RAYTRACED: back, 110 of the 180 placements are here
+render/agbm02_finished_top.png                RAYTRACED: front, after you hand-solder the rest
+render/agbm02_finished_bottom.png             RAYTRACED: back, after you hand-solder the rest
+render/assembled-manifest.json                per-view body-resolution counts, and the KiCad that drew them
 render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from HIS gerbers --
                                               a DIFFERENT board, and the one image here that is not
                                               generated from AGBM-02

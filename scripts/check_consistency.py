@@ -41,8 +41,9 @@ not mirrored in the other fails loudly instead of rotting.
                          from this file would short, and the LEDGERED set of 19 objects the
                          stale fill swallows is still exactly that set.
                          GOES RED WHEN RE-POURED.                            [ERROR]
-  [15] RENDERS        -- every PNG in render/ re-renders, pixel for pixel, from the board
-                         committed beside it.                                [ERROR]
+  [15] RENDERS        -- every 2D PNG in render/ re-renders, pixel for pixel, from the
+                         board committed beside it; the assembled raytraces are present and
+                         their bodies resolved.                              [ERROR]
   [16] UPSTREAM LINKS -- every Digi-Key link in MouseBiteLabs' schematic is resolved, and
                          every buy line that departs from one says why.      [ERROR]
 
@@ -934,6 +935,48 @@ def check_geometry():
     for t in tight:
         note(f"tight but legal: {t}")
 
+    # --- is every part PCBWay would place actually ON the board? -----------------------
+    # Found by the first assembled render (ECO-16): MouseBiteLabs' AGBM-02 parks an
+    # unannotated HC49 crystal footprint -- ref "REF**", zero pads, a leftover reference for
+    # the crystal option ECO-7 marks DNP -- at (8.89, -81.888), NINE MILLIMETRES above the
+    # top edge. It carries a 3D model, so it rendered as a crystal floating in space.
+    #
+    # The render was cosmetic. The latent fault is not: bom_split.classify() returns
+    # "assembly" for it, because it is not dnp and not exclude_from_bom. Nothing but the
+    # "*" in its refdes keeps it out of the position file. Relax that filter -- or annotate
+    # the footprint -- and PCBWay is told to place a through-hole crystal off the board.
+    import bom_split
+    bb = None
+    try:
+        esegs = geom.edge_segments(b)
+        xs = [v for sg in esegs for v in (sg[0], sg[2])]
+        ys = [v for sg in esegs for v in (sg[1], sg[3])]
+        bb = (min(xs), min(ys), max(xs), max(ys)) if xs else None
+    except Exception:                                             # noqa: BLE001
+        pass
+    if bb:
+        stray = []
+        for fp in kisexp.footprints(b):
+            if fp.at is None:
+                continue
+            if (bb[0] - 0.5 <= fp.at[0] <= bb[2] + 0.5
+                    and bb[1] - 0.5 <= fp.at[1] <= bb[3] + 0.5):
+                continue
+            cls = bom_split.classify(fp)[0]
+            stray.append((fp.ref, cls, fp.at[0], fp.at[1], len(fp.pads)))
+        buyable = [t for t in stray if t[1] != "none"]
+        if buyable:
+            warn(f"{len(buyable)} footprint(s) OUTSIDE the board outline that "
+                 f"bom_split.classify() does not exclude: "
+                 + "; ".join(f"{r} ({c}, {p} pad(s)) at ({x},{y})"
+                             for r, c, x, y, p in buyable)
+                 + ". Harmless only because a '*' refdes keeps them out of the position "
+                   "file -- annotate one and PCBWay is told to place it off the board.")
+        elif stray:
+            ok(f"{len(stray)} footprint(s) sit outside the outline, all classified 'none'")
+        else:
+            ok("every footprint sits inside the board outline")
+
     # --- does the module physically FIT? Copper clearance never asked. ------------------
     gaps = geom.neighbour_gaps(b, "MOD1", limit=len(MODULE_GAPS))
     drift = [f"{r} {basis} {d:.3f} mm (ledger says {w[1]} {w[2]:.3f})"
@@ -1152,9 +1195,39 @@ def check_renders():
     if not missing and not stale:
         ok(f"all {len(vs)} view(s) re-render pixel-for-pixel from the shipped board "
            f"(Pillow {PIL.__version__})")
+    # --- the assembled raytraces are a different animal, and gated differently ---------
+    # scripts/render_assembled.py drives kicad-cli. Its output is a function of the board
+    # AND KiCad's build AND the 3D library, so pixel equality is not a property worth
+    # asserting -- a gate that fails on somebody's KiCad version is a gate people learn to
+    # ignore. What IS asserted is the thing that actually goes wrong: a body that silently
+    # did not draw. The manifest records how many resolved; this fails if that stops being
+    # true of the board sitting here, and warns if the renders were never made at all.
+    try:
+        am = json.load(open(os.path.join(render_board.OUTDIR, "assembled-manifest.json"),
+                            encoding="utf-8"))
+    except (OSError, ValueError):
+        am = None
+    if am is None:
+        warn("no assembled-manifest.json -- the PCBWay assembly renders have not been made "
+             "on this tree (scripts/render_assembled.py; needs KiCad 9)")
+    else:
+        gone = [n for n in am.get("targets", {})
+                if not os.path.exists(os.path.join(render_board.OUTDIR, n))]
+        if gone:
+            err("assembled render(s) named by the manifest but missing from the tree: "
+                + ", ".join(sorted(gone)))
+        else:
+            worst = min((t["resolved"] / t["referenced"]) for t in am["targets"].values()) \
+                if am.get("targets") else 1.0
+            ok(f"{len(am.get('targets', {}))} assembled render(s) present, "
+               f"{worst:.0%}+ of bodies resolved, KiCad {am.get('kicad', '?')}")
+            names = sorted({b for t in am["targets"].values() for b in t.get("bodyless", [])})
+            if names:
+                note("kept but bodyless: " + ", ".join(names))
+
     # The generated set and the tree must be the same set, or a stale PNG survives forever
     # simply by no longer being named -- which is exactly how the AGBM-01 renders lasted.
-    named = {n for n, _ in vs}
+    named = {n for n, _ in vs} | set((am or {}).get("targets", {}))
     ondisk = {f for f in os.listdir(render_board.OUTDIR) if f.endswith(".png")}
     orphan = sorted(ondisk - named - set(NOT_OUR_BOARD))
     if orphan:
