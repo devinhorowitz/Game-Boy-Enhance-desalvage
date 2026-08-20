@@ -377,6 +377,8 @@ def views(board):
             "Three of the module's six lattice sites are landed -- an L, not a row or "
             "column. The other three exist only as F.Fab circles and are not drawn. "
             "All {n} land inside the VDD35 or VDD2 pour until someone re-pours.")),
+        ("agbm02_pin1_front.png",   lambda b, s: pin1_view(b, s, "front")),
+        ("agbm02_pin1_back.png",    lambda b, s: pin1_view(b, s, "back")),
         ("agbm02_cxc_fit.png",      fit),
         ("agbm02_cxc_1to1_600dpi.png", sheet),
     ]
@@ -428,6 +430,95 @@ def window(board, base, win, ppm, title, sub):
     n, tot = flag_shorts(c, board, base, A_via, A_pad)
     im = caption(c.finish(False), title, sub.format(n=n, tot=tot), _keys(ORDER), ppm)
     return im, f"module window at {ppm:.0f} px/mm, {n} ringed"
+
+
+# ------------------------------------------------------- where pin 1 actually lands
+# The CPL exports one number per part -- `rot` -- and an assembly line turns the part by it
+# from THEIR zero reference. If that reference differs from the board's, every polarised and
+# every multi-pin part goes in wrong, and nothing in a netlist or a BOM can tell you.
+#
+# What CAN be shown is where pin 1 physically sits, which is the thing the rotation exists to
+# control. These views mark it on every placed part whose orientation matters -- a bright dot
+# on pin 1 and a stalk back to the part centre -- so the convention can be checked by eye,
+# part by part, against the raytraced assembly renders and against a package datasheet.
+#
+# The 131 0603/0805 passives are deliberately NOT marked. A two-terminal symmetric chip
+# resistor at 0 degrees and at 180 degrees is the same part in the same place; marking them
+# would bury the 39 that matter under noise that cannot be wrong.
+SYMMETRIC_2PIN = {
+    "C_0603_1608Metric_Boxed_2", "R_0603_1608Metric_Boxed", "C_0805_2012Metric_Boxed_2",
+    "Fuse_0805_2012Metric", "L_0603_1608Metric", "L_Taiyo-Yuden_NR-20xx_HandSoldering",
+}
+POLARIZED_2PIN = {
+    "C_1210_3225Metric_Boxed_2", "D_SOD-323F",
+    "LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder",
+}
+PIN1 = (120, 255, 160)
+PIN1_POL = (255, 120, 200)
+
+
+def rotation_sensitive(board):
+    """[(ref, cx, cy, x1, y1, layer, polarised)] for every PLACED part whose rotation matters."""
+    import bom_split
+    _s, _v, pads = geom.collect(board)
+    first = {}
+    for pref, x, y, _hw, _hh, _cr, _lay, _net in pads:
+        ref, _, pn = pref.partition(".")
+        if pn == "1":
+            first.setdefault(ref, (x, y))
+    out = []
+    for fp in kisexp.footprints(board):
+        if fp.at is None or "*" in (fp.ref or ""):
+            continue
+        if bom_split.classify(fp)[0] != "assembly":
+            continue
+        fam = fp.name.split(":")[-1]
+        if fam in SYMMETRIC_2PIN or fp.ref not in first:
+            continue
+        x1, y1 = first[fp.ref]
+        out.append((fp.ref, fp.at[0], fp.at[1], x1, y1, fp.layer, fam in POLARIZED_2PIN))
+    return sorted(out)
+
+
+def pin1_view(board, base, side):
+    e = geom.edge_segments(board)
+    xs = [v for sg in e for v in (sg[0], sg[2])]
+    ys = [v for sg in e for v in (sg[1], sg[3])]
+    layers = ["F.Cu"] if side == "front" else ["B.Cu"]
+    ppm = 11.0
+    c = Canvas(min(xs), min(ys), max(xs), max(ys), px_per_mm=ppm, pad_mm=1.2)
+    paint(c, board, base, layers, highlight=False, dim=0.42)
+    want = "F.Cu" if side == "front" else "B.Cu"
+    n = pol = 0
+    f = ImageFont.load_default(size=11)
+    for ref, cx, cy, x1, y1, lay, is_pol in rotation_sensitive(board):
+        if lay != want:
+            continue
+        col = PIN1_POL if is_pol else PIN1
+        c.line(cx, cy, x1, y1, 0.09, col)           # stalk: centre -> pin 1
+        c.disc(x1, y1, 0.30, col)
+        c.ring(cx, cy, 0.16, col, 0.07)
+        n += 1
+        pol += is_pol
+    im = c.finish(side == "back")
+    d = ImageDraw.Draw(im)
+    for ref, cx, cy, x1, y1, lay, is_pol in rotation_sensitive(board):
+        if lay != want:
+            continue
+        px, py = c.P(x1, y1)
+        px, py = px / SS, py / SS
+        if side == "back":
+            px = im.size[0] - px
+        d.text((px + 5, py - 5), ref, font=f, fill=(255, 255, 255))
+    return caption(
+        im,
+        f"Pin 1 on every rotation-sensitive part -- {want} ({side})",
+        f"{n} part(s) on this side whose CPL rotation actually changes where the part goes, "
+        f"{pol} of them polarised. The dot is pin 1; the stalk runs back to the placement "
+        f"origin the CPL reports. The 131 symmetric 0603/0805 passives are not marked -- at "
+        f"0 or 180 degrees they are the same part in the same place.",
+        [("pin 1", PIN1), ("pin 1, POLARISED part", PIN1_POL)] + _keys(layers, added=False),
+        ppm), f"{side}: {n} rotation-sensitive part(s), {pol} polarised"
 
 
 # ------------------------------------------------------------------ the module itself

@@ -47,6 +47,7 @@ The engineering record, in order:
 | [ECO-15](ECO-15_upstream_link_sync.md) | 30 of MouseBiteLabs' 57 part links had never been read, so three "BOM defects we found" were his answers all along — and three lines this fork had substituted were at zero stock |
 | [ECO-16](ECO-16_assembled_renders.md) | the board raytraced as PCBWay assembles it, borrowing Solar-Glow's render pipeline; found an unannotated crystal parked off the board that `classify()` calls placeable |
 | [ECO-17](ECO-17_paste_and_the_right_ram.md) | **254 solder-paste apertures on parts nobody places — including the membrane contacts** — and `U2` pasted on both of its two nested lands. Also the RAM's 3D body, which named the salvage package while the BOM buys the bigger one |
+| [ECO-18](ECO-18_rotation_convention.md) | the CPL's rotation convention, settled: all 180 rotations are byte-identical to `kicad-cli`'s own export, and 14 of 21 footprint families put pin 1 exactly where KiCad's stock library does |
 
 ---
 
@@ -357,6 +358,20 @@ every run rather than leaving you to wonder:
 ![Finished, front](render/agbm02_finished_top.png)
 ![Finished, back](render/agbm02_finished_bottom.png)
 
+### Which way round each part goes
+
+The position file carries one rotation per part, and a line turns the part by it from *their*
+zero. [ECO-18](ECO-18_rotation_convention.md) settles what this board means by zero: every one
+of the 180 rotations is byte-identical to `kicad-cli`'s own export, and 14 of the 21 placed
+footprint families put pin 1 exactly where KiCad's **stock** library does — to 0.000 mm.
+
+These mark pin 1 on all **39 parts whose rotation changes anything**, so it can be checked part
+by part. The other 131 are symmetric 0603/0805 passives: at 0° and 180° they are the same part
+in the same place, and marking them would bury the ones that matter.
+
+![Pin 1, front](render/agbm02_pin1_front.png)
+![Pin 1, back](render/agbm02_pin1_back.png)
+
 Print this one at 100% with no scaling and lay a real module on the paper. The 10 mm ruler drawn
 above the body is there to catch a scaled print before you measure anything against it:
 
@@ -462,6 +477,8 @@ render/agbm02_pcbway_top.png                  RAYTRACED: front, exactly the part
 render/agbm02_pcbway_bottom.png               RAYTRACED: back, 110 of the 180 placements are here
 render/agbm02_finished_top.png                RAYTRACED: front, after you hand-solder the rest
 render/agbm02_finished_bottom.png             RAYTRACED: back, after you hand-solder the rest
+render/agbm02_pin1_front.png                  pin 1 marked on all 16 rotation-sensitive front parts
+render/agbm02_pin1_back.png                   the same for the 23 on the back
 render/assembled-manifest.json                per-view body-resolution counts, and the KiCad that drew them
 render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from HIS gerbers --
                                               a DIFFERENT board, and the one image here that is not

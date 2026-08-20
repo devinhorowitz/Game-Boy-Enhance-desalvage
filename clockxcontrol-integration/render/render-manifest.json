@@ -57,6 +57,22 @@
         1471,
         894
       ]
+    },
+    "agbm02_pin1_back.png": {
+      "caption": "back: 23 rotation-sensitive part(s), 1 polarised",
+      "pixels": "6f76859bfe28eb5e",
+      "size": [
+        1471,
+        924
+      ]
+    },
+    "agbm02_pin1_front.png": {
+      "caption": "front: 16 rotation-sensitive part(s), 6 polarised",
+      "pixels": "7d411715a729ea5f",
+      "size": [
+        1471,
+        924
+      ]
     }
   }
 }

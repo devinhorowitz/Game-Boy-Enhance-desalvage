@@ -282,7 +282,9 @@ Consistency check [10] now asserts all of that and goes red if any of it regress
    zone fill is still MouseBiteLabs' stock fill.
 2. **Verify the ClockxControl landing geometry against a physical module** — it is
    photo-derived, and it is now the largest unverified thing in the package.
-3. **Verify the CPL rotation convention** against PCBWay's per-package zero reference. A
+3. ~~**Verify the CPL rotation convention**~~ — **done, ECO-18.** What remains is only to
+   confirm your assembler accepts a KiCad position file; the board's own convention is
+   measured and gated. Formerly: check against PCBWay's per-package zero reference. A
    wrong convention puts every polarised part in backwards.
 
 ### Two hand steps the machine will not do
@@ -332,11 +334,21 @@ reliably fake the touch input.
 4. Settle the base-board question in §5 first — rebasing onto AGBM-02 deletes ECO-5 and both
    ECO-7 defects outright, so closing them by hand on AGBM-01 may be work spent on a board
    that is about to be replaced. If AGBM-01 is kept, close both defects and re-pour.
-5. Generate the fab package: gerbers and drill. The BOM, the CPL and the DNP list now come
-   out of `scripts/bom_split.py` — **but the CPL's rotation convention is unverified.** It
-   emits the board's own `(at x y rot)` verbatim; PCBWay's expected zero-degree reference
-   per package family has not been checked against a single part, and a wrong convention
-   puts every polarised part in backwards. Verify before ordering, then record what was
-   verified against.
+5. Generate the fab package: gerbers and drill. The BOM, the CPL and the DNP list come out
+   of `scripts/bom_split.py`. ~~**The CPL's rotation convention is unverified.**~~
+   **Verified by [ECO-18](../clockxcontrol-integration/ECO-18_rotation_convention.md)**, and
+   the answer is that this board carries the **stock KiCad convention exactly**:
+   * every one of the 180 rotations is byte-identical to what `kicad-cli pcb export pos`
+     emits — checked part by part, 180 of 180;
+   * 14 of the 21 placed footprint families are MouseBiteLabs' copies of KiCad's **stock
+     library**, putting pin 1 in the same corner to **0.000 mm** (two differ by 0.05 and
+     0.175 mm — longer lands, same corner). The other 7 are his own and are ledgered.
+
+   So the remaining question is not "what does this board mean by 0 degrees" — that is
+   settled and gated by check [18] — but the ordinary one of confirming your assembler takes
+   a KiCad position file. Pin 1 is marked on all 39 rotation-sensitive parts in
+   [`../clockxcontrol-integration/render/agbm02_pin1_front.png`](../clockxcontrol-integration/render/agbm02_pin1_front.png)
+   and [`../clockxcontrol-integration/render/agbm02_pin1_back.png`](../clockxcontrol-integration/render/agbm02_pin1_back.png),
+   so it can be checked by eye, part by part.
 6. Decide the four open questions: which variant is the target, consign the CPU/SRAM or fit them
    yourself, both sides or back only, and whether a ClockxControl build is the default.

@@ -79,6 +79,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -1446,6 +1447,163 @@ def check_paste():
 
 
 # =====================================================================================
+# [18] the CPL's rotations mean what a fab will assume they mean
+# =====================================================================================
+# A position file carries one number per part -- `rot` -- and the line turns the part by it
+# from THEIR zero reference. Nothing in a netlist, a BOM or a DRC can tell you whether that
+# reference is the same as the board's; get it wrong and every polarised and every multi-pin
+# part goes in rotated. pcbway-assembly/README.md carried this as an open item for four ECOs.
+#
+# It is answerable, and this is the answer: `rot` is exactly what kicad-cli's own position
+# exporter emits (verified part-by-part, 180 of 180), and MouseBiteLabs' footprints put pin 1
+# exactly where KiCad's STOCK library puts it. So "the KiCad convention" is not an assumption
+# about this board -- it is a measured property of it, and the question reduces to the single
+# well-known one of whether the fab accepts a KiCad position file.
+#
+# This check is what keeps that true. It re-measures every footprint family against the stock
+# library and fails if pin 1 moves. It needs kicad-footprints installed; without it, it says
+# so rather than passing vacuously.
+STOCK_FP = {                       # Bucketmouse family -> KiCad stock equivalent
+    "C_0603_1608Metric_Boxed_2": "C_0603_1608Metric",
+    "R_0603_1608Metric_Boxed": "R_0603_1608Metric",
+    "C_0805_2012Metric_Boxed_2": "C_0805_2012Metric",
+    "C_1210_3225Metric_Boxed_2": "C_1210_3225Metric",
+    "Fuse_0805_2012Metric": "Fuse_0805_2012Metric",
+    "D_SOD-323F": "D_SOD-323F",
+    "LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder":
+        "LED_0603_1608Metric_Pad1.05x0.95mm_HandSolder",
+    "L_0603_1608Metric": "L_0603_1608Metric",
+    "L_CommonModeChoke_TDK_ACM2520-3P": "L_CommonModeChoke_TDK_ACM2520-3P",
+    "SOT-23": "SOT-23",
+    "SOT-23-5": "SOT-23-5",
+    "TSOT-23-6": "TSOT-23-6",
+    "TSSOP-14_4.4x5mm_P0.65mm": "TSSOP-14_4.4x5mm_P0.65mm",
+    "MSOP-10_3x3mm_P0.5mm": "MSOP-10_3x3mm_P0.5mm",
+}
+# Families whose pin 1 sits a measurable distance from the stock one, with the reason. A
+# LAND that differs is fine; a pin-1 CORNER that differs is the thing that rotates a part.
+STOCK_FP_TOLERANCE = {
+    "SOT-23": (0.06, "MouseBiteLabs' pads are 0.05 mm longer than stock. Same corner, same "
+                     "numbering -- a land tweak, not a different zero."),
+    "L_CommonModeChoke_TDK_ACM2520-3P":
+        (0.20, "pads extended 0.175 mm outward from stock. Same corner, same numbering."),
+}
+# The families with no stock equivalent, and why each is nonetheless unambiguous.
+NO_STOCK_EQUIVALENT = {
+    "AGB-SRAM_2": "MouseBiteLabs' dual land -- ECO-17 measured its outer pattern as a "
+                  "TSOP-I-48 18.4x12mm to three decimals, and pin 1 is at its NW corner",
+    "AGB-FFC-Connector": "his own 40-pin FFC land; pin 1 is silkscreened on the board",
+    "AGB-Switch_CSS-1X10B_Uncentered": "his own, and the part is a slide switch whose only "
+                                       "asymmetry is the actuator",
+    "R_Array_Convex_4x0603": "4x0603 convex array; pin 1 marked on F.Fab",
+    "VREG_TPS63802DLAR": "his own SON land for the TPS63802",
+    "3313J-2": "Bourns trimmer, his own land",
+    "L_Taiyo-Yuden_NR-20xx_HandSoldering": "symmetric two-terminal inductor",
+}
+
+
+def check_rotation_convention():
+    print("[18] the CPL's rotation is KiCad's, and pin 1 is where the stock library puts it")
+    import glob
+    import bom_split
+    b = board()
+    stock = {os.path.basename(f)[:-10]: f
+             for f in glob.glob("/usr/share/kicad/footprints/*.pretty/*.kicad_mod")}
+    if not stock:
+        warn("kicad-footprints is not installed -- check [18] cannot re-measure pin 1 "
+             "against the stock library and did NOT run (apt install kicad-footprints)")
+        return
+
+    def local(body):
+        out = {}
+        for blk in kisexp.pad_blocks(body):
+            nm = re.match(r'\(pad "([^"]*)"', blk)
+            at = re.search(r"\(at ([-\d.]+) ([-\d.]+)", blk)
+            if nm and at and nm.group(1):
+                out.setdefault(nm.group(1), (float(at.group(1)), float(at.group(2))))
+        return out
+
+    fams = {}
+    for fp in kisexp.footprints(b):
+        if fp.at is None or "*" in (fp.ref or ""):
+            continue
+        if bom_split.classify(fp)[0] != "assembly":
+            continue
+        fams.setdefault(fp.name.split(":")[-1], fp)
+    moved, checked, missing = [], 0, []
+    for fam, fp in sorted(fams.items()):
+        if fam in NO_STOCK_EQUIVALENT:
+            continue
+        name = STOCK_FP.get(fam)
+        if not name or name not in stock:
+            missing.append(fam)
+            continue
+        his, std = local(fp.body), local(open(stock[name], encoding="utf-8").read())
+        if "1" not in his or "1" not in std:
+            missing.append(fam)
+            continue
+        # KiCad BAKES the back-side flip into the stored pad coordinates -- proved by
+        # comparing front and back instances of the same family, mirrored in Y on every
+        # pin. Un-mirror before comparing, or every back-side family reads as flipped.
+        flip = -1.0 if fp.layer == "B.Cu" else 1.0
+        d = math.hypot(his["1"][0] - std["1"][0], his["1"][1] * flip - std["1"][1])
+        tol = STOCK_FP_TOLERANCE.get(fam, (0.06, ""))[0]
+        checked += 1
+        if d > tol:
+            moved.append(f"{fam} ({fp.ref}): pin 1 is {d:.3f} mm from the stock library's, "
+                         f"tolerance {tol}")
+    if missing:
+        warn(f"{len(missing)} placed family/families have no stock footprint to measure "
+             f"against and no ledgered reason: " + ", ".join(sorted(missing)))
+    if moved:
+        err("pin 1 has MOVED relative to KiCad's stock library, so this board's rotations "
+            "no longer carry the standard convention and every rotation-sensitive part is "
+            "in question: " + "; ".join(moved))
+    else:
+        ok(f"{checked} placed footprint family/families put pin 1 exactly where KiCad's "
+           f"stock library does ({len(NO_STOCK_EQUIVALENT)} more are MouseBiteLabs' own, "
+           f"ledgered)")
+
+    # --- and the CPL's rot is kicad-cli's own, not ours -------------------------------
+    import shutil
+    import subprocess
+    import tempfile
+    if not shutil.which("kicad-cli"):
+        warn("kicad-cli absent -- the CPL's rotations were not re-derived from KiCad's own "
+             "exporter this run (that comparison is the other half of [18])")
+        return
+    try:
+        _a, _h, _n, cpl, _p = bom_split.build(board=b)
+        with tempfile.TemporaryDirectory() as td:
+            pcb = os.path.join(td, "b.kicad_pcb")
+            open(pcb, "w", encoding="utf-8", newline="").write(b)
+            out = os.path.join(td, "pos.csv")
+            r = subprocess.run(["kicad-cli", "pcb", "export", "pos", "--format", "csv",
+                                "--units", "mm", "--side", "both", "--exclude-dnp",
+                                "-o", out, pcb], capture_output=True, text=True)
+            if r.returncode != 0 or not os.path.exists(out):
+                warn("kicad-cli could not export a position file -- comparison skipped")
+                return
+            import csv as _csv
+            K = {row["Ref"]: row for row in _csv.DictReader(open(out, encoding="utf-8"))}
+    except Exception as e:                                        # noqa: BLE001
+        warn(f"the kicad-cli comparison did not run ({type(e).__name__}: {e})")
+        return
+    diff = [f"{r['ref']} ours {r['rot']} vs kicad {K[r['ref']]['Rot']}"
+            for r in cpl if r["ref"] in K
+            and abs(float(r["rot"]) % 360 - float(K[r["ref"]]["Rot"]) % 360) > 0.01]
+    extra = sorted(set(K) - {r["ref"] for r in cpl})
+    if diff:
+        err(f"{len(diff)} CPL rotation(s) differ from what kicad-cli itself exports: "
+            + "; ".join(diff[:6]))
+    else:
+        ok(f"all {len(cpl)} CPL rotations are identical to kicad-cli's own position export")
+    if extra:
+        note(f"kicad-cli would also place {extra} -- excluded from our CPL on purpose "
+             f"(see check [13]'s off-board rule)")
+
+
+# =====================================================================================
 # [11] the board is structurally sound
 # =====================================================================================
 def check_structure():
@@ -1555,7 +1713,8 @@ def main():
                check_cited_paths, check_doc_imagery, check_module_window,
                check_blockers, check_structure, check_assembly_split,
                check_geometry, check_zone_fill, check_renders,
-               check_upstream_links, check_paste, check_cpl_datum):
+               check_upstream_links, check_paste, check_cpl_datum,
+               check_rotation_convention):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

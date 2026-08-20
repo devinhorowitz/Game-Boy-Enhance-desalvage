@@ -160,6 +160,13 @@ def main():
          cc.check_paste,
          good.replace('(at -6.69 -5.75)\n\t\t\t(size 1.525 0.3)\n\t\t\t(layers "F.Cu" "F.Mask")',
                       '(at -6.69 -5.75)\n\t\t\t(size 1.525 0.3)\n\t\t\t(layers "F.Cu" "F.Mask" "F.Paste")', 1)),
+        # [18] is the rotation-convention gate. Two ways it rots: a footprint whose pin 1
+        # moves off the stock library's corner (so `rot` stops meaning what a fab assumes),
+        # and a CPL rotation that stops matching kicad-cli's own export.
+        ("[18] a footprint's pin 1 moves off the stock corner",
+         cc.check_rotation_convention,
+         good.replace('(pad "1" smd roundrect\n\t\t\t(at -1.1375 -0.95)',
+                      '(pad "1" smd roundrect\n\t\t\t(at -1.1375 0.95)', 1)),
         # [14] guards the stale zone fill and is built to go RED the day someone re-pours,
         # because three documents say "re-pour before fab" and become wrong at that moment.
         # The mutation stands in for a re-pour: perturb one fill vertex so the signature
