@@ -459,6 +459,19 @@ EXPECTED_ABSENT = {
         "the deliverable board -- inside clockxcontrol-integration/board/"
         "agbm-02-clockxcontrol.zip, and rebuildable with scripts/build_board.py. Cited by "
         "basename throughout the ECOs because that is its name inside the package",
+    "AGBM-01_AA_1-2.kicad_pcb":
+        "MouseBiteLabs' AGBM-01 board -- inside 'AGBM-01 (AA Batteries)/AGBM-01_Design "
+        "Files.zip'. Cited by basename when comparing save dates and layouts across his "
+        "three boards",
+    "AGBM_LiPo_1-3.kicad_pcb":
+        "MouseBiteLabs' AGBM-11 board -- inside 'AGBM-11 (Lithium-ion)/AGBM-11 Design "
+        "Files.zip'. Same reason",
+    "IMG_6317.jpg":
+        "insideGadgets' own GBA installation photo, at shop.insidegadgets.com/wp-content/"
+        "uploads/2019/11/IMG_6317.jpg. ECO-14 section 14.1 cites it as the evidence that "
+        "'GBA SI' in their wiring list is a typo for the pad silkscreened S1 -- the red V+ "
+        "wire is soldered to it. NOT vendored into this repository: it is their "
+        "copyrighted image, so it is cited by URL and left where it lives",
     "AGBM-02_AA_1-1.kicad_pcb":
         "the base board -- inside 'AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip', "
         "MouseBiteLabs' own file, unmodified since ECO-13",

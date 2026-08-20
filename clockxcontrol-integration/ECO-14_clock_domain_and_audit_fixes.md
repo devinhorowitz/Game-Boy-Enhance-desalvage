@@ -40,15 +40,17 @@ else in this package, and it is not a geometry question.
 
 ---
 
-## 14.1 The clock is 3.3 V. The pin it drives is in a 2.5 V domain.
+## 14.1 The clock is 3.3 V, the pin it drives sits in a 2.5 V domain — and that is insideGadgets' own design
 
-**This is the largest open item in the fork, it is not a rebase artifact, and it is not resolved
-here — it needs a decision and a measurement.**
+**RESOLVED against the vendor's documentation, 2026-08-20.** The short version: **this fork does
+exactly what insideGadgets specifies, on the same net they specify.** What follows is kept because
+the circuit fact is real and worth knowing, and because the resolution changes what to do about it
+from "re-tap the supply" to "do not."
 
-The module is powered from `VDD3` = 3.3 V. `TP84`, the `V+` wire pad ECO-6 adds, is
-`(net 10 "VDD3")`.
+### The circuit fact
 
-The CPU's oscillator is not in that domain. Read off the board with the corrected pad transform:
+The module is powered from `VDD3` = 3.3 V — `TP84`, the `V+` wire pad ECO-6 adds, is
+`(net 10 "VDD3")`. The CPU's oscillator is not in that domain:
 
 ```
 U1 at (63.09, -53.12, 0.0), west edge, x = 51.840
@@ -67,47 +69,64 @@ U1 at (63.09, -53.12, 0.0), west edge, x = 51.840
 | XIN → nearest `VDD3` CPU pin | **5.000 mm** (pin 103) |
 | `U8`, the regulator making `VDD2` | `NCV8164ASN250T1G` — the **`250`** suffix is the 2.5 V fixed option |
 
-The plane evidence agrees: point-in-polygon against the board's stored `filled_polygon` blocks puts
-`VDD2` directly under pins 113, 114 and 115 on `In2.Cu`, with pin 115 also inside an `F.Cu` `VDD2`
-pour, and **no `VDD3` copper under the oscillator on any layer.** MouseBiteLabs built a deliberate
-`VDD2` island in that corner.
+Point-in-polygon against the board's stored `filled_polygon` blocks puts `VDD2` directly under pins
+113, 114 and 115 on `In2.Cu`, with pin 115 also inside an `F.Cu` `VDD2` pour, and **no `VDD3`
+copper under the oscillator on any layer.** MouseBiteLabs built a deliberate `VDD2` island there.
 
-So on the face of it the ClockxControl, powered at 3.3 V, drives ~7.34 MHz edges into a pin whose
-local rail is 2.5 V — **0.8 V of overdrive, 132 % of rail, into an irreplaceable salvaged CPU.**
+### Why that is not a defect in this fork
 
-### Why nobody caught it
+insideGadgets' GBA installation instructions, verbatim from
+[the product page](https://shop.insidegadgets.com/product/gba-clockxcontrol/):
 
-The one document that reasons about this — `power-review/findings.json`,
-`clk-source-series-termination` — **assumes the reference is `VDD3`**. Verbatim: *"if the positive
-peak exceeds VDD3 + 0.3 V, fit 22–33 Ω."* Its own remedy sizes `Rs` = 27 Ω so the far end settles
-at exactly 3.3 V, which does nothing for a 2.5 V-referenced input, and its acceptance criterion
-would pass a signal already 0.8 V over the clamp. Six geometry lenses could not see this because
-none of them asked what voltage anything was.
+> Device V+ to GBA SI
+> Device V- to GBA GND
+> Device CLK to GBA CK1
+> Device 1 to GBA TP2 (Select) or TP3 (Start)
+> Device 2 to GBA TP9 (L trigger)
+> Device 3 to GBA TP8 (R trigger)
 
-### What is NOT established, and must be before this is acted on
+**"GBA SI" is a typo for the pad silkscreened `S1`**, and that is now confirmed from their own
+install photo rather than inferred: in
+[`IMG_6317.jpg`](https://shop.insidegadgets.com/wp-content/uploads/2019/11/IMG_6317.jpg) — their
+GBA install shot, not vendored here — the red `V+` wire is soldered onto the
+rightmost pad of the `C2 S2 C1 S1` group at the right-hand end of the cartridge connector's solder
+row. Enlarged, the silkscreen and the joint are unambiguous. ("SI" as serial-in would be a nonsense
+place to draw 12 mA.)
 
-**I do not have the AGB CPU datasheet, so I cannot prove XIN's ESD clamp returns to `VDD2`.** The
-board evidence points there; that is not the same as knowing it.
+And `S1` is the 3.3 V rail — read off both boards:
 
-More importantly, **the ClockxControl is sold to be installed on a stock GBA**, which has the same
-CPU with the same 2.5 V core domain. If insideGadgets' own install instructions take power from a
-3.3 V point and drive XIN, then this is a solved problem in the field and the fork has inherited a
-working arrangement rather than invented a broken one. **That is the first thing to check, and it
-is a question for the module's documentation, not for this board.**
+```
+AGBM-02 base : P1.C2 -> /CPU/IN35   P1.S2 -> VDD5   P1.C1 -> VDD35   P1.S1 -> VDD3
+our CXC board: P1.C2 -> /CPU/IN35   P1.S2 -> VDD5   P1.C1 -> VDD35   P1.S1 -> VDD3
+```
 
-### The options, if it does turn out to matter
+`TP84` is on `VDD3`, and `VDD3` reaches `P1.S1`. **Our wire pad is the same electrical node the
+vendor tells you to solder to.** The only difference is convenience: we expose it 3.8 mm from the
+module instead of asking for a wire across the board.
 
-1. **Power the module from `VDD2` instead.** `TP18` is a plated, non-DNP `VDD2` test point at
-   **(81.200, −46.200)** — verified present on AGBM-02 — sitting **1.425 mm** off the module body
-   edge, closer than the `VDD3` pad now used. Free, if the module tolerates 2.5 V. **Check the
-   ClockxControl's minimum supply voltage first**; if it needs ≥ 3.0 V this option is out.
-2. **Series termination sized against the right rail**, not `VDD3`.
-3. **Leave it**, if the module's own design already handles a 2.5 V-referenced target.
+So the 3.3 V-module-into-a-2.5 V-domain-pin arrangement is **insideGadgets' design**, shipped since
+2019 and installed on stock GBAs — which have the identical CPU with the identical `VDD2`
+oscillator island. It is not something this fork introduced, and **the `VDD2` re-tap floated in the
+first draft of this section is now explicitly withdrawn.** `TP18` exists and is a real `VDD2` test
+point, but powering the module from it would deviate from the vendor's specification on no
+evidence.
 
-**Recorded, not applied.** Changing the `V+` tap is a one-line change to `WIRE_PADS`; making it
-without knowing the module's supply spec would be guessing.
+### What is still genuinely unknown
 
----
+**insideGadgets publishes no electrical specification for the module.** The product page gives no
+supply voltage, no supply range, no `CLK` output level, no drive strength, and no mention of level
+shifting. The only electrical figures on it are current: *"Consumes about 12mA of additional
+current and when the GBA/GBC/DMG is overclocked, it too will use 40-60mA more."*
+
+So the peak voltage actually presented at XIN **cannot be answered from documentation** — by us or
+by anyone. It needs a scope on a running module. Two things follow:
+
+* The [power review](../power-review/README.md)'s `clk-source-series-termination` finding is right
+  that the *source* is `VDD3`-referenced — the module runs on `VDD3` by vendor spec. Its open
+  question is the *destination*: XIN's local rail is `VDD2`, so an `Rs` sized to land the far end
+  at 3.3 V is sizing against the source rail, not the input's. **That series-termination item stays
+  open**, and it is the right place for this to be resolved with a measurement.
+* If you have a scope on the first build, capture XIN. That single trace answers it.
 
 ## 14.2 One real DRC violation, introduced by ECO-6's own copper
 
@@ -223,7 +242,9 @@ zone-aware.
 
 ## 14.6 What a human should verify before fabricating, in order
 
-1. **The ClockxControl's supply and output-level spec** — §14.1. Everything else is geometry.
+1. **Scope XIN on the first build** — §14.1. The supply tap is settled (it matches the vendor's
+   own `S1` = `VDD3`), but insideGadgets publishes no output-level spec, so the peak at the
+   CPU's clock input is unknown to everyone. One trace answers it.
 2. **Open in KiCad, re-pour, run DRC.** Expect the one violation in §14.2.
 3. **The module's landing geometry and hole lattice against a physical part** — §14.5.
 4. **The CPL rotation convention** against PCBWay's per-package zero reference.

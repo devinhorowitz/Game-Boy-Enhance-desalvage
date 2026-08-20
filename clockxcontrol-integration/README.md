@@ -66,9 +66,11 @@ holding **Select** and tapping **L** or **R**; hold Select for 2 s to return to 
 ### "GBA SI" is a typo for the pad silkscreened **S1**, and S1 is the 3.3 V rail
 
 This matters, because "SI" reads as the link-port serial-in line, which would be a nonsense place
-to draw 12 mA. It isn't that. In insideGadgets' own install photo the red V+ wire lands on the
-pad silkscreened **`S1`**, in the `C2 S2 C1 S1` group at the right-hand end of the cartridge
-connector's solder row. On the AGBM that pad is `P1` pad `S1`, and it is on net **`VDD3`** — the
+to draw 12 mA. It isn't that. In insideGadgets' own install photo
+([`IMG_6317.jpg`](https://shop.insidegadgets.com/wp-content/uploads/2019/11/IMG_6317.jpg)) the red
+V+ wire lands on the pad silkscreened **`S1`**, in the `C2 S2 C1 S1` group at the right-hand end of
+the cartridge connector's solder row — **verified 2026-08-20 by enlarging that photo**, where the
+silkscreen and the solder joint are unambiguous, rather than inferred. On the AGBM that pad is `P1` pad `S1`, and it is on net **`VDD3`** — the
 switched 3.3 V logic rail — on **all three board variants**:
 
 ```
