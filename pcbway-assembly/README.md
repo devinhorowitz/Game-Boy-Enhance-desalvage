@@ -105,16 +105,25 @@ resistor as unstocked while Mouser had 95,136 of them.
 
 ### Two lines were swapped; three remain at zero, each with a verified alternate
 
-Live figures, both distributors, 2026-08-19. Each `alternate` in
-[`resolved-mpns.json`](resolved-mpns.json) records the substitute *and* what accepting it costs.
+Live figures, both distributors, **re-queried 2026-08-20**. Every part named below is the one
+`resolved-mpns.json` actually buys, and its `alternate` there records the substitute *and*
+what accepting it costs. Stock moves hourly — re-run `scripts/check_stock.py` before ordering.
 
-| Refs | Part | Digi-Key | Mouser | What to do |
+| Refs | Part the BOM buys | Digi-Key | Mouser | What to do |
 |---|---|---|---|---|
-| `C2 C12 C23 C37 C59 C60 C68` | ~~GRM188R61E106KA73J~~ → **Murata `GRT188R61E106ME13D`** | **192,299** | 0 | ✅ **Swapped.** See below. |
-| `C1 C21 C42` | ~~GRM21BR61E226ME44L~~ → **Murata `GRT21BR61E226ME13L`** | **2,022** | 0 | ✅ **Swapped.** Exact match at 25 V — see below. |
-| `U11 U12 U18` | TI TPS22917DBVR | **0**, 16 wk | **0** | **`TPS22917DBVT`** — same die, different reel. 10,909 in stock. |
-| `U14` | Microchip MIC1553YM5-TR | **0**, **24 wk** | **0** | Nothing substitutes it. Not on the critical path — see below. |
-| `R26` | YAGEO RC0603FR-0733KL, 33 k | **0**, 17 wk | **95,136** | Buy it from Mouser. No decision needed. |
+| `C2 C12 C23 C37 C57 C59 C60 C68` | ~~GRM188R61E106KA73J~~ → **Murata `GRT188R61E106ME13D`**, 10 µF 25 V | **166,367** | 0 | ✅ **Swapped.** See below. |
+| `C1 C21 C42 C58` | **Murata `GRT21BR61C226ME13K`**, 22 µF **16 V** 0805 | **8,218** | 0 | ✅ Buyable. ⚠️ See the note under the table — the prose below still argues for a 25 V part. |
+| `U11 U12 U18` | TI TPS22917DBVR | **0**, 16 wk | **0** | **`TPS22917DBVT`** — same die, smaller reel. **10,879** at Digi-Key, **1,973** at Mouser. |
+| `U14` | Microchip MIC1553YM5-TR | **0**, **24 wk** | **0** | Nothing substitutes it, and it **is** on the critical path — see below. |
+| `R26` | YAGEO **`RC0603FR-1033KL`**, 33 k | **25,665** | **404,500** | ✅ Nothing to do. In stock at both. |
+
+> ⚠️ **Two rows changed part number since this table was first written, and the prose below
+> has not caught up.** `R26` is now the `-10` series, not `-07`, and it is no longer scarce at
+> either distributor. The 22 µF line buys `GRT21BR61C226ME13K`, which is **16 V** — while the
+> paragraph below still says *"the 16 V part is no longer recommended now that 25 V is in
+> stock."* One of the two is wrong and it is an **engineering** call, not a stock one, so it is
+> flagged here rather than silently resolved. `resolved-mpns.json` offers `GRM21BC81E226ME44K`
+> (Murata, 25 V, 0805, same 1.45 mm max thickness) as the depth option if 25 V is what you want.
 
 **The 10 µF swap, and why it is safe.** Verified parameter by parameter against the incumbent
 on the Digi-Key API — **capacitance 10 µF, rated voltage 25 V, dielectric X5R, package 0603
@@ -178,9 +187,23 @@ not 0805/1.45 mm. Not a drop-in. `KGM21AR51E226MU` (Kyocera AVX, 612 + 5 at Mous
 
 The 16 V part is **no longer recommended** now that 25 V is in stock.
 
-**`U14` is the longest lead on the board at 24 weeks, and it does not block a first build.** The
-MIC1553 drives the low-battery LED blink — which is already dead for an unrelated reason, the
-`Net-(Q5B-G)` break in [ECO-7](../clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md).
+**`U14` is the longest lead on the board at 24 weeks, and it DOES block a full build.** The
+MIC1553 drives the low-battery LED blink.
+
+> **Corrected 2026-08-20.** This paragraph used to end *"and it does not block a first build …
+> the LED blink is already dead for an unrelated reason, the `Net-(Q5B-G)` break in ECO-7."*
+> **That has been false since [ECO-13](../clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md)**
+> rebased this fork onto AGBM-02, which closed that blocker — consistency check [10] now asserts
+> `Net-(Q5B-G)` is whole on this fork *and* on MouseBiteLabs' own board, and it fails if the
+> break ever comes back. So the LED works, and `U14` is the one line that can hold up a build.
+>
+> There is still nothing to substitute, and that was re-checked live rather than assumed:
+> `MIC1553YM5` without the `-TR` reel suffix **is not an orderable part** at either
+> distributor, so there is no packaging escape. The family siblings are in stock —
+> `MIC1555YM5-TR` (Digi-Key 17,066 / Mouser 21,650, $0.47) and `MIC1557YM5-TR` (87,464 /
+> 23,471, $0.47, **4-week lead**) — but both are **5 MHz programmable timers** against this
+> part's fixed 500 kHz. They are named here as facts, not proposed as a swap: putting one in
+> is a datasheet decision about the blink circuit, not a reel change.
 
 `U5` (ADI LTC3527EUD#PBF) is no longer on this list — it is in stock — but it remains the most
 expensive active on the board, which strengthens the review's Tier-2 case for the TPS63802
@@ -327,10 +350,12 @@ reliably fake the touch input.
    "ordering code defect" was withdrawn by ECO-15 — it was never one. The `F1`/`PTC1`
    defect is closed by ECO-8.
 3b. **`U11`/`U12`/`U18` (`TPS22917DBVR`) and `U14` (`MIC1553YM5-TR`) read ZERO stock at both
-   distributors** as of 2026-08-20, and both are MouseBiteLabs' own parts, not fork
-   substitutions — so this is an availability problem in the base design, not a defect to
-   fix here. No stocked drop-in was found for either. Re-check before ordering; check [6]
-   warns while they stay dry.
+   distributors**, re-queried live 2026-08-20, and both are MouseBiteLabs' own parts, not
+   fork substitutions — so this is an availability problem in the base design, not a defect
+   to fix here. **They are not the same problem.** `TPS22917DBVT` is the same die on a
+   smaller reel and has 10,879 at Digi-Key: a reel change at order time, no decision. `U14`
+   has no equivalent at all and a 24-week lead, and since ECO-13 closed the `Net-(Q5B-G)`
+   blocker it is genuinely on the critical path. Check [6] warns while either stays dry.
 4. Settle the base-board question in §5 first — rebasing onto AGBM-02 deletes ECO-5 and both
    ECO-7 defects outright, so closing them by hand on AGBM-01 may be work spent on a board
    that is about to be replaced. If AGBM-01 is kept, close both defects and re-pour.
