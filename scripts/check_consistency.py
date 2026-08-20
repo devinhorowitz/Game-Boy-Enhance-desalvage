@@ -30,6 +30,8 @@ not mirrored in the other fails loudly instead of rotting.
   [11] STRUCTURE      -- the board parses, parens balance, no duplicate refdes. [ERROR]
   [12] ASSEMBLY SPLIT -- nothing reaches the pick-and-place without a BOM line to buy it,
                          nothing is on both buy documents, and the generated buy documents
+  [13] REAL GEOMETRY   -- the copper this fork ADDS clears MouseBiteLabs' by the project's
+                         own netclass rule, and the fiducials are readable.       [ERROR]
                          are what a fresh run produces.                     [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
@@ -606,14 +608,19 @@ WINDOW_OCCUPANTS = {"MOD1"}          # the module itself, and nothing else
 # the same commit -- the exclusion-ledger shape.
 PLACED = {
     "C7":   (93.1, -37.4, "moved out of the window; pad 1 (VDD35) now lands on the left"),
-    "FID1": (26.0, -8.0, "fiducial, front. ECO-13: fiducials are OURS -- neither of "
-                         "MouseBiteLabs' boards carries one, because he hand-builds"),
-    "FID4": (26.0, -8.0, "same spot, back"),
-    "FID3": (33.0, -69.0, "fiducial, front"),
-    "FID6": (33.0, -69.0, "same spot, back"),
-    "FID2": (106.25, -57.25, "fiducial, front -- placed clear of the module rather than "
-                             "moved out from under it, as it was on the ECO-5 base"),
-    "FID5": (106.25, -57.25, "same spot, back"),
+    # ECO-14 moved all three pairs off MouseBiteLabs' copper -- the inherited AGBM-01 spots
+    # were never checked against AGBM-02's tracks and vias. Clear radius to the nearest hard
+    # copper is in the second field of each reason.
+    "FID1": (28.1, -9.6, "fiducial, front. 2.390 mm clear (was 1.064 at 26.0,-8.0). "
+                         "Fiducials are OURS -- neither of MouseBiteLabs' boards carries "
+                         "one, because he hand-builds"),
+    "FID4": (28.1, -9.6, "same spot, back -- 2.390 mm clear"),
+    "FID3": (31.0, -69.5, "fiducial, front. 2.399 mm clear; the old (33.0,-69.0) sat "
+                          "0.768 mm from a GND via, inside its own 1.0 mm mask window"),
+    "FID6": (31.0, -69.5, "same spot, back -- 2.478 mm clear"),
+    "FID2": (110.85, -57.65, "fiducial, front. 1.800 mm clear (was 1.337). The tightest of "
+                             "the three; that corner is dense"),
+    "FID5": (110.85, -57.65, "same spot, back -- 1.918 mm clear"),
     "MOD1": (91.95, -44.95, "module centre, rev B -- shifted west out of the R3/TP114 "
                             "cluster; ECO-6 section 6.7 is what that cost"),
     "TP83": (97.9, -37.95, "CLK wire pad. y is -37.95 and not -38.6: KiCad's y grows "
@@ -751,6 +758,89 @@ def check_blockers():
 
 
 # =====================================================================================
+# [13] REAL GEOMETRY -- clearance of the copper this fork ADDS, and fiducial readability
+# =====================================================================================
+# The twelve checks above are all topological: what exists, what it is called, what it
+# connects to. None of them could measure a distance, and that is exactly how ECO-6 shipped
+# a via 0.1632 mm from C13's pad -- against the project's own 0.200 mm netclass rule -- and
+# six fiducials whose 2 mm mask windows were full of foreign copper. Twelve green checks and
+# both defects invisible. A 44-agent audit found them; this check is so the next one does
+# not have to.
+#
+# HARD COPPER ONLY. scripts/geom.py models tracks, vias, pads and the board outline. It does
+# NOT model zone fills, and says so. For the fiducials that is handled the way a layout tool
+# handles it: the generator gives each pad a 0.55 mm local clearance so the pour recedes past
+# the mask window, and this check asserts the override is present rather than trying to
+# simulate a fill.
+CLEARANCE_RULE = 0.20     # the AGBM-02 project's single "Default" netclass
+FIDUCIAL_WINDOW = 1.00    # 0.5 mm pad + 0.5 mm solder_mask_margin
+FIDUCIAL_PAD_CLEARANCE = "(clearance 0.55)"
+
+
+def check_geometry():
+    print("[13] the copper this fork adds clears MouseBiteLabs', and the fiducials are readable")
+    import geom
+    b = board()
+    try:
+        base = geom.base()
+    except OSError as e:
+        warn(f"base board unreadable ({e}) -- check [13] did not run")
+        return
+    segs, vias, pads = geom.collect(base)
+    ALL = ["F.Cu", "In1.Cu", "In2.Cu", "B.Cu"]
+
+    # --- every via ECO-6 adds, against everything MouseBiteLabs already routed ----------
+    base_via = {(round(x, 4), round(y, 4)) for x, y, _n in kisexp.vias(base)}
+    added = [(x, y, n) for x, y, n in
+             [(vx, vy, kisexp.net_table(b).get(vn, str(vn))) for vx, vy, vn in kisexp.vias(b)]
+             if (round(x, 4), round(y, 4)) not in base_via]
+    bad, tight = [], []
+    for x, y, net in added:
+        w = geom.worst(x, y, 0.35, ALL, segs, vias, pads, net=net)
+        if not w:
+            continue
+        d, what = w[0]
+        if d < CLEARANCE_RULE:
+            bad.append(f"via ({x},{y}) on {net}: {d:.4f} mm to {what}")
+        elif d < CLEARANCE_RULE + 0.05:
+            tight.append(f"via ({x},{y}) on {net}: {d:.4f} mm to {what}")
+    if bad:
+        err(f"added via(s) below the {CLEARANCE_RULE} mm netclass clearance: " + "; ".join(bad))
+    else:
+        ok(f"all {len(added)} added via(s) clear MouseBiteLabs' copper by >= "
+           f"{CLEARANCE_RULE} mm")
+    for t in tight:
+        note(f"tight but legal: {t}")
+
+    # --- the fiducials have to be READABLE, which is a contrast problem ----------------
+    fps = kisexp.by_ref(b)
+    fids = sorted(r for r in fps if r.startswith("FID"))
+    if not fids:
+        err("no fiducials on the board -- ECO-6 adds six; a pick-and-place needs them")
+        return
+    problems = []
+    for ref in fids:
+        fp = fps[ref]
+        if fp.at is None:
+            problems.append(f"{ref}: no placement")
+            continue
+        if FIDUCIAL_PAD_CLEARANCE not in fp.body:
+            problems.append(f"{ref}: no {FIDUCIAL_PAD_CLEARANCE} on its pad -- a re-pour "
+                            f"will flood the mask window with GND")
+        w = geom.worst(fp.at[0], fp.at[1], 0.0, [fp.layer], segs, vias, pads,
+                       ignore=(f"{ref}.1",))
+        if w and w[0][0] < FIDUCIAL_WINDOW:
+            problems.append(f"{ref} at ({fp.at[0]},{fp.at[1]}): {w[0][0]:.3f} mm to "
+                            f"{w[0][1]} -- inside its own {FIDUCIAL_WINDOW} mm mask window")
+        else:
+            note(f"{ref} ({fp.layer}): {w[0][0]:.3f} mm clear")
+    if problems:
+        err("fiducial(s) a vision system cannot read: " + "; ".join(problems))
+    else:
+        ok(f"all {len(fids)} fiducials clear of hard copper and their pours held back")
+
+
+# =====================================================================================
 # [11] the board is structurally sound
 # =====================================================================================
 def check_structure():
@@ -858,7 +948,8 @@ def main():
     for fn in (check_reproducible, check_package_parity, check_eco8_ledger,
                check_dnp_ledger, check_bom_vs_board, check_supplier_pns,
                check_cited_paths, check_doc_imagery, check_module_window,
-               check_blockers, check_structure, check_assembly_split):
+               check_blockers, check_structure, check_assembly_split,
+               check_geometry):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

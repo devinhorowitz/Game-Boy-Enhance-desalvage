@@ -157,7 +157,8 @@ new violations introduced by this ECO : 0     <-- TRUE ON AGBM-01, FALSE ON AGBM
 > of **0.200 mm** — measured centre-to-centre 1.0680 mm, roundrect corner radius 0.225, via radius
 > 0.350. It fails by 0.037 mm. It clears the board's `min_clearance` of 0.150 and is well inside
 > PCBWay's 0.127 mm capability, so it is a rule violation rather than a manufacturability one — but
-> it will raise a DRC error the moment anyone does the re-pour-and-DRC step this ECO requires.
+> **FIXED in [ECO-14 §14.2](ECO-14_clock_domain_and_audit_fixes.md):** the via moved to
+> (47.500, −59.500), worst foreign clearance now **0.2321 mm**. Check [13] gates it.
 
 
 **Superseded by [ECO-13](ECO-13_rebase_onto_agbm02.md).** The three removed violations were
@@ -165,11 +166,12 @@ new violations introduced by this ECO : 0     <-- TRUE ON AGBM-01, FALSE ON AGBM
 exist on AGBM-02, because AGBM-02 has no fiducials to inherit. The count above was measured on the
 old base and is kept only as the record of what that analysis found.
 
-**And the fiducials are not clear on this base either — see [ECO-14](ECO-14_clock_domain_and_audit_fixes.md).**
-All six sit inside `GND` pours whose fill has not been recomputed, so their 2 mm clear-mask windows
-are over foreign copper; `FID3`/`FID6` additionally sit on top of an upstream `GND` via. ECO-13's
-claim that "each spot was clearance-checked against AGBM-02" checked *component* clearance only,
-not copper. That is corrected there.
+**The fiducials were then moved again — see [ECO-14 §14.3](ECO-14_clock_domain_and_audit_fixes.md).**
+The spots this ECO inherited were never checked against AGBM-02's *copper*: `FID3`/`FID6` sat
+0.768 mm from a `GND` via, inside their own 1.0 mm mask window, and `FID1`/`FID4` cleared by 64 µm.
+All three pairs moved — to (28.1, −9.6), (31.0, −69.5) and (110.85, −57.65), clearing 1.800 mm to
+2.478 mm — and each pad gained a `(clearance 0.55)` override so the `GND` pour recedes past the
+window on a re-pour. Consistency check [13] now asserts both.
 
 The checker models rectangular pads as circumscribed circles, so its absolute violation count on
 either board is dominated by false positives at fine-pitch parts (adjacent TSOP pads read as

@@ -185,8 +185,9 @@ Neither AGBM-01 nor AGBM-02 carries a single fiducial — MouseBiteLabs hand-bui
 hand builder needs no optical registration. ECO-5 added six; ECO-6 then moved a pair out
 from under the module. On this base they are simply **placed clear of it to begin with**:
 three per side at `(26, −8)`, `(33, −69)` and `(106.25, −57.25)`, a deliberately asymmetric
-triangle so a machine cannot register the panel 180° out. Each spot was clearance-checked
-against AGBM-02.
+triangle so a machine cannot register the panel 180° out. Each spot was clearance-checked against AGBM-02 — **for components only;
+[ECO-14 §14.3](ECO-14_clock_domain_and_audit_fixes.md) found two of the three pairs had
+foreign copper inside their own mask window and moved all six.**
 
 ---
 

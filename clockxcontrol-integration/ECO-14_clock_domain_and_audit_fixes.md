@@ -128,41 +128,80 @@ by anyone. It needs a scope on a running module. Two things follow:
   open**, and it is the right place for this to be resolved with a measurement.
 * If you have a scope on the first build, capture XIN. That single trace answers it.
 
-## 14.2 One real DRC violation, introduced by ECO-6's own copper
+## 14.2 One real DRC violation — **fixed**
 
-| | |
-|---|---|
-| object | `CXC_CLK` via at **(47.450, −59.600)**, ø0.7 / drill 0.3, `F.Cu`–`B.Cu` |
-| against | `C13` pad 1 — `VDD5`, `B.Cu`, roundrect 0.9 × 0.95, corner r 0.225, at (46.875, −60.500) |
-| centre-to-centre | 1.0680 mm |
-| **copper-to-copper** | **0.1632 mm** |
-| rule | the project's single `Default` netclass, **clearance 0.200 mm** |
+| | was | now |
+|---|---|---|
+| `CXC_CLK` via | (47.450, −59.600) | **(47.500, −59.500)** |
+| clearance to `C13` pad 1 (`VDD5`, `B.Cu`) | **0.1632 mm** | 0.2750 mm |
+| **worst foreign clearance, all layers** | **0.1632 mm** | **0.2321 mm** |
+| limited by | `C13` pad 1 | a `/CPU/CK1` `F.Cu` track |
+| rule | the project's single `Default` netclass, **0.200 mm** | **passes** |
 
-`C13` is unmoved by every ECO — `(at 46.1 -60.5 180)` on both base and output — so the violation is
-entirely this fork's via. It **fails the netclass by 0.037 mm**, passes the board's own
-`min_clearance` of 0.150, and is comfortably inside PCBWay's 0.127 mm capability. So it is a rule
-violation, not a manufacturability one — but it will raise a DRC error at the re-pour step, and it
-falsifies [ECO-6 §6.4](ECO-6_clockxcontrol_footprint.md)'s *"new violations introduced by this
-ECO : 0"*, which was measured on AGBM-01. That claim is now annotated in place.
+`C13` is unmoved by every ECO — `(at 46.1 -60.5 180)` on base and output alike — so the
+violation was entirely this fork's via, and moving the via is the whole fix. The two
+segments that meet it moved with it and were re-measured: the `F.Cu` leg from
+(47.450, −60.850) clears by **0.3605 mm**, the `B.Cu` leg to (47.800, −59.250) by
+**0.2707 mm**.
+
+**That 0.11 mm nudge is the best available, and it is worth saying why the margin is only
+0.032 mm.** A 0.05 mm grid search over a 3 × 4 mm corridor, then a second search around
+`JP4`, put every alternative site *worse*:
+
+```
++0.2321  (47.50, -59.50)   <- chosen
++0.2176  (47.50, -59.55)
++0.1750  (46.89, -61.50)
++0.0341  (45.93, -62.55)
+-0.1205  (46.53, -64.45)
+```
+
+The corner is genuinely dense — `C13`'s pad below on `B.Cu`, `/CPU/CK1` and `/CPU/TP9` on
+`F.Cu`, `/CPU/TP2` on `In2.Cu` — and **both limiting tracks are MouseBiteLabs', not ours**
+(ECO-6's own `CK1` run is at x 42.5–44.4 and its `TP9` run at x 84–88, neither anywhere
+near). So there was nothing of ours left to move.
+
+The via keeps the board's **0.7 mm / 0.3 mm** geometry, which is what all 547 of
+MouseBiteLabs' vias use. Shrinking it to 0.6 mm would have bought another 0.05 mm but put
+the annular ring at 0.15 mm — exactly the project's `min_via_annular_width` — to buy margin
+the move already provides.
 
 ---
 
-## 14.3 The fiducials are not clear, and ECO-13 said they were
+## 14.3 The fiducials — **moved, and the pour held back**
 
-[ECO-13 §13.6](ECO-13_rebase_onto_agbm02.md) states *"Each spot was clearance-checked against
-AGBM-02."* **That check tested component clearance only, not copper.** Against copper:
+[ECO-13 §13.6](ECO-13_rebase_onto_agbm02.md) claimed *"each spot was clearance-checked
+against AGBM-02."* **It checked components, not copper.** Against copper, two of three pairs
+had foreign metal inside their own mask window.
 
-* all six sit **inside `GND` pours**, so their 2 mm clear-mask windows are over foreign copper;
-* `FID3`/`FID6` at (33.0, −69.0) additionally sit on top of an **upstream `GND` via** at
-  (34.000, −68.500) — 1.118 mm centre-to-centre, inside the 1.0 mm mask-window radius.
+A fiducial is a mark a vision system finds by **contrast against bare substrate**. The pad
+is 1 mm with a 0.5 mm `solder_mask_margin`, so the window is 2 mm across and needs a clear
+radius of **1.00 mm** from centre. Measured to the nearest hard copper — track, via or pad:
 
-Electrically this is harmless — the pads are netless, so being swallowed by the `GND` pour just
-ties inert copper to ground. **It defeats the fiducial's purpose**: a fiducial is a mark a vision
-system finds by contrast against bare substrate, and one sitting in a copper field with a via
-through its window is not reliably machine-readable.
+| pair | was | clear | now | clear (F / B) | moved |
+|---|---|---|---|---|---|
+| `FID1`/`FID4` | (26.000, −8.000) | 1.064 mm | **(28.100, −9.600)** | **2.390 / 2.390** | 2.64 mm |
+| `FID3`/`FID6` | (33.000, −69.000) | **0.768 mm** ✗ | **(31.000, −69.500)** | **2.399 / 2.478** | 2.06 mm |
+| `FID2`/`FID5` | (106.250, −57.250) | 1.337 mm | **(110.850, −57.650)** | **1.800 / 1.918** | 4.62 mm |
 
-Not fixed here because it wants a placement decision rather than a patch: the three spots were
-inherited from ECO-5's AGBM-01 layout and were never chosen for AGBM-02's copper.
+`FID3`/`FID6` was the bad one: a `GND` via 0.768 mm away, its copper well inside the window.
+`FID1`/`FID4` cleared by only 64 µm.
+
+Every new spot is **≥ 3.0 mm from the board outline**, has **no footprint within 3 mm**, and
+sits in populated copper rather than off the edge — the search rejected candidates that
+merely *looked* clear because they were outside the board. The triangle stays deliberately
+**scalene — 60.0, 80.7 and 95.7 mm between pairs** — so a machine cannot register the panel
+180° out.
+
+### Moving them was only half the fix
+
+These pads are **netless and sit inside MouseBiteLabs' `GND` pours.** On a re-pour the zone
+floods right up to them, leaving copper at `0.5 + zone_clearance = 0.7 mm` from centre —
+**inside the 1.0 mm window.** Relocating them would have fixed nothing.
+
+So each fiducial pad now carries **`(clearance 0.55)`**, a local override that pushes the
+fill back to **1.05 mm** from centre. The window shows bare substrate, and it keeps doing so
+after the re-pour that ECO-6 §6.8 requires.
 
 ---
 
@@ -207,6 +246,24 @@ footprint's **Value**, which renders on `F.Fab`, not silkscreen; the step now gi
 
 ---
 
+**A thirteenth check, because twelve green ones missed both of the above.** Every check in
+`scripts/check_consistency.py` was topological — what exists, what it is called, what it
+connects to. **None could measure a distance**, which is exactly how a 0.1632 mm violation
+and six unreadable fiducials shipped past all of them.
+
+`scripts/geom.py` is the missing half: pads as rounded rectangles, tracks as inflated
+segments, vias as circles, plus the board outline. Check **[13]** uses it to assert that
+every via this fork adds clears MouseBiteLabs' copper by the project's own 0.200 mm netclass
+rule, and that every fiducial has a clear 1.00 mm window *and* the local clearance that
+keeps its pour back. It is honest about its limit: **it does not model zone fills**, and says
+so in its own docstring rather than implying coverage it lacks.
+
+Three cases were added to `scripts/test_checks.py`, one per way the fixed defects could
+return — the via moving back, a fiducial landing on the via again, and a fiducial losing its
+clearance override. All three fire; the suite is **11 cases, 0 blind**.
+
+---
+
 ## 14.5 Open, and recorded rather than fixed
 
 **The renders are pre-rebase.** Every PNG in `clockxcontrol-integration/render/` has an identical
@@ -245,10 +302,10 @@ zone-aware.
 1. **Scope XIN on the first build** — §14.1. The supply tap is settled (it matches the vendor's
    own `S1` = `VDD3`), but insideGadgets publishes no output-level spec, so the peak at the
    CPU's clock input is unknown to everyone. One trace answers it.
-2. **Open in KiCad, re-pour, run DRC.** Expect the one violation in §14.2.
+2. **Open in KiCad, re-pour, run DRC.** §14.2's violation is fixed; this is to catch
+   anything the generated copper still hides from a hard-copper-only model.
 3. **The module's landing geometry and hole lattice against a physical part** — §14.5.
 4. **The CPL rotation convention** against PCBWay's per-package zero reference.
-5. Fiducial placement, if you want machine-readable ones — §14.3.
 
 ---
 

@@ -113,6 +113,17 @@ def main():
         ("[10] the Net-(Q5B-G) blocker COMES BACK",
          cc.check_blockers,
          BREAK_THE_NET.sub("", good, count=1)),
+        # [13] is the geometry gate ECO-14 added. Three mutations, one per way the two
+        # defects it was built for could come back.
+        ("[13] the CXC_CLK via returns to its 0.1632 mm spot",
+         cc.check_geometry,
+         good.replace("(at 47.5 -59.5)", "(at 47.45 -59.6)", 1)),
+        ("[13] a fiducial lands back on top of a GND via",
+         cc.check_geometry,
+         good.replace("(at 31.0 -69.5)", "(at 33.0 -69.0)", 1)),
+        ("[13] a fiducial loses the clearance that holds the pour back",
+         cc.check_geometry,
+         good.replace("(clearance 0.55)", "", 1)),
         ("[11] a duplicate reference designator",
          cc.check_structure,
          corrupt(VICTIM_REF, "Reference", VICTIM_REF, OTHER_REF)),

@@ -92,9 +92,20 @@ DROP_VIAS = [(84.4, -45.9), (85.4, -45.9)]          # both on VDD2
 # moved a pair out from under the module; on this base they are simply placed clear of it
 # to begin with. Three per side in a deliberately asymmetric triangle so the machine cannot
 # register the panel 180 degrees out. Each spot was clearance-checked against AGBM-02.
-FIDUCIALS = [("FID1", 26.0, -8.0, "F.Cu"), ("FID4", 26.0, -8.0, "B.Cu"),
-             ("FID3", 33.0, -69.0, "F.Cu"), ("FID6", 33.0, -69.0, "B.Cu"),
-             ("FID2", 106.25, -57.25, "F.Cu"), ("FID5", 106.25, -57.25, "B.Cu")]
+# ECO-14 moved all three pairs. The spots inherited from the AGBM-01 layout were never
+# chosen against AGBM-02's copper: FID3/FID6 sat 0.768 mm from a GND via -- inside their own
+# 1.0 mm mask window -- and FID1/FID4 cleared by only 1.064 mm. A fiducial is a mark a vision
+# system finds by CONTRAST against bare substrate; copper inside the window destroys that.
+# Measured clear radius to the nearest hard copper (track, via or pad) on each layer:
+#     FID1/FID4  (26.0, -8.0)      1.064  ->  (28.1, -9.6)        2.390 F / 2.390 B
+#     FID3/FID6  (33.0, -69.0)     0.768  ->  (31.0, -69.5)       2.399 F / 2.478 B
+#     FID2/FID5  (106.25, -57.25)  1.337  ->  (110.85, -57.65)    1.800 F / 1.918 B
+# Each is >= 3.0 mm from the board edge, has no footprint within 3 mm, and sits in populated
+# copper rather than off the outline. The triangle stays deliberately scalene -- 60.0, 80.7
+# and 95.7 mm between pairs -- so a machine cannot register the panel 180 degrees out.
+FIDUCIALS = [("FID1", 28.1, -9.6, "F.Cu"), ("FID4", 28.1, -9.6, "B.Cu"),
+             ("FID3", 31.0, -69.5, "F.Cu"), ("FID6", 31.0, -69.5, "B.Cu"),
+             ("FID2", 110.85, -57.65, "F.Cu"), ("FID5", 110.85, -57.65, "B.Cu")]
 # The three button landings the module's plated through-holes solder down onto.
 # Net NAMES, not numbers. The numbers used to be literals here (71/13/12) and were the
 # last place in this file where a net was named by its number -- WIRE_PADS and JP4 both go
@@ -625,6 +636,12 @@ def build():
 
 
     # ---------- ECO-6.2  fiducials, because a machine needs to see the board ---------
+    # The (clearance 0.55) on each pad is load-bearing, not decoration. These pads are
+    # NETLESS and they sit inside MouseBiteLabs' GND pours; on a re-pour the zone floods
+    # right up to them, leaving copper 0.5 + zone_clearance = 0.7 mm from centre -- INSIDE
+    # the 1.0 mm mask window (0.5 mm pad + 0.5 mm mask margin). 0.55 mm of local clearance
+    # pushes the pour back to 1.05 mm, so the window shows bare substrate and the fiducial
+    # is actually readable. Without it, relocating them would have fixed nothing.
     FIDS = "".join(f'''\t(footprint "Fiducial:Fiducial_1mm_Mask2mm"
 \t\t(layer "{lay}")
 \t\t(uuid "{uid('fid' + ref)}")
@@ -651,6 +668,7 @@ def build():
 \t\t\t(size 1 1)
 \t\t\t(layers "{lay}" "{'F' if lay == 'F.Cu' else 'B'}.Mask")
 \t\t\t(solder_mask_margin 0.5)
+\t\t\t(clearance 0.55)
 \t\t\t(uuid "{uid('fidpad' + ref)}")
 \t\t)
 \t\t(embedded_fonts no)
