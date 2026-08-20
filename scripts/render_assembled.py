@@ -396,6 +396,11 @@ def main() -> int:
                               "bytes": out.stat().st_size}
     live = {fn for fn, _k, _s, _d in TARGETS.values()}
     man["targets"] = {k: v for k, v in man["targets"].items() if k in live}
+    # ECO-24: the board these bodies were placed on, so a stale assembled render is
+    # catchable without KiCad. Same rationale as render_board.source_digest().
+    import render_board as _rb
+    import geom as _geom
+    man["source"] = _rb.source_digest(kisexp.load(str(BOARD)), _geom.base())
     MANIFEST.write_text(json.dumps(man, indent=2, sort_keys=True) + "\n", newline="")
     # len(man["targets"]) is the MANIFEST's size, which after the merge is every target
     # this repository knows about -- so a --only run used to announce "wrote 4 render(s)"

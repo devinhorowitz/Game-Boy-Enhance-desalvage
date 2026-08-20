@@ -1258,14 +1258,60 @@ NOT_OUR_BOARD = {
 }
 
 
+def _render_source_digest():
+    """The two hashes a manifest should carry, computed WITHOUT Pillow or KiCad."""
+    import hashlib
+    import geom
+    b, base = board(), geom.base()
+    return {"board": hashlib.sha256(b.encode("utf-8")).hexdigest()[:16],
+            "base": hashlib.sha256(base.encode("utf-8")).hexdigest()[:16]}
+
+
+# ECO-24. THIS HALF RUNS EVERYWHERE, and it exists because the other half does not.
+# Re-rendering needs Pillow, this project's CI installs nothing on purpose, so check [15]
+# reported "did not run" on every build and a stale picture could ride a green pipeline all
+# the way to a fab. The renderers now stamp each manifest with the SHA of the board and the
+# base they drew, and comparing those is pure string handling. It catches the failure that
+# actually matters -- the board moved and the pictures did not -- on any runner that can
+# open a file. It cannot catch a renderer whose OUTPUT changed while its input did not;
+# that is what the pixel digests below are for, where Pillow exists.
+def _check_render_freshness():
+    import json as _json
+    want = _render_source_digest()
+    for name, path in (("render-manifest.json",
+                        os.path.join(ROOT, "clockxcontrol-integration", "render",
+                                     "render-manifest.json")),
+                       ("assembled-manifest.json",
+                        os.path.join(ROOT, "clockxcontrol-integration", "render",
+                                     "assembled-manifest.json"))):
+        if not os.path.exists(path):
+            warn(f"{name} is missing -- cannot tell whether those renders are current")
+            continue
+        got = _json.load(open(path, encoding="utf-8")).get("source")
+        if got is None:
+            err(f"{name} carries no `source` digest, so nothing can tell whether its "
+                f"pictures match the board. Re-run the renderer that writes it.")
+        elif got != want:
+            which = [k for k in ("board", "base") if got.get(k) != want.get(k)]
+            err(f"{name} was written from a DIFFERENT {' and '.join(which)}: "
+                f"manifest {got} != tree {want}. The pictures it lists are stale -- re-run "
+                f"scripts/render_board.py and scripts/render_assembled.py and commit the "
+                f"PNGs in the same commit as the board change.")
+        else:
+            ok(f"{name} was written from this exact board ({want['board']}) and base "
+               f"({want['base']})")
+
+
 def check_renders():
     print("[15] every render is what the committed board re-renders to")
+    _check_render_freshness()
     try:
         import render_board
         from PIL import Image
         import PIL
     except ImportError as e:
-        warn(f"Pillow unavailable ({e}) -- check [15] did not run")
+        warn(f"Pillow unavailable ({e}) -- the pixel half of check [15] did not run "
+             f"(the source-digest half above did)")
         return
     try:
         # The SHIPPED board -- the same text every other check reads -- not the tree file.

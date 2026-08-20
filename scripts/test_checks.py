@@ -259,9 +259,16 @@ def main():
                   cc.check_kicad10,
                   good.replace("(start 38.725 -47.775)", "(start 38.725 -47.875)", 1),
                   "track coverage differs"))
+    # PINNED TO THE SOURCE-DIGEST HALF, NOT THE PIXEL HALF. Re-rendering needs Pillow, this
+    # project's CI installs nothing, and the pixel half's message therefore does not exist
+    # there -- so requiring it would turn this case BLIND on exactly the runner it most
+    # needs to work on. "written from a DIFFERENT board" is produced in both environments,
+    # and it is the stronger claim: it names WHICH half fired rather than just noting that
+    # something did.
     cases.append(("[15] the board moves and the renders do not",
                   cc.check_renders,
-                  good.replace("(at 91.95 -44.95 180)", "(at 91.95 -45.35 180)", 1)))
+                  good.replace("(at 91.95 -44.95 180)", "(at 91.95 -45.35 180)", 1),
+                  "written from a DIFFERENT board"))
 
     # [16] reads MouseBiteLabs' own Source links. Two ways it can rot, one case each.
     # These mutate the JSON on disk rather than the board, so they restore it afterwards.
