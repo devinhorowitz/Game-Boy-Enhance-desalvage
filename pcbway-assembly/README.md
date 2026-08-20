@@ -112,18 +112,18 @@ what accepting it costs. Stock moves hourly — re-run `scripts/check_stock.py` 
 | Refs | Part the BOM buys | Digi-Key | Mouser | What to do |
 |---|---|---|---|---|
 | `C2 C12 C23 C37 C57 C59 C60 C68` | ~~GRM188R61E106KA73J~~ → **Murata `GRT188R61E106ME13D`**, 10 µF 25 V | **166,367** | 0 | ✅ **Swapped.** See below. |
-| `C1 C21 C42 C58` | **Murata `GRT21BR61C226ME13K`**, 22 µF **16 V** 0805 | **8,218** | 0 | ✅ Buyable. ⚠️ See the note under the table — the prose below still argues for a 25 V part. |
+| `C1 C21 C42 C58` | ~~Murata `GRT21BR61C226ME13K`~~ → **YAGEO `CC0805MKX5R8BB226`**, 22 µF **25 V** 0805 | **≈130,000** | 0 | ✅ **Swapped to 25 V by ECO-21.** See below for what it cost. |
 | `U11 U12 U18` | TI TPS22917DBVR | **0**, 16 wk | **0** | **`TPS22917DBVT`** — same die, smaller reel. **10,879** at Digi-Key, **1,973** at Mouser. |
 | `U14` | Microchip MIC1553YM5-TR | **0**, **24 wk** | **0** | Nothing substitutes it, and it **is** on the critical path — see below. |
 | `R26` | YAGEO **`RC0603FR-1033KL`**, 33 k | **25,665** | **404,500** | ✅ Nothing to do. In stock at both. |
 
-> ⚠️ **Two rows changed part number since this table was first written, and the prose below
-> has not caught up.** `R26` is now the `-10` series, not `-07`, and it is no longer scarce at
-> either distributor. The 22 µF line buys `GRT21BR61C226ME13K`, which is **16 V** — while the
-> paragraph below still says *"the 16 V part is no longer recommended now that 25 V is in
-> stock."* One of the two is wrong and it is an **engineering** call, not a stock one, so it is
-> flagged here rather than silently resolved. `resolved-mpns.json` offers `GRM21BC81E226ME44K`
-> (Murata, 25 V, 0805, same 1.45 mm max thickness) as the depth option if 25 V is what you want.
+> ⚠️ **`R26` is now the `-10` series, not `-07`,** and it is no longer scarce at either
+> distributor; prose further down may still say otherwise.
+>
+> The 22 µF contradiction this block used to flag — a BOM buying 16 V under a paragraph
+> arguing for 25 V — is **settled by ECO-21**, which took the 25 V side. It was an
+> engineering call, not a stock one, which is why it was flagged here rather than resolved
+> silently, and why it waited for a decision.
 
 **The 10 µF swap, and why it is safe.** Verified parameter by parameter against the incumbent
 on the Digi-Key API — **capacitance 10 µF, rated voltage 25 V, dielectric X5R, package 0603
@@ -149,43 +149,68 @@ ECO-8's Value edits it cannot be reverted by a PCB-from-schematic sync. **But th
 own `Source` link for these seven still points at the GRM**, so update it there too before
 anyone regenerates a BOM from the schematic.
 
-**The 22 µF swap, and a correction.** This section previously said *"no like-for-like exists —
-every 22 µF 25 V X5R 0805 from a tier-1 manufacturer is at zero"* and recommended dropping to a
-**16 V** part. **That was wrong.** It came from a keyword search that filtered on stock ≥ 5,000,
-which silently excluded every real 25 V candidate — all of which sit in the hundreds to low
+**The 22 µF line, and two corrections.** This line has now moved three times, and the record
+is worth keeping straight because each move was made for a different reason.
+
+*First correction, still standing.* This section once said *"no like-for-like exists — every
+22 µF 25 V X5R 0805 from a tier-1 manufacturer is at zero"* and recommended dropping to a
+**16 V** part. **That was wrong.** It came from a keyword search filtered on stock ≥ 5,000,
+which silently excluded every real 25 V candidate — all of which sat in the hundreds to low
 thousands. A threshold chosen to shorten a search result had turned into a claim about the
-market. A deeper sweep — 1,297 results across 15 query shapes with no stock floor, plus an
-independent Mouser keyword sweep — found three.
+market.
 
-`GRT21BR61E226ME13L` is the same GRM→GRT move already made on the 10 µF line, and it gives up
-**nothing**. Verified parameter by parameter against the incumbent:
+*Second correction.* The 25 V part that first search eventually found, `GRT21BR61E226ME13L`,
+then went to **zero**, and [ECO-15](../clockxcontrol-integration/ECO-15_upstream_link_sync.md)
+reverted the line to MouseBiteLabs' 16 V `GRT21BR61C226ME13K` — giving up the DC-bias headroom
+as a deliberate, recorded trade.
 
-| | GRM (was) | GRT (now) |
+**ECO-21 takes the 25 V side, and here is the whole cost.** A fresh sweep of every 22 µF /
+25 V / 0805 part at both distributors (2026-08-20) found **six with stock and eleven at zero**.
+Both soft-termination `GRT` parts — `GRT21BR61E226ME13K` and `-13L` — are among the eleven.
+**No 25 V part in the market preserves everything the 16 V incumbent has.** Every stocked one
+gives up *both* AEC-Q200 qualification and Murata's `GRT` soft-termination, which exists to
+stop flex cracking on a board that gets handled.
+
+So the trade is narrow and deliberate: **keep the dielectric, change only the voltage.**
+
+| | Murata `GRT21BR61C226ME13K` (was) | YAGEO `CC0805MKX5R8BB226` (now) |
 |---|---|---|
 | Capacitance / tolerance | 22 µF ±20 % | 22 µF ±20 % |
-| **Rated voltage** | **25 V** | **25 V** |
+| **Rated voltage** | 16 V | **25 V** |
 | Dielectric | X5R | X5R |
-| Package / max thickness | 0805, 1.45 mm | 0805, 1.45 mm |
 | Operating range | −55…+85 °C | −55…+85 °C |
-| Qualification | — | **AEC-Q200** |
-| Stock | **0** | **2,022** |
+| Package / max thickness | 0805, 1.45 mm | 0805, 1.45 mm |
+| Body | 2.00 × 1.25 mm | 2.00 × 1.25 mm |
+| Qualification | **AEC-Q200** | — |
+| Termination | **soft (`GRT`)** | standard |
+| Unit price | $0.42 | $0.60 |
+| Lead time | 19 wk | 24 wk |
+| Digi-Key / Mouser | 8,218 / 0 | **≈130,000** / 0 |
 
-2,022 is 674 boards at three per board. Mouser has none, so **this line is single-sourced.**
+Verified parameter by parameter on the Digi-Key API. Every mechanical and electrical figure is
+identical except the rated voltage — which is the point — and the two qualifications that no
+25 V part offers. **Mouser has none, so this line is single-sourced at Digi-Key.**
 
-**If you want depth:** `GRM21BC81E226ME44K` — Murata, 25 V, 0805, same 1.45 mm, **7,338 in
-stock** (3.6×) and a wider −55…+105 °C range. The catch is that it is **X6S, a different
-dielectric formulation**, and DC-bias is exactly what holding 25 V was meant to protect. I could
-not verify its bias curve: Murata publishes that only through SimSurfing, whose API returns
-HTTP 500 from here, and the product PDFs do not carry the curve. So the conservative pick is the
-one that changes nothing. With SimSurfing access, compare the two at 5 V bias — the extra stock
-is real.
+**Why not the Murata 25 V part with stock.** `GRM21BC81E226ME44K` keeps the manufacturer, costs
+less ($0.38) and runs to +105 °C. But it is **X6S, a different dielectric formulation**, and its
+DC-bias curve could not be verified — Murata publishes that only through SimSurfing, which
+returns HTTP 500/503 from here, and the product PDFs do not carry the curve. **DC bias is the
+entire reason for going to 25 V**, so an unverifiable bias curve is the wrong thing to accept in
+exchange for it. It also holds only 2,589.
 
-**Checked and rejected:** `ZRA21CR61E226ME01L` (Murata, 25 V X5R, 5,330) looks ideal in a Mouser
-listing, but Digi-Key's parameters give its package as *Nonstandard SMD* at **1.65 mm** thick,
-not 0805/1.45 mm. Not a drop-in. `KGM21AR51E226MU` (Kyocera AVX, 612 + 5 at Mouser, $1.06,
-28-week lead) is a genuine second source if both Murata parts dry up.
+**The part to come back to** is `GRT21BR61E226ME13L`: the incumbent's own family at 25 V, so it
+would make this swap cost nothing at all. Re-check it before every order — if it has restocked,
+take it.
 
-The 16 V part is **no longer recommended** now that 25 V is in stock.
+**Also checked:** `C0805X5R226M250NPH` (EYang, 400,000, $0.17, no lead time) is the cheapest and
+deepest by far, but it is a budget maker on a board that is otherwise Murata / KEMET / YAGEO.
+`GMC21X5R226M25NT` (Cal-Chip, 46,919), `CL21A226MAYNNWE` (Samsung, 2,000, 39-week lead) and
+`KGM21AR51E226MU` (Kyocera AVX, 233 + 7, $1.06, 28-week lead) are genuine second sources.
+**Rejected:** `ZRA21CR61E226ME01L` reads as 25 V X5R with stock, but Digi-Key gives its package
+as *Nonstandard SMD* at **1.65 mm**, not 0805 / 1.45 mm. Not a drop-in.
+
+**If every 25 V line above dries up,** fall back to the 16 V `GRT21BR61C226ME13K`. It is
+MouseBiteLabs' own choice, it is buildable, and it costs only the headroom ECO-21 went after.
 
 **`U14` is the longest lead on the board at 24 weeks, and it DOES block a full build.** The
 MIC1553 drives the low-battery LED blink.
@@ -255,6 +280,10 @@ Nothing recorded why any of the three differed. The 22 µF line is the instructi
 already been swapped once *because the incumbent was at zero stock*, and the replacement was at
 zero too — both 25 V parts in that family are. Taking his 16 V part costs some DC-bias headroom,
 which ECO-15 records as a deliberate trade and a thing to scope on the first build.
+
+**ECO-21 then moved it a third time**, off his part and onto YAGEO's 25 V `CC0805MKX5R8BB226`,
+buying that headroom back at the price of the AEC-Q200 and soft-termination no 25 V part
+carries. The row above is the ECO-15 state, not the current one.
 - ~~**`F1` and `PTC1` disagree across three places.**~~ **Fixed by
   [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md).** The schematic said
   `F0805B2R00FSTR` (KYOCERA AVX 2 A fuse, 0.08 Ω) and `0805L075SLYR` (Littelfuse PPTC); both PCB
@@ -343,8 +372,10 @@ reliably fake the touch input.
    are mechanical. **Both of those are now settled by ECO-15, and not the way this list
    assumed:** the 10 µF `GRT` "swap" is not a swap at all — MouseBiteLabs' own link already
    buys `GRT188R61E106ME13D`, so there is nothing to apply. And the 22 µF line went the
-   other way: no 25 V part in that family is in stock anywhere, so it returns to his 16 V
-   `GRT21BR61C226ME13K`.
+   other way: no 25 V part in that family is in stock anywhere, so it returned to his 16 V
+   `GRT21BR61C226ME13K`. **ECO-21 has since taken it to 25 V** on YAGEO's
+   `CC0805MKX5R8BB226`, leaving the `GRT` family behind because no 25 V `GRT` exists in
+   stock — see the 22 µF section above for the full cost.
 3. Correct the `D1`/`D2` *Description* field, which calls a standard switching diode a
    Schottky, and fix the two footprint mismatches; add tantalum polarity marking. `SW1`'s
    "ordering code defect" was withdrawn by ECO-15 — it was never one. The `F1`/`PTC1`

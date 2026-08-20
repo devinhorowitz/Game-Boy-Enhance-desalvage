@@ -156,7 +156,7 @@ buy nothing. A pass that changes everything it touches is not a pass, it is a ha
 
 The 10 µF and 22 µF bulk lines were already moved to Murata's **GRT** soft-termination
 series (AEC-Q200) when they went out of stock — see
-[`pcbway-assembly/`](../pcbway-assembly/README.md). Soft termination is a genuine longevity
+[`pcbway-assembly/`](../pcbway-assembly/README.md). (The 22 µF line no longer carries it: [ECO-21](ECO-21_22uf_line_to_25v.md) traded soft termination for a 25 V rating, because no 25 V `GRT` is in stock. The 10 µF line still does.) Soft termination is a genuine longevity
 feature in a handheld that gets dropped: it is what stops a board-flex crack from reaching
 the electrodes.
 
