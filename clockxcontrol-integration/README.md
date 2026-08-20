@@ -32,7 +32,7 @@ The engineering record, in order:
 
 | | What |
 |---|---|
-| [ECO-6](ECO-6_clockxcontrol_footprint.md) | the land pattern, the `C7` relocation, the wire pads, `JP3`, and the rev B shift west |
+| [ECO-6](ECO-6_clockxcontrol_footprint.md) | the land pattern, the `C7` relocation, the wire pads, `JP4`, and the rev B shift west |
 | [ECO-7](ECO-7_u2_supply_and_dnp.md) | `X1`/`C3`/`C4` marked DNP; the `U2` pin-37 and `Net-(Q5B-G)` blockers, and why the review's fix for them must not be applied |
 | [ECO-8](ECO-8_component_swaps.md) | thirteen part swaps from the [power review](../power-review/README.md) — `U7` off a rail it is not specified for, `PTC1` off a hold current it is under, and ~26 mW |
 | [ECO-9](ECO-9_assembly_split.md) | make the board say what a pick-and-place can actually buy and place — it was asking for the salvaged CPU |
@@ -40,6 +40,7 @@ The engineering record, in order:
 | [ECO-11](ECO-11_gate_drive_and_D1.md) | `Q9`/`Q10` to a logic-level FET, because the brownout latch was not guaranteed to arm — and why the `D1` finding was refused |
 | [ECO-12](ECO-12_wiki_audit_corrections.md) | the [wiki audit](../wiki-audit/README.md)'s two board changes — the stale `R3`/`R4`/`R64` annotation this fork was ordering, and giving `VOUT3` back the 108 mV ECO-8 trimmed |
 | [ECO-13](ECO-13_rebase_onto_agbm02.md) | **the base board is now MouseBiteLabs' AGBM-02.** ECO-5 culled, both ECO-7 blockers closed, `U2` becomes an orderable part — a build needs one donor chip, not two |
+| [ECO-14](ECO-14_clock_domain_and_audit_fixes.md) | a 44-agent audit of ECO-6/7 on the new base: the module is powered at 3.3 V but drives a pin in a 2.5 V domain; one real DRC violation; the `JP3`→`JP4` rename that never reached the docs; a rotation-sign bug in our own reader |
 
 ---
 
@@ -284,7 +285,7 @@ left-to-right in the same order as the module's own pads so the wires do not cro
 module pads land is photo-derived to ±0.5 mm, but that now only changes wire length — nothing has
 to be re-measured before a fab run.
 
-`JP3`, a default-open solder jumper 6.9 mm from `TP80`, gates the 73.5 mm CLK run so a board built
+`JP4`, a default-open solder jumper 6.9 mm from `TP80`, gates the 73.5 mm CLK run so a board built
 with the crystal never sees that stub on its oscillator node. Bridge it only when populating the
 module.
 
@@ -296,7 +297,7 @@ than the 6.3 mm it had on the stock board. Since ECO-13 the fiducial pair `FID2`
 
 The layout: three solder-through landings (yellow), the module’s hole-less CLK/V+/V− pads (orange
 rings) wired down to the three wire pads (cyan), `C7` in its new home, the two `VDD2` stitching
-vias that had to go, `JP3` and the routing:
+vias that had to go, `JP4` and the routing:
 
 ![ECO-6 layout](render/agbm01_cxc_board_after6.png)
 
@@ -315,7 +316,7 @@ neighbour:
 
 **Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
 antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
-crystal fitted. `JP3` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
+crystal fitted. `JP4` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
 electrically identical to the board without this ECO. Same default-open pattern MouseBiteLabs uses for
 `JP2`.
 
@@ -385,7 +386,7 @@ de-salvaged board's favour, not against it.
    stock install (1.6 mm of module on top of ~1.2 mm of RAM), which is field-proven in a GBA shell
    with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
    calipers.
-5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`, `JP3` and
+5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`, `JP4` and
    `TP83`/`TP84`/`TP85` if the board is ever updated from a schematic. Full list in
    [ECO-6 §6.8](ECO-6_clockxcontrol_footprint.md).
 6. **The two deleted `VDD2` stitching vias.** They are pure plane stitching in a lobe of pour that
@@ -403,7 +404,8 @@ board/agbm-02-clockxcontrol.zip               the modified board: AGBM-02_AA_1-1
 footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern built from the DMG Color geometry
 render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
 render/agbm01_cxc_placement.png               the window below the RAM, the C7 move and the deleted vias
-render/agbm01_cxc_board_after6.png            copper diff: landings, wire pads, JP3 and the full routing
+render/agbm01_cxc_board_after6.png            copper diff: landings, wire pads, JP4 and the full routing
+                                              *** PRE-REBASE: these renders are of the AGBM-01 board ***
 render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from his gerbers
 render/fab_front.png                          fab view, whole front side
 render/fab_back.png                           fab view, whole back side (mirrored)

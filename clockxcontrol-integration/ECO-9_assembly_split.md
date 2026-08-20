@@ -14,7 +14,7 @@ items, and five have through-hole pads.
 | Ref | | Why a machine cannot do it |
 |---|---|---|
 | `U1` | AGB-CPU, 128-pin QFP | **Salvaged from a donor board.** The schematic's own `Source` field reads `Salvage`. Not orderable at any price. |
-| ~~`U2`~~ | *(removed by [ECO-13](ECO-13_rebase_onto_agbm02.md))* | AGBM-02 carries MouseBiteLabs' own dual RAM land, so `U2` is an **orderable part** — `CY62157EV30LL-45ZXIT`, bought and placed by the machine. A build needs one donor chip, not two. Bridge `JP2` and `JP3` by hand afterwards; leave both open if you fit a salvaged AGB-SRAM instead, which the land still accepts. |
+| ~~`U2`~~ | *(removed by [ECO-13](ECO-13_rebase_onto_agbm02.md))* | AGBM-02 carries MouseBiteLabs' own dual RAM land, so `U2` is an **orderable part** — `CY62157EV30LL-45ZXIT`, bought and placed by the machine. A build needs one donor chip, not two. Bridge `JP2` and `JP3` by hand afterwards — those are **MouseBiteLabs' RAM straps**, not our clock jumper, which is `JP4`. Leave both open if you fit a salvaged AGB-SRAM instead, which the land still accepts. |
 | `P1` | AGB cartridge slot | 36 through-hole pins |
 | `P3` | CUI SJ-3524-SMT jack | 4 SMD + 4 through-hole signal pins + 2 unplated posts |
 | `P4` | AGB link port | 8 through-hole pins |

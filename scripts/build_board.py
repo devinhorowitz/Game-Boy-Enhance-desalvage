@@ -17,29 +17,37 @@ a binary blob nobody could re-derive.
 This is SOLAR-GLOW's `Generated/` doctrine applied here: the artifact is a FUNCTION of
 committed inputs, so it can be rebuilt, diffed, and gated. Its inputs are
 
-    agbm-01-ram-desalvage.zip   the ECO-5 base board, already committed at repo root
+    AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip
+                                MouseBiteLabs' AGBM-02, UNMODIFIED. His newest board.
     scripts/routes.json         the frozen ECO-6 routing
     the ECO tables below        every deliberate edit, one line each
 
-and its output is byte-identical to `AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb` inside
-`clockxcontrol-integration/board/agbm-01-clockxcontrol.zip`. Consistency check [1] asserts
+and its output is byte-identical to `AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb` inside
+`clockxcontrol-integration/board/agbm-02-clockxcontrol.zip`. Consistency check [1] asserts
 exactly that, which is what makes the ECO documents auditable rather than decorative.
 
 WHAT IT DOES, IN ECO ORDER
 
-    ECO-6  move C7 out of the module window; move the FID2/FID5 fiducial pair; drop the
-           two VDD2 stitching vias the R landing lands on; add the ClockxControl land
-           pattern, the three wire pads (TP83/84/85), TP82 and the CK1 isolation jumper
-           JP3; add the CXC_CLK net and route everything.
+    ECO-6  move C7 out of the module window; ADD six fiducials (MouseBiteLabs ships
+           none -- he hand-builds); drop the two VDD2 stitching vias the R landing lands
+           on; add the ClockxControl land pattern, the three wire pads (TP83/84/85) and
+           the CK1 isolation jumper JP4 -- JP4 and not JP3, because JP2 and JP3 are HIS
+           RAM straps on AGBM-02; add the CXC_CLK net and route everything.
     ECO-7  mark X1/C3/C4 DNP -- the ClockxControl drives CK1 directly, so an assembly
            house must not fit the crystal or its load caps.
-    ECO-8  thirteen Value/Description edits from the power review. No copper.
+    ECO-8  eleven Value/Description edits from the power review. No copper. Three of
+           the original thirteen are already done upstream on AGBM-02 -- see ECO-13.
     ECO-9  mark the parts a pick-and-place cannot handle `exclude_from_bom` +
            `exclude_from_pos_files`, so the board itself says what a machine can buy
            and place. No copper either -- attributes only.
-    ECO-10 rescale both LTC3527 feedback dividers 10x down, same ratios, so the
-           converter's own FB input current stops being the dominant rail error. Six
-           Values, no copper.
+    ECO-10 the precision pass. On AGBM-02 it changes NO Value -- its LTC3527 divider
+           work went with the LTC3527; its part-number work lives in mpn_overrides.json.
+    ECO-12 the wiki audit. Also NO Value on this base: AGBM-02 already carries the
+           R3/R4/R64 the AGBM-01 PCB had stale.
+    ECO-13 the rebase itself.
+    ECO-14 the ClockxControl audit on the new base -- and the open question that the
+           module is powered at VDD3 = 3.3 V while the pin it drives sits in the
+           VDD2 = 2.5 V domain.
     ECO-11 Q9 and Q10 to a logic-level FET, because the NDC7002N's worst-case gate
            threshold is ABOVE the gate drive those two are given. Two Values, no copper.
 
@@ -88,9 +96,14 @@ FIDUCIALS = [("FID1", 26.0, -8.0, "F.Cu"), ("FID4", 26.0, -8.0, "B.Cu"),
              ("FID3", 33.0, -69.0, "F.Cu"), ("FID6", 33.0, -69.0, "B.Cu"),
              ("FID2", 106.25, -57.25, "F.Cu"), ("FID5", 106.25, -57.25, "B.Cu")]
 # The three button landings the module's plated through-holes solder down onto.
-PADS = [("1", 4.525, 1.0, 71, "/CPU/TP2", "SEL"),
-        ("2", 7.025, 3.5, 13, "/CPU/TP9", "L"),
-        ("3", 7.025, 1.0, 12, "/CPU/TP8", "R")]
+# Net NAMES, not numbers. The numbers used to be literals here (71/13/12) and were the
+# last place in this file where a net was named by its number -- WIRE_PADS and JP4 both go
+# through NET[]. On the AGBM-02 rebase all three happened to keep their numbers, which is
+# the kind of luck that hides a bug rather than preventing it: had one moved, the module's
+# L button would have soldered onto whatever net inherited 13.
+PADS = [("1", 4.525, 1.0, "/CPU/TP2", "SEL"),
+        ("2", 7.025, 3.5, "/CPU/TP9", "L"),
+        ("3", 7.025, 1.0, "/CPU/TP8", "R")]
 GHOSTS = [(4.525, 3.5), (4.525, -1.5), (7.025, -1.5)]   # F.Fab marks for the unused holes
 LABELS = [("SEL", 3.0, 1.0), ("L", 8.5, 3.5), ("R", 8.5, 1.0)]
 # The wire pads. y = -37.95, not -38.6: at -38.6 the 1.2 mm pads overlap the module body
@@ -495,7 +508,7 @@ def build():
 \t\t\t(pintype "passive")
 \t\t\t(uuid "{uid('modpad' + num)}")
 \t\t)
-''' for num, x, y, net, nm, _lab in PADS)
+''' for num, x, y, nm, _lab in PADS for net in (NET[nm],))
     MOD = f'''\t(footprint "ClockxControl_GBA_GBC"
 \t\t(layer "F.Cu")
 \t\t(uuid "{uid('mod1')}")

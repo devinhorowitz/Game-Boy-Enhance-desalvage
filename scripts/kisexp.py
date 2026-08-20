@@ -197,7 +197,19 @@ def pad_positions(board, net_number):
         if fp.at is None:
             continue
         fx, fy, rot = fp.at
-        a = math.radians(rot)
+        # SIGN. KiCad stores footprint rotation counter-clockwise in a y-DOWN coordinate
+        # system, so mapping a pad's local offset into board space needs radians(-rot),
+        # not radians(rot). This was wrong until 2026-08-20 and it mattered: every pad on
+        # a footprint rotated by anything other than a multiple of 180 landed in the wrong
+        # place, which silently swapped pad 1 and pad 2 on every 90-degree part.
+        #
+        # The test that settles it, on the shipped board: for each pad on a rotated
+        # footprint, ask which sign puts it nearer a track endpoint of its OWN net.
+        #     -rot nearer: 200      +rot nearer: 16      tie: 3
+        # and the -rot winners include exact 0.000 mm hits (R39.1, R39.2, C30.2) that sit
+        # 1.55-1.65 mm away under +rot. A pad sitting exactly on its own track endpoint is
+        # ground truth; 1.6 mm away is not.
+        a = math.radians(-rot)
         for m in _RE_PADAT.finditer(fp.body):
             seg = fp.body[m.start():m.start() + 1500]
             nm = re.search(r'\(net (\d+) "', seg)
@@ -206,7 +218,7 @@ def pad_positions(board, net_number):
             dx, dy = float(m.group(2)), float(m.group(3))
             out.append((f"{fp.ref}.{m.group(1)}",
                         fx + dx * math.cos(a) - dy * math.sin(a),
-                        fx * 0 + fy + dx * math.sin(a) + dy * math.cos(a)))
+                        fy + dx * math.sin(a) + dy * math.cos(a)))
     return out
 
 

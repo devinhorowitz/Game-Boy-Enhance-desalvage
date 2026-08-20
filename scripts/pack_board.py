@@ -42,6 +42,7 @@ MEMBERS = [
     ("ECO-11_gate_drive_and_D1.md", "ECO-11_gate_drive_and_D1.md"),
     ("ECO-12_wiki_audit_corrections.md", "ECO-12_wiki_audit_corrections.md"),
     ("ECO-13_rebase_onto_agbm02.md", "ECO-13_rebase_onto_agbm02.md"),
+    ("ECO-14_clock_domain_and_audit_fixes.md", "ECO-14_clock_domain_and_audit_fixes.md"),
 ]
 
 
