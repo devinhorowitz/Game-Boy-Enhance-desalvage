@@ -1,44 +1,51 @@
 (footprint "ClockxControl_GBA_GBC"
 	(version 20241229)
-	(generator "manual")
+	(generator "scripts/build_board.py")
 	(generator_version "9.0")
 	(layer "F.Cu")
-	(descr "insideGadgets GBA/GBC ClockxControl (iG CLK GEN) mezzanine landing pattern. The module is 18.65 x 12.00 mm and floats flat on the host board; its I/O pads are plated through-holes, so it is fixed by dropping solder through the hole onto the pad below. Geometry taken from MouseBiteLabs DMGC-CPU-01 rev 2.5 (Game Boy DMG Color), which carries the first known host-side footprint for this module. Pads 1/2/3 are the module's button inputs; on a GBA firmware these are 1=Select, 2=L, 3=R. CLK, V+ and V- are NOT solder-through here - their positions on the module have not been measured - so they are wired to nearby pads, exactly as the DMG Color board does.")
-	(tags "clockxcontrol insidegadgets mezzanine gba gbc overclock")
-	(attr smd)
-	(property "Reference" "MOD"
-		(at 0 -7.4 0)
+	(descr "insideGadgets GBA/GBC ClockxControl mezzanine landing pattern. Module floats flat on this footprint; its plated through-hole pads are filled with solder from above to bond it to these pads. Geometry from MouseBiteLabs DMGC-CPU-01 rev 2.5.")
+	(tags "clockxcontrol insidegadgets mezzanine")
+	(attr smd exclude_from_bom exclude_from_pos_files)
+	(property "Reference" "REF**"
+		(at 0 -7.4 180)
 		(layer "F.SilkS")
-		(uuid "00000000-0000-0000-0000-000000000001")
+		(uuid "d10f910b-8940-50f7-96b7-41dbe3d2676c")
 		(effects
-			(font (size 1 1) (thickness 0.15))
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
 		)
 	)
 	(property "Value" "ClockxControl"
-		(at 0 7.4 0)
+		(at 0 7.4 180)
 		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000002")
+		(uuid "debe77e3-3839-4d3a-4b6e-77d0ff1b3201")
 		(effects
-			(font (size 1 1) (thickness 0.15))
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
 		)
 	)
-
 	(fp_text user "CLOCKXCONTROL"
-		(at 0 0 0)
+		(at 0 0 180)
 		(layer "F.SilkS")
-		(uuid "00000000-0000-0000-0000-000000000003")
+		(uuid "22f6dbf7-faed-7cb0-06bf-b9fae2f57647")
 		(effects
-			(font (size 1.2 1.2) (thickness 0.2))
+			(font
+				(size 1.05 1.05)
+				(thickness 0.2)
+			)
 		)
 	)
-
 	(fp_rect
 		(start -9.325 -6)
 		(end 9.325 6)
 		(stroke (width 0.2) (type solid))
 		(fill no)
 		(layer "F.SilkS")
-		(uuid "00000000-0000-0000-0000-000000000010")
+		(uuid "90d18f6b-54f9-6c07-d5e9-035eccb4cd7f")
 	)
 	(fp_rect
 		(start -9.325 -6)
@@ -46,7 +53,7 @@
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000011")
+		(uuid "7dca8c74-64b7-550f-144a-c98dc2fb1995")
 	)
 	(fp_rect
 		(start -9.575 -6.25)
@@ -54,54 +61,15 @@
 		(stroke (width 0.05) (type solid))
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "00000000-0000-0000-0000-000000000012")
+		(uuid "a4bbd32a-fc5f-d90c-0aff-4b19b60dfab9")
 	)
-
-	(fp_line
-		(start 6.025 -6)
-		(end 6.025 6)
-		(stroke (width 0.1) (type dash))
-		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000013")
-	)
-	(fp_text user "pad end"
-		(at 7.7 -4.6 90)
-		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000014")
-		(effects
-			(font (size 0.7 0.7) (thickness 0.1))
-		)
-	)
-
-	(pad "1" smd circle
-		(at 4.525 1)
-		(size 1.27 1.27)
-		(layers "F.Cu" "F.Mask")
-		(solder_mask_margin 0.0635)
-		(uuid "00000000-0000-0000-0000-000000000101")
-	)
-	(pad "2" smd circle
-		(at 7.025 3.5)
-		(size 1.27 1.27)
-		(layers "F.Cu" "F.Mask")
-		(solder_mask_margin 0.0635)
-		(uuid "00000000-0000-0000-0000-000000000102")
-	)
-	(pad "3" smd circle
-		(at 7.025 1)
-		(size 1.27 1.27)
-		(layers "F.Cu" "F.Mask")
-		(solder_mask_margin 0.0635)
-		(uuid "00000000-0000-0000-0000-000000000103")
-	)
-
 	(fp_circle
 		(center 4.525 3.5)
 		(end 5.16 3.5)
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000201")
+		(uuid "ced72c27-78da-a7f0-8b3e-ee04bc5aa38f")
 	)
 	(fp_circle
 		(center 4.525 -1.5)
@@ -109,7 +77,7 @@
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000202")
+		(uuid "a2a3af71-2125-67dd-2b26-41c446db0fe6")
 	)
 	(fp_circle
 		(center 7.025 -1.5)
@@ -117,32 +85,64 @@
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "00000000-0000-0000-0000-000000000203")
+		(uuid "fe365491-c3d0-81ad-9aee-e2f595f862bd")
 	)
-
-	(fp_text user "1"
-		(at 3.2 1 0)
+	(fp_text user "SEL"
+		(at 3.0 1.0 180)
 		(layer "F.SilkS")
-		(uuid "00000000-0000-0000-0000-000000000301")
+		(uuid "8fa15f44-e93e-df7b-eb17-16e37507c2f5")
 		(effects
-			(font (size 0.7 0.7) (thickness 0.12))
+			(font
+				(size 0.7 0.7)
+				(thickness 0.12)
+			)
 		)
 	)
-	(fp_text user "2"
-		(at 8.4 3.5 0)
+	(fp_text user "L"
+		(at 8.5 3.5 180)
 		(layer "F.SilkS")
-		(uuid "00000000-0000-0000-0000-000000000302")
+		(uuid "0f79ccbc-9bb7-54c9-32ea-2fe21bcf539a")
 		(effects
-			(font (size 0.7 0.7) (thickness 0.12))
+			(font
+				(size 0.7 0.7)
+				(thickness 0.12)
+			)
 		)
 	)
-	(fp_text user "3"
-		(at 8.4 1 0)
+	(fp_text user "R"
+		(at 8.5 1.0 180)
 		(layer "F.SilkS")
-		(uuid "00000000-0000-0000-0000-000000000303")
+		(uuid "0f10b625-4291-cbb5-b0a5-c03c05ce83d7")
 		(effects
-			(font (size 0.7 0.7) (thickness 0.12))
+			(font
+				(size 0.7 0.7)
+				(thickness 0.12)
+			)
 		)
+	)
+	(pad "1" smd circle
+		(at 4.525 1.0 180)
+		(size 1.27 1.27)
+		(layers "F.Cu" "F.Mask")
+		(solder_mask_margin 0.0635)
+		(pintype "passive")
+		(uuid "daf1b62e-cf13-5933-d5f4-6c68d7fc6ddd")
+	)
+	(pad "2" smd circle
+		(at 7.025 3.5 180)
+		(size 1.27 1.27)
+		(layers "F.Cu" "F.Mask")
+		(solder_mask_margin 0.0635)
+		(pintype "passive")
+		(uuid "5ee70116-3bef-d042-c8ff-a7250a576f16")
+	)
+	(pad "3" smd circle
+		(at 7.025 1.0 180)
+		(size 1.27 1.27)
+		(layers "F.Cu" "F.Mask")
+		(solder_mask_margin 0.0635)
+		(pintype "passive")
+		(uuid "3d39cf0c-8989-8c26-71d6-88fa67bb8a45")
 	)
 	(embedded_fonts no)
 )

@@ -4,8 +4,8 @@ Cuts the insideGadgets **GBA ClockxControl** landing pattern into
 `AGBM-01_AA_1-2_GBE-plus.kicad_pcb` (the ECO-5 de-salvage board), so the module solders
 directly to the AGBM instead of being taped down and wired to six scattered points.
 
-Output board: [`board/agbm-01-clockxcontrol.zip`](board/agbm-01-clockxcontrol.zip) →
-`AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb`.
+Output board: [`board/agbm-02-clockxcontrol.zip`](board/agbm-02-clockxcontrol.zip) →
+`AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb`.
 
 Derivative of MouseBiteLabs Game Boy Enhance (AGBM-01) and Game Boy DMG Color, CC BY-SA 4.0.
 
@@ -42,8 +42,14 @@ Every edit sits in the band between the RAM and the cartridge connector.
 | Ref | From | To | Why |
 |---|---|---|---|
 | `C7` (0603, `VDD35`/`GND`) | 91.900, −41.100 rot 180 | **93.100, −37.400 rot 180** | It was the only part inside the one viable module window. The new spot is in the clear band between the module and the cartridge connector, and it puts `C7` pad 1 **2.4 mm from `P1` pad `C1`** (the cart's `VDD35` pin) instead of the 6.3 mm it started at. |
-| `FID2` (fiducial, F.Cu) | 89.000, −48.000 | **106.250, −57.250** | Inside the module outline. |
-| `FID5` (fiducial, B.Cu) | 89.000, −48.000 | **106.250, −57.250** | Moved with its pair — and it needed to move anyway, see §6.4. |
+
+**The fiducials are no longer *moved*, they are *added*.** On the ECO-5 AGBM-01 base a fiducial
+ECO had already placed six, and ECO-6 relocated the `FID2`/`FID5` pair out of the module outline.
+[ECO-13](ECO-13_rebase_onto_agbm02.md) rebased onto MouseBiteLabs' AGBM-02, which **carries no
+fiducials at all** — he hand-builds, and a hand builder needs no optical registration. So all six
+are created by this fork, placed clear of the module to begin with, and the row that used to sit
+here describing a move from (89.000, −48.000) has been deleted because that position never existed
+on this base.
 
 `C7` had **no tracks attached** on the original board — both pads were fed by pours — so nothing
 was orphaned by the move. At the new position its `VDD35` pad lands inside the F.Cu `VDD35` pour
@@ -141,14 +147,35 @@ every other of a different net, plus hole-to-hole and board-edge rules — was r
 board and on the patched board, and the two result sets differenced:
 
 ```
-new violations introduced by this ECO : 0
-pre-existing violations removed       : 3
+new violations introduced by this ECO : 0     <-- TRUE ON AGBM-01, FALSE ON AGBM-02
 ```
 
-The three removed are worth flagging: on the original `_GBE-plus` board, **`FID5` (the back-side
-fiducial added by the fiducial ECO) overlapped three `B.Cu` traces** — nets 87, 97 and 109 — by up
-to 0.582 mm. That is an exposed-copper-over-traces short waiting to happen, and `FID5` was also
-inside the `B.Cu` cartridge keepout. Moving the pair to (106.250, −57.250) clears both problems.
+> **Corrected by [ECO-14](ECO-14_clock_domain_and_audit_fixes.md).** That sweep was run on the
+> AGBM-01 base. On MouseBiteLabs' AGBM-02 there is **one** new clearance violation, and it is this
+> ECO's own copper: the `CXC_CLK` via at **(47.450, −59.600)** sits **0.1632 mm** from `C13` pad 1
+> (`VDD5`, `B.Cu`, unmoved by any ECO), against the project's single `Default` netclass clearance
+> of **0.200 mm** — measured centre-to-centre 1.0680 mm, roundrect corner radius 0.225, via radius
+> 0.350. It fails by 0.037 mm. It clears the board's `min_clearance` of 0.150 and is well inside
+> PCBWay's 0.127 mm capability, so it is a rule violation rather than a manufacturability one — but
+> **FIXED in [ECO-14 §14.2](ECO-14_clock_domain_and_audit_fixes.md):** the via moved to
+> (47.500, −59.500), worst foreign clearance now **0.2321 mm**. Check [13] gates it.
+
+
+**Superseded by [ECO-13](ECO-13_rebase_onto_agbm02.md).** The three removed violations were
+`FID5` overlapping three `B.Cu` traces on the *AGBM-01* `_GBE-plus` board — a defect that cannot
+exist on AGBM-02, because AGBM-02 has no fiducials to inherit. The count above was measured on the
+old base and is kept only as the record of what that analysis found.
+
+**The fiducials were then moved again — see [ECO-14 §14.3](ECO-14_clock_domain_and_audit_fixes.md).**
+The spots this ECO inherited were never checked against AGBM-02's *copper*: `FID3`/`FID6` sat
+0.768 mm from a `GND` via, inside their own 1.0 mm mask window, and `FID1`/`FID4` cleared by 64 µm.
+**And then a third time, in [ECO-20 §20.2](ECO-20_drc_defects_closed.md)** — ECO-14's search
+modelled copper and nothing else, so two of its three pairs ended up in the shell's routed holes.
+All six are now placed against the outline, the keepouts, the mask and the courtyards, front and
+back searched separately.
+All three pairs moved — to (28.1, −9.6), (31.0, −69.5) and (110.85, −57.65), clearing 1.800 mm to
+2.478 mm — and each pad gained a `(clearance 0.55)` override so the `GND` pour recedes past the
+window on a re-pour. Consistency check [13] now asserts both.
 
 The checker models rectangular pads as circumscribed circles, so its absolute violation count on
 either board is dominated by false positives at fine-pitch parts (adjacent TSOP pads read as
@@ -191,7 +218,7 @@ separate wires onto than three pads in open ground, for about 1 mm of total wire
 
 | Ref | Net | Position | Wire from the module pad |
 |---|---|---|---|
-| `TP83` | `CXC_CLK` (new net 238) | 97.900, −37.950 | **3.8 mm** |
+| `TP83` | `CXC_CLK` (new net 241) | 97.900, −37.950 | **3.8 mm** |
 | `TP84` | `VDD3` | 99.450, −37.950 | **5.9 mm** |
 | `TP85` | `GND` | 101.000, −37.950 | **4.7 mm** |
 
@@ -206,26 +233,26 @@ these three — measure if you want the wires trimmed exactly, not because the b
 `TP82`, the earlier spare GND wire pad, is **removed**: it sat under the module body, where it was
 no use for a wire either.
 
-### `JP3` — CK1 isolation jumper
+### `JP4` — CK1 isolation jumper
 
 Getting `CK1` to the module means 73.5 mm of copper, mostly on `B.Cu` through the cartridge
 keepout. On a board built the normal way, with the crystal fitted and no module, that would be a
 dead stub on the oscillator's high-impedance XIN node — roughly 5 pF of added load (about 40 ppm
 of frequency error) plus a 73 mm antenna into the one node that must not be disturbed.
 
-So the run is gated. `JP3` is a 2-pad open solder jumper at **(45.000, −64.200)**, 6.9 mm from
+So the run is gated. `JP4` is a 2-pad open solder jumper at **(45.000, −64.200)**, 6.9 mm from
 `TP80`, pads ø1.05 mm at 1.3 mm pitch:
 
 - pad 1 → `/CPU/CK1` (5.0 mm of new track back to the existing CK1 copper)
 - pad 2 → `CXC_CLK`, the net that carries the run to `TP83`
 
 **Open by default**, so a crystal build is electrically identical to the board without this ECO;
-all that remains on CK1 is the 5 mm to `JP3` pad 1. Bridge it only when populating the module.
+all that remains on CK1 is the 5 mm to `JP4` pad 1. Bridge it only when populating the module.
 Same default-open pattern ECO-5 used for `JP2`.
 
 ### Also in this pass
 
-- **New net 238 `CXC_CLK`.**
+- **New net 241 `CXC_CLK`.**
 - **Routing added**: `CXC_CLK` 73.5 mm / 2 vias, `VDD3` 7.0 mm / 2 vias from `TP84` to `P1` pad
   `S1`, `GND` 4.6 mm / 1 via from `TP85` to the `GND` stitch via already at (100.200, −35.300),
   and the two `C7` ties from §6.1. Board total is **225.5 mm of new track, 9 new vias, and two
@@ -233,12 +260,12 @@ Same default-open pattern ECO-5 used for `JP2`.
 
 | Net | Length | Vias |
 |---|---|---|
-| `CXC_CLK` (CLK run + `JP3`) | 73.5 mm | 2 |
+| `CXC_CLK` (CLK run + `JP4`) | 73.5 mm | 2 |
 | `/CPU/TP9` (L) | 59.4 mm | 2 |
 | `/CPU/TP2` (SEL) | 46.9 mm | 2 |
 | `/CPU/TP8` (R) | 28.6 mm | 0 |
 | `VDD3` (`TP84` → `P1.S1`) | 7.0 mm | 2 |
-| `/CPU/CK1` (`JP3` pad 1) | 5.0 mm | 0 |
+| `/CPU/CK1` (`JP4` pad 1) | 5.0 mm | 0 |
 | `GND` (`TP85` + `C7` pad 2) | 4.6 mm | 1 |
 | `VDD35` (`C7` pad 1) | 0.4 mm | 0 |
 
@@ -255,35 +282,85 @@ the board), the **§6.4 result still holds**.
 ## 6.6 Fab-view renders
 
 There is no `kicad-cli` in the environment these edits were made in, so the views in `render/`
-are produced by a renderer built against the board file directly: board outline, copper, an
-**approximate zone re-pour** (every zone clipped to the board, minus higher-priority zones, minus
-a 0.2 mm halo around every other-net track, pad, via and hole), soldermask openings, silkscreen
-and drills. It is a fab preview, not a gerber export — treat it as a visual check, and take the
-real gerbers from KiCad.
+are produced by a renderer built against the board file directly: board outline, copper tracks
+and arcs, pads, vias, the zone fills and the drills. It is a fab preview, not a gerber export —
+treat it as a visual check, and take the real gerbers from KiCad. Soldermask, silkscreen, paste
+and the true outline of the board's 32 `custom` pads are not drawn.
+
+**That renderer is now `scripts/render_board.py`, and it is committed.** ECO-14 §14.5 records
+why that sentence needed writing: the first renderer never was, so the PNGs shipped with no
+generator, and when ECO-13 rebased this fork from AGBM-01 onto AGBM-02 every one of them went
+on describing a board the repository no longer contained. Their git blob SHAs were identical
+before and after. Check **[15]** re-renders each view from the committed board and compares the
+raw pixel buffer, so a picture can no longer outlive the board it was drawn from.
+
+**The pour drawn is the STORED one, which is the stale one.** The earlier renderer drew an
+*approximate re-pour* — what the pour ought to look like. That is a friendlier picture and a
+worse one: it showed a board that does not exist in the file, and it concealed the very defect
+check [14] exists to gate. These views draw MouseBiteLabs' fill as KiCad last computed it,
+before this fork added any copper, and ring the 19 objects it swallows.
 
 | File | What |
 |---|---|
-| `render/fab_front.png` | whole front side |
-| `render/fab_back.png` | whole back side, mirrored so silk reads |
-| `render/fab_landings.png` | the landings, clean |
-| `render/fab_landings_fit.png` | the same, annotated — landings, wire pads and wire lengths |
-| `render/agbm01_cxc_placement.png` | placement diagram: the module window, its neighbours, `C7` before and after, the deleted stitching vias |
-| `render/agbm01_cxc_board_after6.png` | copper diff — every new track, via and pad against the original board |
-| `render/fab_fit.png` | **fit check**: the module body drawn in place, its plated holes over the `MOD1` pads, its hole-less pads ringed at ±0.5 mm with their wires, and the gap to every neighbour |
-| `render/fab_landings_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
+| `render/agbm02_front.png` | `F.Cu`, whole board, this fork's copper in yellow |
+| `render/agbm02_back.png` | `B.Cu`, mirrored so it reads as you look at it |
+| `render/agbm02_cxc_diff.png` | copper diff — MouseBiteLabs' copper faded to a third, everything at full value is what ECO-6 added or moved |
+| `render/agbm02_cxc_placement.png` | placement: the module window, the `C7` move, the `MOD1` landings, the routing and the three wire pads |
+| `render/agbm02_cxc_landings.png` | the three landed lattice sites, close up |
+| `render/agbm02_cxc_fit.png` | **fit check**: the module body and courtyard drawn in place, with **all six** lattice sites — the three this fork lands ringed green, the three it does not ringed grey |
+| `render/agbm02_cxc_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
 
-Body clearances, from `fab_fit.png` — courtyard gaps, so the real body-to-body figures are a
-little larger:
+### 6.6.1 What the fit view settled, and what it did not
 
-| Neighbour | Gap to the module body |
-|---|---|
-| `U2` (RAM), above | 0.55 mm |
-| `C7`, below | 0.82 mm |
-| `TP18`, left | 0.93 mm |
-| `P1` (cartridge connector), below | 2.05 mm |
-| `R3`, right | 2.13 mm |
-| `TP114` / `TP115`, right | 2.23 mm |
-| `U10`, right | 2.34 mm |
+Drawing the lattice instead of describing it makes its geometry exact: **a 2 × 3 grid on a
+2.500 mm pitch in both axes**, at `MOD1`-local x ∈ {4.525, 7.025} and y ∈ {−1.5, 1.0, 3.5}.
+Landed are (4.525, 1.0) → `SEL`, (7.025, 3.5) → `L` and (7.025, 1.0) → `R`; the other three are
+`F.Fab` circles of radius 0.635 mm and nothing else. The landed set spans both columns and two
+of the three rows — an **L**, not a row, a column or a diagonal.
+
+Two things fall out of that, neither of which closes the open item:
+
+* **2.500 mm is not 0.100 inch.** A 0.1″ lattice would be 2.540 mm, so if the real module is
+  imperial this footprint accumulates 0.04 mm per step and 0.08 mm across the grid. That is
+  small against a plated hole, but it is a photo-derivation artifact and it is measurable on a
+  physical module in one pass with calipers.
+* **The tempting explanation is wrong.** Three landed sites and three wire pads (`TP83`/`TP84`/
+  `TP85`) invites "the six sites are six signals, three landed and three wired". §6.7 item 3b
+  kills it: the module's `CLK`/`V+`/`V−` pads *have no holes*, which is precisely why they are
+  wired rather than landed. So the three unlanded lattice sites are still three unexplained
+  plated holes. Recording the refutation here because the next reader will have the same idea.
+
+Body clearances, from `render/agbm02_cxc_fit.png` and now **held by check [13]** rather than
+read off a picture. Two things this table did not previously say, both of which change how it
+should be read:
+
+* **The rows are not all the same measurement.** A neighbour with a courtyard is measured
+  courtyard-to-body; a bare test pad has no courtyard, so it is measured pad-copper-to-body.
+  Comparing `TP18`'s 0.93 with `U2`'s 0.55 as though they were the same quantity is a mistake
+  the old single heading invited.
+* **Only same-side parts can foul the module.** A sweep that ignores which side a part is on
+  puts `C12` at 0.055 mm and `U17` at 0.65 mm, which read like collisions. Both are on `B.Cu`,
+  1.6 mm of FR4 away. They are not neighbours in any sense that matters.
+
+| Neighbour | Basis | Gap to the module body |
+|---|---|---|
+| `TP83` / `TP84` / `TP85` — this fork's own wire pads | pad | 0.400 mm |
+| `U2` (RAM), above | courtyard | 0.550 mm |
+| `C7`, below — *after* the ECO-6 move | courtyard | 0.820 mm |
+| `TP18`, left | pad | 0.925 mm |
+| `P1` (cartridge connector), below | pad | 2.050 mm |
+| `R3`, right | courtyard | 2.145 mm |
+
+`TP83`/`TP84`/`TP85` are the tightest thing on the board at 0.400 mm, and that is deliberate —
+they sit just clear of the body so the three wires stay short (§6.5). `U2` at 0.550 mm is a
+package edge, not a joint anyone has to get an iron onto, which is why it is acceptable there
+and would not be on a hand-soldered part. Check [13] fails below a 0.35 mm floor.
+
+**These figures survived the ECO-13 rebase unchanged**: every courtyard row above reproduces
+on AGBM-02 to three decimals against what was measured on AGBM-01. That was luck, not design —
+nothing was holding them, which is why they are ledgered now. `TP114`/`TP115` at 2.23 mm and
+`U10` at 2.34 mm were in the old table and are outside the eight nearest neighbours on AGBM-02;
+they are further away than `R3` and no longer worth a row.
 
 Rev A, for comparison, was `R3` 0.25 / `U2` 0.25 / `TP114`+`TP115` 0.35 / `U10` 0.47 /
 `P1` 2.35 / `TP18` 2.80. Every neighbour that was inside half a millimetre is now outside two,
@@ -382,7 +459,7 @@ pre-existing removed      : 3   (the FID5 overlaps from §6.4)
 
 1. **Open in KiCad 9, run DRC, re-pour both inner planes and the outer pours.** This ECO is a
    scripted edit verified by a scripted checker. It has not been through KiCad's DRC engine.
-2. **`MOD1`, `JP3` and `TP83`/`TP84`/`TP85` exist on the board only.** The fork's archive carries
+2. **`MOD1`, `JP4` and `TP83`/`TP84`/`TP85` exist on the board only.** The fork's archive carries
    no schematic, so these have no symbols. Running *Update PCB from Schematic* will try to delete them. Add
    matching symbols (or a board-only exclusion) before doing that.
 3. **Confirm the module's pad identities.** Which of the three lattice sites is Device pad 1, 2
@@ -396,8 +473,10 @@ pre-existing removed      : 3   (the FID5 overlaps from §6.4)
    keepout MouseBiteLabs defined, and a module lying directly on the board (1.6 mm) sits *lower*
    than the field-proven stock install (1.6 mm of module on top of ~1.2 mm of RAM). Good evidence,
    not a measurement — same class of open item as ECO-5's front-shell fit.
-5. **Depopulate `X1`, `C3`, `C4`** when building with a ClockxControl, and leave them populated
-   otherwise. The footprints stay on the board deliberately: a board with the crystal fitted still
+5. **`X1`, `C3` and `C4` are marked DNP on the board** as of ECO-7 (`(attr smd dnp)`), so an
+   assembly house leaves them off. For a crystal build, clear the DNP flag on all three. Note
+   that `C4` is not dangling with `X1` removed: it stays tied to `CK2` through `R41`, which is
+   why it must come off rather than merely being harmless. The footprints stay on the board deliberately: a board with the crystal fitted still
    works normally, and you keep a bring-up path that does not depend on a $23 add-on.
 6. **`C7`'s bypass duty improved.** It moved from 6.3 mm to **2.4 mm** from `P1` pad `C1`, the
    cart's `VDD35` pin — better than where MouseBiteLabs had it. `C6` and `C51` (the other two on
@@ -410,7 +489,12 @@ pre-existing removed      : 3   (the FID5 overlaps from §6.4)
 ## 6.9 Build sheet (when populating the ClockxControl)
 
 1. Leave `X1`, `C3`, `C4` unpopulated.
-2. **Bridge `JP3`** (by the crystal, silkscreened `CXC CLK`). Without it the module gets no clock.
+2. **Bridge `JP4`** — the jumper by the crystal at (45.0, −64.2), Value `CXC CLK`. Without it the
+   module gets no clock. **It is `JP4`, not `JP3`:** on AGBM-02 `JP2` and `JP3` are
+   MouseBiteLabs' own RAM straps (`MA17`→GND and `/BYTE`→`VDD2`) and have nothing to do with the
+   clock. Bridging `JP3` will not start the module, and on a salvaged OEM RAM it drives a pin the
+   original chip leaves NC. Note also that `CXC CLK` is the footprint's **Value** field, which
+   renders on `F.Fab`, not on the silkscreen — look for the jumper by position.
 3. Seat the module on the `MOD1` outline, component side up, and solder through its three plated
    button holes onto `MOD1` pads 1/2/3 — Select, L, R.
 4. Run three short wires from the module's `CLK`, `V+` and `V-` pads (which have no holes) down to

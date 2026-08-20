@@ -1,3 +1,29 @@
+> ### This fork
+>
+> A desalvage fork of MouseBiteLabs' **Game Boy Enhance**. Upstream's README follows
+> unchanged below; everything this fork adds lives in four directories.
+>
+> | | |
+> |---|---|
+> | [`clockxcontrol-integration/`](clockxcontrol-integration/) | a host-side footprint for insideGadgets' GBA ClockxControl, cut into the board — **ECO-6** (the land pattern), **ECO-7** (the crystal DNP and two open blockers), **ECO-8** (eleven part swaps), **ECO-9** (the assembly split), **ECO-10** (the precision pass), **ECO-11** (gate drive) |
+> | [`power-review/`](power-review/) | a component-level efficiency and stability review, 101 findings. Headline: the energy the overclock costs **cannot** be won back |
+> | [`pcbway-assembly/`](pcbway-assembly/) | preparing the board for PCBWay's assembly service — BOM resolution, sourcing audit, the consign/hand-solder split |
+> | [`scripts/`](scripts/) | the board is a **function** of committed inputs, and the documents are **gated** against it |
+>
+> **Upstream:** synced to `MouseBiteLabs/Game-Boy-Enhance` @ `48e2dc3` (2026-08-19). Every
+> design file in this fork is **byte-identical to upstream's current state** — the ECO chain
+> below is built on today's upstream, not a stale snapshot. The root `.gitignore` is
+> upstream's and is deliberately left untouched so future syncs never conflict; this fork's
+> own ignore patterns live in scoped `.gitignore` files beside what they cover.
+>
+> **The board is not fabricable as committed.** `U2` pin 37 has no path to `VDD2`, and
+> `Net-(Q5B-G)` is severed at a via ECO-5 deleted. Both need KiCad's interactive router —
+> [ECO-7](clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md) is the accounting, and
+> `scripts/check_consistency.py` check [10] holds every document that says so to what the
+> board actually is.
+
+---
+
 <img width="3905" height="447" alt="gameboy_enhance" src="https://github.com/user-attachments/assets/824b6be6-7496-42c1-b8b1-e3ef20e5aa76" />
 
 # Game Boy Enhance (AGBM)

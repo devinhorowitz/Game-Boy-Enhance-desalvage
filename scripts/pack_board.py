@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""pack_board.py -- rebuild the deliverable package from the tree.
+
+    python3 scripts/pack_board.py            # rebuild the zip
+    python3 scripts/pack_board.py --check    # report what would change, write nothing
+
+The package is a GENERATED ARTIFACT, not a hand-maintained one. Every file in it is a
+copy of something in the tree, plus the board that `scripts/build_board.py` produces, so
+the zip can never be a revision apart from what the repository says -- which is what
+consistency check [2] asserts.
+
+Zip archives are not byte-reproducible (member timestamps and the compressor's choices
+both move), so this writes with a FIXED timestamp and deflate level. Two runs over an
+unchanged tree therefore produce the same bytes, and `git status` stays quiet instead of
+showing a zip that "changed" because it was rebuilt.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import zipfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import build_board                                               # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CXC = os.path.join(ROOT, "clockxcontrol-integration")
+ZIP = os.path.join(CXC, "board", "agbm-02-clockxcontrol.zip")
+STEM = "agbm-02-clockxcontrol"
+# A fixed DOS timestamp. Anything constant does; this is the ECO-6 landing date.
+FIXED = (2026, 8, 18, 0, 0, 0)
+
+MEMBERS = [
+    ("ClockxControl_GBA_GBC.kicad_mod", "footprint/ClockxControl_GBA_GBC.kicad_mod"),
+    ("README.md", "README.md"),
+    ("ECO-6_clockxcontrol_footprint.md", "ECO-6_clockxcontrol_footprint.md"),
+    ("ECO-7_u2_supply_and_dnp.md", "ECO-7_u2_supply_and_dnp.md"),
+    ("ECO-8_component_swaps.md", "ECO-8_component_swaps.md"),
+    ("ECO-9_assembly_split.md", "ECO-9_assembly_split.md"),
+    ("ECO-10_precision_pass.md", "ECO-10_precision_pass.md"),
+    ("ECO-11_gate_drive_and_D1.md", "ECO-11_gate_drive_and_D1.md"),
+    ("ECO-12_wiki_audit_corrections.md", "ECO-12_wiki_audit_corrections.md"),
+    ("ECO-13_rebase_onto_agbm02.md", "ECO-13_rebase_onto_agbm02.md"),
+    ("ECO-14_clock_domain_and_audit_fixes.md", "ECO-14_clock_domain_and_audit_fixes.md"),
+    # ECO-20 ADDED THESE SIX. The list stopped at ECO-14 and nobody noticed, so the shipped
+    # package's own README linked forward to five ECOs it did not contain -- including the
+    # one that says DO NOT PLOT GERBERS FROM THIS FILE WITHOUT RE-POURING. A deliverable
+    # whose index points at documents that are not in the deliverable.
+    ("ECO-15_upstream_link_sync.md", "ECO-15_upstream_link_sync.md"),
+    ("ECO-16_assembled_renders.md", "ECO-16_assembled_renders.md"),
+    ("ECO-17_paste_and_the_right_ram.md", "ECO-17_paste_and_the_right_ram.md"),
+    ("ECO-18_rotation_convention.md", "ECO-18_rotation_convention.md"),
+    ("ECO-19_stock_c7_land_restored.md", "ECO-19_stock_c7_land_restored.md"),
+    ("ECO-20_drc_defects_closed.md", "ECO-20_drc_defects_closed.md"),
+]
+
+
+def contents():
+    """{member name: bytes} -- everything the package should hold."""
+    out = {}
+    for member, rel in MEMBERS:
+        out[f"{STEM}/{member}"] = open(os.path.join(CXC, rel), "rb").read()
+    rdir = os.path.join(CXC, "render")
+    for name in sorted(os.listdir(rdir)):
+        if name.endswith(".png"):
+            out[f"{STEM}/render/{name}"] = open(os.path.join(rdir, name), "rb").read()
+    board, _st = build_board.build()
+    out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"] = board.encode("utf-8")
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--check", action="store_true")
+    a = ap.parse_args()
+    want = contents()
+    if a.check:
+        try:
+            z = zipfile.ZipFile(ZIP)
+            have = {n: z.read(n) for n in z.namelist() if not n.endswith("/")}
+        except OSError as e:
+            sys.exit(f"FAIL: cannot read {ZIP}: {e}")
+        added = sorted(set(want) - set(have))
+        gone = sorted(set(have) - set(want))
+        changed = sorted(n for n in set(want) & set(have) if want[n] != have[n])
+        if not (added or gone or changed):
+            print(f"ok: package matches the tree ({len(want)} members)")
+            return 0
+        for n in added:
+            print(f"  + {n}")
+        for n in gone:
+            print(f"  - {n}")
+        for n in changed:
+            print(f"  ~ {n} ({len(have[n])} -> {len(want[n])} bytes)")
+        sys.exit("FAIL: package is stale -- run scripts/pack_board.py")
+    with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for name in sorted(want):
+            info = zipfile.ZipInfo(name, date_time=FIXED)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, want[name])
+    print(f"wrote {ZIP} ({len(want)} members, {os.path.getsize(ZIP)} bytes)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
