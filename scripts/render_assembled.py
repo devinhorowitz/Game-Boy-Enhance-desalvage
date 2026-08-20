@@ -57,6 +57,23 @@ function of the board AND KiCad's build AND the 3D library, so pixel equality ac
 machines is not a property worth asserting -- a gate that fails on somebody's KiCad
 version is a gate people learn to ignore. What IS asserted, and recorded in the manifest,
 is the thing that actually goes wrong: how many bodies resolved, and which did not.
+
+AND IT IS WORSE THAN CROSS-MACHINE VARIANCE: THIS RAYTRACER IS NOT DETERMINISTIC AT ALL.
+Measured 2026-08-20, same machine, same KiCad 10.0.5, same board, two consecutive runs with
+nothing whatsoever changed in between:
+
+    agbm02_pcbway_top       40,309 of 2,342,592 px differ (1.72%), max channel delta 30
+    agbm02_pcbway_bottom    44,630 of 2,342,592 px differ (1.91%), max channel delta 31
+    agbm02_finished_top     43,685 of 2,342,592 px differ (1.87%), max channel delta 38
+    agbm02_finished_bottom  45,127 of 2,342,592 px differ (1.93%), max channel delta 32
+
+Subtle shading and anti-aliasing noise -- nothing structural moves -- but it means a pixel
+gate on these would fail at random on the SAME machine, and it means re-running this script
+always produces a git diff whether or not the board changed. Do not "fix" check [15] by
+extending its pixel comparison to cover these four; that check would be red half the time.
+The `source` digest ECO-24 added to the manifest is the honest gate for them: it asserts
+what these pictures were drawn FROM, which is deterministic, rather than what they look
+like, which is not.
 """
 
 from __future__ import annotations
