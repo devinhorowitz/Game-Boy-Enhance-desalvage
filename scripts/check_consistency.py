@@ -719,19 +719,20 @@ WINDOW_OCCUPANTS = {"MOD1"}          # the module itself, and nothing else
 # the same commit -- the exclusion-ledger shape.
 PLACED = {
     "C7":   (93.1, -37.4, "moved out of the window; pad 1 (VDD35) now lands on the left"),
-    # ECO-14 moved all three pairs off MouseBiteLabs' copper -- the inherited AGBM-01 spots
-    # were never checked against AGBM-02's tracks and vias. Clear radius to the nearest hard
-    # copper is in the second field of each reason.
-    "FID1": (28.1, -9.6, "fiducial, front. 2.390 mm clear (was 1.064 at 26.0,-8.0). "
-                         "Fiducials are OURS -- neither of MouseBiteLabs' boards carries "
-                         "one, because he hand-builds"),
-    "FID4": (28.1, -9.6, "same spot, back -- 2.390 mm clear"),
-    "FID3": (31.0, -69.5, "fiducial, front. 2.399 mm clear; the old (33.0,-69.0) sat "
-                          "0.768 mm from a GND via, inside its own 1.0 mm mask window"),
-    "FID6": (31.0, -69.5, "same spot, back -- 2.478 mm clear"),
-    "FID2": (110.85, -57.65, "fiducial, front. 1.800 mm clear (was 1.337). The tightest of "
-                             "the three; that corner is dense"),
-    "FID5": (110.85, -57.65, "same spot, back -- 1.918 mm clear"),
+    # ECO-20 replaced all six. ECO-14's spots were chosen against HARD COPPER alone and
+    # KiCad's DRC threw four violations at them: two marks inside 1.2 mm shell holes, two
+    # inside keepout zones, one merged with the battery terminal's mask aperture. ECO-14
+    # also kept them as three coincident front/back PAIRS, which is not a requirement --
+    # front and back register separately -- and that assumption was costing every mark
+    # margin. Fiducials are OURS: neither of MouseBiteLabs' boards carries one, because he
+    # hand-builds. Full margins live in FIDUCIAL_SITES, which check [13] recomputes.
+    "FID1": (100.5, -3.5, "fiducial, FRONT triangle, top right"),
+    "FID2": (103.75, -58.5, "fiducial, FRONT triangle, bottom right"),
+    "FID3": (24.25, -55.75, "fiducial, FRONT triangle, bottom left -- the tightest of the "
+                            "three at 2.00 mm of clear copper, still twice the mask window"),
+    "FID4": (127.75, -19.5, "fiducial, BACK triangle, right"),
+    "FID5": (94.75, -66.5, "fiducial, BACK triangle, bottom"),
+    "FID6": (11.5, -16.0, "fiducial, BACK triangle, left"),
     "MOD1": (91.95, -44.95, "module centre, rev B -- shifted west out of the R3/TP114 "
                             "cluster; ECO-6 section 6.7 is what that cost"),
     "TP83": (97.9, -37.95, "CLK wire pad. y is -37.95 and not -38.6: KiCad's y grows "
@@ -914,6 +915,30 @@ CLEARANCE_RULE = 0.20     # the AGBM-02 project's single "Default" netclass
 FIDUCIAL_WINDOW = 1.00    # 0.5 mm pad + 0.5 mm solder_mask_margin
 FIDUCIAL_PAD_CLEARANCE = "(clearance 0.55)"
 
+# EVERY MARGIN IN build_board.FIDUCIALS' COMMENT, RECOMPUTED. ECO-14 measured one of the
+# five things that decide whether a fiducial works -- distance to hard copper -- wrote the
+# answers into a comment as though they were the whole story, and shipped four DRC
+# violations: FID2/FID5 inside a 1.2 mm shell hole, FID3/FID6 on the rim of another,
+# FID1/FID2 inside keepout zones, FID1's mask window merged with the battery terminal's.
+# Twelve green checks, and the only thing that caught any of it was KiCad's own DRC.
+#
+# So the numbers stop being prose. geom.site_margins() measures all five from the board;
+# this ledger is what they were when ECO-20 chose the spots, and any drift over 5 um fails.
+# 9.000 is the reported ceiling for "nothing of that kind anywhere near" -- see geom.FAR.
+#
+#                edge  keepout  copper   mask   crtyd
+FIDUCIAL_SITES = (
+    ("FID1", 3.122, 9.000, 2.260, 9.000, 9.000),
+    ("FID2", 9.000, 9.000, 1.837, 9.000, 2.220),
+    ("FID3", 2.939, 2.707, 2.001, 9.000, 4.584),
+    ("FID4", 3.310, 4.594, 2.260, 9.000, 9.000),
+    ("FID5", 2.854, 9.000, 1.801, 9.000, 2.720),
+    ("FID6", 3.581, 9.000, 2.150, 9.000, 5.836),
+)
+# The floors these were chosen against, from scripts/place_fiducials.py. Repeated rather
+# than imported so that lowering one there cannot silently lower the gate here too.
+FIDUCIAL_FLOOR = {"edge": 2.0, "keepout": 1.0, "copper": 1.1, "mask": 1.5, "crtyd": 1.0}
+
 
 # MOD1's mechanical neighbourhood, snapshotted with a reason per line. Nothing measured
 # this before: every gate was about copper, and whether the module physically FITS rested on
@@ -1056,14 +1081,19 @@ def check_geometry():
             err(f"MOD1's tightest populated neighbour is {floor:.3f} mm, under the "
                 f"{GAP_FLOOR} mm floor this project set for a module edge")
 
-    # --- the fiducials have to be READABLE, which is a contrast problem ----------------
+    # --- the fiducials have to be READABLE AND LEGAL, and those are five questions -----
     fps = kisexp.by_ref(b)
     fids = sorted(r for r in fps if r.startswith("FID"))
     if not fids:
         err("no fiducials on the board -- ECO-6 adds six; a pick-and-place needs them")
         return
-    problems = []
-    for ref in fids:
+    if len(fids) != len(FIDUCIAL_SITES) or fids != [s[0] for s in FIDUCIAL_SITES]:
+        err(f"the board carries {', '.join(fids)}; the ledger describes "
+            f"{', '.join(s[0] for s in FIDUCIAL_SITES)}")
+        return
+    M = geom.site_model(b, skip=set(fids))
+    problems, keys = [], ("edge", "keepout", "copper", "mask", "crtyd")
+    for ref, *want in FIDUCIAL_SITES:
         fp = fps[ref]
         if fp.at is None:
             problems.append(f"{ref}: no placement")
@@ -1071,17 +1101,27 @@ def check_geometry():
         if FIDUCIAL_PAD_CLEARANCE not in fp.body:
             problems.append(f"{ref}: no {FIDUCIAL_PAD_CLEARANCE} on its pad -- a re-pour "
                             f"will flood the mask window with GND")
-        w = geom.worst(fp.at[0], fp.at[1], 0.0, [fp.layer], segs, vias, pads,
-                       ignore=(f"{ref}.1",))
-        if w and w[0][0] < FIDUCIAL_WINDOW:
-            problems.append(f"{ref} at ({fp.at[0]},{fp.at[1]}): {w[0][0]:.3f} mm to "
-                            f"{w[0][1]} -- inside its own {FIDUCIAL_WINDOW} mm mask window")
-        else:
-            note(f"{ref} ({fp.layer}): {w[0][0]:.3f} mm clear")
+        m = geom.site_margins(M, fp.at[0], fp.at[1], fp.layer)
+        if not m["on_board"]:
+            problems.append(f"{ref} at ({fp.at[0]},{fp.at[1]}) is not inside the outline")
+        drift = [f"{k} {m[k]:.3f} (ledger {w:.3f})"
+                 for k, w in zip(keys, want) if abs(m[k] - w) > 0.005]
+        if drift:
+            problems.append(f"{ref} has MOVED or its neighbourhood has: " + ", ".join(drift))
+        under = [f"{k} {m[k]:.3f} < {FIDUCIAL_FLOOR[k]}" for k in keys
+                 if m[k] < FIDUCIAL_FLOOR[k]]
+        if under:
+            problems.append(f"{ref} is below the floor it was chosen against: "
+                            + ", ".join(under))
+        note(f"{ref} ({fp.layer}): " + " ".join(f"{k} {m[k]:.2f}" for k in keys))
     if problems:
-        err("fiducial(s) a vision system cannot read: " + "; ".join(problems))
+        err("fiducial(s) a vision system cannot read or a fab cannot build: "
+            + "; ".join(problems)
+            + ". scripts/place_fiducials.py finds replacements; update FIDUCIAL_SITES, "
+              "build_board.FIDUCIALS and ECO-20's table in the same commit.")
     else:
-        ok(f"all {len(fids)} fiducials clear of hard copper and their pours held back")
+        ok(f"all {len(fids)} fiducials clear on every axis a fab cares about -- edge, "
+           f"keepout, copper, mask and courtyard -- and their pours are held back")
 
 
 # =====================================================================================
@@ -1109,11 +1149,18 @@ FILL_HAZARD = (
     # and the spot it moves to puts its GND pad inside the VDD35 pour. A rule keyed on
     # "is this refdes new?" cannot see this line; that is why the key is geometry.
     ("C7.2",   "GND",       "VDD35"),
-    # The two fiducials that sit on the GND pour. They are meant to -- a fiducial wants an
-    # even background -- and the (clearance 0.55) override from ECO-14 §14.3 holds the
-    # copper back so the mask window reads. Listed because they are still overlaps.
-    ("FID1.1", "<netless>", "GND"),
-    ("FID4.1", "<netless>", "GND"),
+    # ALL SIX fiducials sit on a pour, and they are meant to: a fiducial wants an even
+    # background, and every large uninterrupted area on this board is poured copper. The
+    # (clearance 0.55) override from ECO-14 SS14.3 holds that copper 1.05 mm back from each
+    # centre so the 1.0 mm mask window still reads as bare substrate. ECO-20's spots put
+    # FID1/FID4 on the analogue ground rather than the digital one; same story, different
+    # net name. Listed because they are still overlaps, and this ledger is about overlaps.
+    ("FID1.1", "<netless>", "AGND"),
+    ("FID2.1", "<netless>", "GND"),
+    ("FID3.1", "<netless>", "GND"),
+    ("FID4.1", "<netless>", "AGND"),
+    ("FID5.1", "<netless>", "GND"),
+    ("FID6.1", "<netless>", "GND"),
     # JP4, the CK1/CXC_CLK cut-and-jumper, sits over GND on both pads.
     ("JP4.1",  "/CPU/CK1",  "GND"),
     ("JP4.2",  "CXC_CLK",   "GND"),

@@ -29,12 +29,16 @@ Check [13] measures copper-to-copper distance and knows nothing about keepout zo
 board-edge rules, soldermask bridging, or whether a pour still REACHES a pad. This board has
 64 mechanical keepout zones. The first run turned up two defects that had been shipping:
 
-  * the six fiducials ECO-14 placed sit on a battery terminal, on the board edge and inside
+  * the six fiducials ECO-14 placed sit on a battery terminal, in shell holes and inside
     keepout zones -- placed by a search that only knew about hard copper;
-  * U1 pad 39 [GND] has no ground connection at all, because ECO-6's /CPU/TP8 route passes
-    0.988 mm away -- legal clearance, and it pinches the pour off the pad's thermals.
+  * U1 pad 39 [GND] has no ground connection at all, because ECO-6's /CPU/TP8 route runs
+    0.3594 mm from its copper where a pour sliver needs 0.400 to survive.
 
-Both are ledgered below with their DRC fingerprints until they are fixed.
+ECO-20 fixed both, so both are gone from the ledger below -- and the ledger is written so
+that a FIX breaks the check just as loudly as a regression: leave a line in after the
+violation stops happening and the run fails with "0 new, ledger says N -- FIXED? remove its
+line". That is deliberate. The dangerous state for a file like this is a stale entry that
+quietly excuses something nobody has looked at in months.
 """
 
 from __future__ import annotations
@@ -63,16 +67,6 @@ KNOWN_NEW = {
            "restored inside the module window, DNP, so mods that solder to C7 where "
            "MouseBiteLabs has always kept it still have their landmark. Exactly one of "
            "C7 / C7A is ever populated."),
-    "copper_edge_clearance": (
-        4, "OPEN DEFECT -- FID2/FID3/FID5/FID6 sit 0.000 mm from the board outline. ECO-14 "
-           "placed the fiducials with a search that modelled hard copper only and knew "
-           "nothing about the edge rule."),
-    "solder_mask_bridge": (
-        7, "OPEN DEFECT -- FID1's mask aperture bridges BT1, the battery terminal."),
-    "clearance": (
-        1, "OPEN DEFECT -- FID1 is 0.000 mm from BT1's through-hole GND pad."),
-    "items_not_allowed": (
-        2, "OPEN DEFECT -- FID1 and FID2 sit inside two of this board's 64 keepout zones."),
     "silk_over_copper": (12, "cosmetic: our own footprints' silkscreen."),
     "silk_overlap": (25, "cosmetic: our own footprints' silkscreen."),
     "lib_footprint_issues": (11, "cosmetic: MOD1, JP4, TP83-85, the fiducials and C7A are "
@@ -81,12 +75,9 @@ KNOWN_NEW = {
                                  "from 8 to 11 when ECO-19 added it."),
     "text_height": (6, "cosmetic: our silk text is smaller than the board's own rule."),
 }
-KNOWN_UNCONNECTED = {
-    "Pad 39 [GND] of U1": (
-        "OPEN DEFECT -- U1 pad 39 has NO ground connection. ECO-6's /CPU/TP8 route passes "
-        "0.988 mm from it: legal clearance, and it pinches the F.Cu GND pour off the pad's "
-        "thermal spokes. MouseBiteLabs' board has 0 unconnected items."),
-}
+# MouseBiteLabs' board has 0 unconnected items and so, since ECO-20, does this one. An
+# entry here is an unconnected pad this fork is choosing to live with; there are none.
+KNOWN_UNCONNECTED: dict[str, str] = {}
 
 
 def drc(board_text: str, tag: str, keep: Path | None = None) -> dict:

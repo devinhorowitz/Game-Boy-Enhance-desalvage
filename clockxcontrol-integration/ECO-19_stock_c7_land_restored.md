@@ -86,10 +86,16 @@ Most are cosmetic silk. **Two are not, and neither was findable before:**
 ### `U1` pad 39 has no ground connection
 
 DRC reports one unconnected item on this fork and none on Nick's: **`Pad 39 [GND] of U1`**.
-ECO-6's `/CPU/TP8` route passes **0.988 mm** from it — comfortably legal clearance, and it
-pinches the `F.Cu` `GND` pour off the pad's thermal spokes. Check [13] measures copper-to-copper
-distance and can never see this: nothing is too close to anything, and a pad simply stops being
-connected.
+ECO-6's `/CPU/TP8` route runs past it and pinches the `F.Cu` `GND` pour off the land. Check [13]
+measures copper-to-copper distance and can never see this: nothing is too close to anything, and
+a pad simply stops being connected.
+
+> **Corrected by [ECO-20 §20.1](ECO-20_drc_defects_closed.md).** This paragraph originally
+> said the route passes *0.988 mm* from the pad and pinches off its *thermal spokes*. The real
+> figure is **0.3594 mm** of copper-to-copper at (73.372, −46.628), against the **0.400 mm** a
+> pour sliver needs there — 0.2 mm of zone clearance to `TP8` plus the zone's own 0.2 mm
+> `min_thickness`. Forty-one microns. There are no thermal spokes involved: the pad is on the
+> zone's own net and the fill simply cannot reach it.
 
 **It predates `C7A`** — confirmed by running the same DRC on the previous commit's board.
 
@@ -108,6 +114,12 @@ the search knew about none of them:
 Both defects are **ledgered by fingerprint** in `check_drc.py` with their reasons, so they
 cannot be forgotten and cannot be quietly acquired again — and when either is fixed, the ledger
 line has to go in the same commit or the check fails the other way.
+
+> **Both are closed in [ECO-20](ECO-20_drc_defects_closed.md), and those ledger lines are
+> gone.** The counts in §19.6 below are what this commit produced; ECO-20's are 55 new
+> violations and **0** unconnected. One correction to the table above: of the seven
+> `solder_mask_bridge` violations, six were `FID1`/`BT1` and the seventh was `FID5` sitting in
+> the cartridge-contact mask opening on the back — a count that matched for the wrong reason.
 
 ## 19.6 Verification
 

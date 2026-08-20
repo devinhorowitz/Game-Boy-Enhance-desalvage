@@ -170,9 +170,16 @@ the move already provides.
 
 ## 14.3 The fiducials — **moved, and the pour held back**
 
-[ECO-13 §13.6](ECO-13_rebase_onto_agbm02.md) claimed *"each spot was clearance-checked
-against AGBM-02."* **It checked components, not copper.** Against copper, two of three pairs
-had foreign metal inside their own mask window.
+> ### ⚠ The positions in this section are superseded by [ECO-20](ECO-20_drc_defects_closed.md)
+>
+> This section checked **copper** where ECO-13 had checked **components** — and it was still
+> only one constraint out of five. It could not see the board's `gr_circle` shell holes, its
+> 64 keepout zones, or soldermask apertures, so *"each spot is ≥ 3.0 mm from the board
+> outline"* below is **wrong**: `FID2`/`FID5` were placed **inside** a 1.2 mm hole and
+> `FID3`/`FID6` on the rim of another. KiCad's own DRC, first run in ECO-19, found four
+> violations here. ECO-20 rebuilt the search, moved all six, and turned the margins into a
+> ledger check [13] recomputes. **The `(clearance 0.55)` half of this section still stands
+> and is still load-bearing.**
 
 A fiducial is a mark a vision system finds by **contrast against bare substrate**. The pad
 is 1 mm with a 0.5 mm `solder_mask_margin`, so the window is 2 mm across and needs a clear
@@ -192,6 +199,12 @@ sits in populated copper rather than off the edge — the search rejected candid
 merely *looked* clear because they were outside the board. The triangle stays deliberately
 **scalene — 60.0, 80.7 and 95.7 mm between pairs** — so a machine cannot register the panel
 180° out.
+
+> The first sentence of that paragraph is **false**, and [ECO-20 §20.2](ECO-20_drc_defects_closed.md)
+> is the correction. `geom.edge_segments()` read four of Edge.Cuts' five primitive types and
+> silently dropped `gr_circle` — all 13 shell holes — so "3.0 mm from the outline" was
+> measured against an outline with no holes in it. The scalene-triangle argument survives;
+> the coordinates do not.
 
 ### Moving them was only half the fix
 

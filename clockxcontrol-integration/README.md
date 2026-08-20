@@ -49,6 +49,7 @@ The engineering record, in order:
 | [ECO-17](ECO-17_paste_and_the_right_ram.md) | **254 solder-paste apertures on parts nobody places — including the membrane contacts** — and `U2` pasted on both of its two nested lands. Also the RAM's 3D body, which named the salvage package while the BOM buys the bigger one |
 | [ECO-18](ECO-18_rotation_convention.md) | the CPL's rotation convention, settled: all 180 rotations are byte-identical to `kicad-cli`'s own export, and 14 of 21 footprint families put pin 1 exactly where KiCad's stock library does |
 | [ECO-19](ECO-19_stock_c7_land_restored.md) | the stock `C7` land back at (91.9, −41.1) as a DNP alternate, so this fork stops being a side-grade for mods that solder there — and KiCad's own DRC, which found `U1` pad 39 with no ground and all six fiducials placed on things |
+| [ECO-20](ECO-20_drc_defects_closed.md) | **both of those closed.** Pin 39 gets 2.368 mm of copper to `C15`, because the pour was 41 µm short of fitting; all six fiducials re-placed by a search that finally models shell holes, keepouts and mask apertures — and stops pretending a front mark cares what the back is doing. Unconnected pads: 1 → **0** |
 
 ---
 
@@ -269,6 +270,8 @@ Moving it clears the window; ECO-6 puts it south of the module, closer to the ca
 than MouseBiteLabs had it. The same window and the same single
 blocker appear on **AGBM-01, AGBM-02 and AGBM-11**. On this fork's `_GBE-plus` board the ECO-5
 fiducial `FID2` (88.5…89.5, −48.5…−47.5) also lands inside and would need nudging.
+Since [ECO-20](ECO-20_drc_defects_closed.md) `FID2` is on the front at (103.75, −58.50), nowhere
+near the window; ECO-19 put the stock `C7` land back inside it as `C7A`, DNP.
 
 ![Placement on AGBM-02](render/agbm02_cxc_placement.png)
 
@@ -306,8 +309,10 @@ module.
 `C7` moves to **(93.100, −37.400)**, in the band between the module and the cartridge connector,
 with a 0.4 mm stub onto the `VDD35` stitch via next to it and a stub-and-via down to the ground
 planes. That lands its `VDD35` pad **2.4 mm from `P1` pad `C1`**, the cart's `VDD35` pin — closer
-than the 6.3 mm it had on the stock board. Since ECO-13 the fiducial pair `FID2`/`FID5` is placed at
-(106.250, −57.250) — which incidentally fixes three pre-existing shorts, see ECO-6 §6.4.
+than the 6.3 mm it had on the stock board. The `FID2`/`FID5` pair ECO-13 placed at
+(106.250, −57.250) — which incidentally fixed three pre-existing shorts, see ECO-6 §6.4 — no
+longer exists as a pair: [ECO-20](ECO-20_drc_defects_closed.md) unpaired all six marks, front from
+back, and `FID2` and `FID5` are now at (103.75, −58.50) and (94.75, −66.50) respectively.
 
 The layout: three solder-through landings (yellow), the module’s hole-less CLK/V+/V− pads (orange
 rings) wired down to the three wire pads (cyan), `C7` in its new home, the two `VDD2` stitching

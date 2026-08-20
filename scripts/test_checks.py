@@ -131,9 +131,32 @@ def main():
         ("[13] the CXC_CLK via returns to its 0.1632 mm spot",
          cc.check_geometry,
          good.replace("(at 47.5 -59.5)", "(at 47.45 -59.6)", 1)),
-        ("[13] a fiducial lands back on top of a GND via",
+        # ECO-20 gave check [13] four axes it never had: the board outline INCLUDING its
+        # shell holes, keepout zones, soldermask apertures as filled regions, and
+        # courtyards. One case per axis, each moving a mark back to a spot ECO-14 actually
+        # shipped -- so these are not invented failures, they are the real ones.
+        ("[13] a fiducial lands back on a shell-hole rim (gr_circle)",
          cc.check_geometry,
-         good.replace("(at 31.0 -69.5)", "(at 33.0 -69.0)", 1)),
+         good.replace("(at 24.25 -55.75)", "(at 31.0 -69.5)", 1), "edge 0.082"),
+        # A SEPARATE BLIND SPOT FROM THE ONE ABOVE. SW1 and VR2 each carry an Edge.Cuts
+        # circle INSIDE the footprint -- the switch shaft and the volume wheel -- and a
+        # top-level-only scan sees neither. This spot is where ECO-20's first attempt at
+        # FID1 went, with geom reporting 2.80 mm of edge clearance and DRC 0.2145.
+        ("[13] a fiducial lands in SW1's routed shaft opening (fp_circle)",
+         cc.check_geometry,
+         good.replace("(at 100.5 -3.5)", "(at 11.75 -12.75)", 1), "edge 0.716"),
+        ("[13] a fiducial lands back inside a keepout zone",
+         cc.check_geometry,
+         good.replace("(at 103.75 -58.5)", "(at 110.85 -57.65)", 1), "keepout -1.194"),
+        ("[13] a fiducial lands back inside the cartridge mask aperture",
+         cc.check_geometry,
+         good.replace("(at 94.75 -66.5)", "(at 110.85 -57.65)", 1), "mask -1.850"),
+        # The courtyard axis has no DRC rule behind it, so this is the one case KiCad would
+        # not catch for us. (84.5, -51.5) is 2.415 mm from the nearest copper and 9 mm from
+        # everything else -- it fails on the component body alone, and on nothing else.
+        ("[13] a fiducial ends up under a component body",
+         cc.check_geometry,
+         good.replace("(at 103.75 -58.5)", "(at 84.5 -51.5)", 1), "crtyd 0.010"),
         ("[13] a fiducial loses the clearance that holds the pour back",
          cc.check_geometry,
          good.replace("(clearance 0.55)", "", 1)),
@@ -267,15 +290,27 @@ def main():
             f"[16] {_victim} silently stops matching his part", OVERS, _strip)
 
     failures = extra_failed
-    for label, fn, mutated in cases:
+    for case in cases:
+        label, fn, mutated = case[:3]
+        # A FOURTH ELEMENT MAKES THE CASE PROVE SOMETHING SPECIFIC. Check [13] pins every
+        # fiducial margin to a ledger, so ANY move of ANY mark fails it -- which means
+        # "caught" alone cannot tell a keepout case from an edge case, and four cases that
+        # all fire for the same reason are one case wearing four hats. Where a case exists
+        # to prove one axis is modelled, name a phrase the error has to contain.
+        want = case[3] if len(case) > 3 else None
         if mutated == good:
             print(f"  BLIND:  {label} -- the mutation did not change the board, so this "
                   f"case proves nothing")
             failures += 1
             continue
         errs, _out = _run(fn, mutated)
-        if errs:
+        if errs and (want is None or any(want in e for e in errs)):
             print(f"  ok:     {label} -> caught")
+        elif errs:
+            print(f"  BLIND:  {label} -> the check fired, but not for the reason this case "
+                  f"exists to prove ({want!r} is not in the message). It would pass even if "
+                  f"that axis were not modelled at all.")
+            failures += 1
         else:
             print(f"  BLIND:  {label} -> the check did NOT fire. It is reading nothing, "
                   f"or reading the wrong thing.")

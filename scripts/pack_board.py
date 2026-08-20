@@ -43,6 +43,16 @@ MEMBERS = [
     ("ECO-12_wiki_audit_corrections.md", "ECO-12_wiki_audit_corrections.md"),
     ("ECO-13_rebase_onto_agbm02.md", "ECO-13_rebase_onto_agbm02.md"),
     ("ECO-14_clock_domain_and_audit_fixes.md", "ECO-14_clock_domain_and_audit_fixes.md"),
+    # ECO-20 ADDED THESE SIX. The list stopped at ECO-14 and nobody noticed, so the shipped
+    # package's own README linked forward to five ECOs it did not contain -- including the
+    # one that says DO NOT PLOT GERBERS FROM THIS FILE WITHOUT RE-POURING. A deliverable
+    # whose index points at documents that are not in the deliverable.
+    ("ECO-15_upstream_link_sync.md", "ECO-15_upstream_link_sync.md"),
+    ("ECO-16_assembled_renders.md", "ECO-16_assembled_renders.md"),
+    ("ECO-17_paste_and_the_right_ram.md", "ECO-17_paste_and_the_right_ram.md"),
+    ("ECO-18_rotation_convention.md", "ECO-18_rotation_convention.md"),
+    ("ECO-19_stock_c7_land_restored.md", "ECO-19_stock_c7_land_restored.md"),
+    ("ECO-20_drc_defects_closed.md", "ECO-20_drc_defects_closed.md"),
 ]
 
 

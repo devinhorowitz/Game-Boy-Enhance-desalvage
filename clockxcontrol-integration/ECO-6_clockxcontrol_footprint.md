@@ -169,6 +169,10 @@ old base and is kept only as the record of what that analysis found.
 **The fiducials were then moved again — see [ECO-14 §14.3](ECO-14_clock_domain_and_audit_fixes.md).**
 The spots this ECO inherited were never checked against AGBM-02's *copper*: `FID3`/`FID6` sat
 0.768 mm from a `GND` via, inside their own 1.0 mm mask window, and `FID1`/`FID4` cleared by 64 µm.
+**And then a third time, in [ECO-20 §20.2](ECO-20_drc_defects_closed.md)** — ECO-14's search
+modelled copper and nothing else, so two of its three pairs ended up in the shell's routed holes.
+All six are now placed against the outline, the keepouts, the mask and the courtyards, front and
+back searched separately.
 All three pairs moved — to (28.1, −9.6), (31.0, −69.5) and (110.85, −57.65), clearing 1.800 mm to
 2.478 mm — and each pad gained a `(clearance 0.55)` override so the `GND` pour recedes past the
 window on a re-pour. Consistency check [13] now asserts both.

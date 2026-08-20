@@ -120,20 +120,45 @@ DROP_VIAS = [(84.4, -45.9), (85.4, -45.9)]          # both on VDD2
 # moved a pair out from under the module; on this base they are simply placed clear of it
 # to begin with. Three per side in a deliberately asymmetric triangle so the machine cannot
 # register the panel 180 degrees out. Each spot was clearance-checked against AGBM-02.
-# ECO-14 moved all three pairs. The spots inherited from the AGBM-01 layout were never
-# chosen against AGBM-02's copper: FID3/FID6 sat 0.768 mm from a GND via -- inside their own
-# 1.0 mm mask window -- and FID1/FID4 cleared by only 1.064 mm. A fiducial is a mark a vision
-# system finds by CONTRAST against bare substrate; copper inside the window destroys that.
-# Measured clear radius to the nearest hard copper (track, via or pad) on each layer:
-#     FID1/FID4  (26.0, -8.0)      1.064  ->  (28.1, -9.6)        2.390 F / 2.390 B
-#     FID3/FID6  (33.0, -69.0)     0.768  ->  (31.0, -69.5)       2.399 F / 2.478 B
-#     FID2/FID5  (106.25, -57.25)  1.337  ->  (110.85, -57.65)    1.800 F / 1.918 B
-# Each is >= 3.0 mm from the board edge, has no footprint within 3 mm, and sits in populated
-# copper rather than off the outline. The triangle stays deliberately scalene -- 60.0, 80.7
-# and 95.7 mm between pairs -- so a machine cannot register the panel 180 degrees out.
-FIDUCIALS = [("FID1", 28.1, -9.6, "F.Cu"), ("FID4", 28.1, -9.6, "B.Cu"),
-             ("FID3", 31.0, -69.5, "F.Cu"), ("FID6", 31.0, -69.5, "B.Cu"),
-             ("FID2", 110.85, -57.65, "F.Cu"), ("FID5", 110.85, -57.65, "B.Cu")]
+# ECO-14 placed all six and ECO-20 replaced them, because ECO-14's search was blind in
+# four directions at once and said so with confidence. It modelled HARD COPPER -- tracks,
+# vias, pads -- and nothing else, so it never saw:
+#   * Edge.Cuts circles. 13 of this board's outline items are gr_circle -- the shell's
+#     screw and standoff holes -- and two more are fp_circle INSIDE SW1 and VR2, routed
+#     openings for the switch shaft and the volume wheel. FID2/FID5 landed inside the
+#     1.2 mm hole at (110.91, -56.85) and FID3/FID6 straddled the rim of the one at
+#     (30.50, -70.68), while ECO-14 wrote "each is >= 3.0 mm from the board edge".
+#   * this board's 64 keepout zones -- four of which are drawn as a single full-circle arc
+#     carrying no (xy) vertex at all. FID1 and FID2 sat inside two of them.
+#   * soldermask apertures. FID1's 2 mm window merged with BT1's, the battery terminal:
+#     seven bridge violations and 0.000 mm to BT1's plated GND pad, 4.5 mm from the
+#     fiducial centre, because that terminal's pad is nothing like a circle. The two
+#     7.5 x 5 mm B.Mask polygons over the cartridge contacts are the same trap on the back.
+#   * that a mark on the FRONT does not care what the BACK is doing. ECO-14 kept the six
+#     as three coincident pairs, so every site had to be clear on both layers at once.
+#     Dropping that gives the search 3,655 legal front sites and 6,324 back ones instead
+#     of 492, and none of the six spots below is legal on the other side -- the pairs were
+#     costing real margin for nothing. Front and back register independently anyway.
+# KiCad's own DRC found every one of these the first time it was run, in ECO-19. The spots
+# below come from a search that models all of it, and each was confirmed by re-running that
+# DRC. Margins in mm -- "(none)" means nothing of that kind within 9 mm:
+#     FID1  (100.50,  -3.50) F   edge 3.12  keepout (none)  copper 2.26  mask (none)  crtyd (none)
+#     FID2  (103.75, -58.50) F   edge(none) keepout (none)  copper 1.84  mask (none)  crtyd 2.22
+#     FID3  ( 24.25, -55.75) F   edge 2.94  keepout  2.71   copper 2.00  mask (none)  crtyd 4.58
+#     FID4  (127.75, -19.50) B   edge 3.31  keepout  4.59   copper 2.26  mask (none)  crtyd (none)
+#     FID5  ( 94.75, -66.50) B   edge 2.85  keepout (none)  copper 1.80  mask (none)  crtyd 2.72
+#     FID6  ( 11.50, -16.00) B   edge 3.58  keepout (none)  copper 2.15  mask (none)  crtyd 5.84
+# "copper" is the clear radius from centre to the nearest track, via or pad ON THAT LAYER;
+# the mask window is 1.0 mm, so all six show bare substrate right out to the aperture.
+# Both triangles stay deliberately scalene, so a machine cannot register the panel 180
+# degrees out: front 55.1/79.5/92.4 mm and 2182 mm2, back 57.4/97.4/116.3 mm and 2790 mm2.
+# These are not hand-picked. `python3 scripts/place_fiducials.py --grid 0.25` prints exactly
+# these six, and prints them again from the board they are already on -- the search skips
+# the fiducials, so it does not chase its own tail. check [13] recomputes all thirty numbers
+# in the table above and fails if any of them moves by more than 5 um.
+FIDUCIALS = [("FID1", 100.5, -3.5, "F.Cu"), ("FID2", 103.75, -58.5, "F.Cu"),
+             ("FID3", 24.25, -55.75, "F.Cu"), ("FID4", 127.75, -19.5, "B.Cu"),
+             ("FID5", 94.75, -66.5, "B.Cu"), ("FID6", 11.5, -16.0, "B.Cu")]
 # The three button landings the module's plated through-holes solder down onto.
 # Net NAMES, not numbers. The numbers used to be literals here (71/13/12) and were the
 # last place in this file where a net was named by its number -- WIRE_PADS and JP4 both go
@@ -939,6 +964,31 @@ def build():
     add(NET["VDD35"], [("F.Cu", [[93.875, -37.4], [93.5, -37.2]])])   # C7's VDD35 pad
     add(NET["GND"], [("F.Cu", [[92.325, -37.4], [93.3, -38.7]])], [(93.3, -38.7)])
     add(NET["/CPU/CK1"], X["CK1"]["runs"], X["CK1"]["vias"])                 # JP4 pad 1 -> crystal node
+
+    # ---------- ECO-20  U1 pad 39 gets its ground back ------------------------------
+    # MouseBiteLabs' board has ZERO unconnected pads. This fork shipped one, and it was
+    # ours: the CPU's pin 39 is a GND pin fed by nothing but the F.Cu pour, and ECO-6's
+    # /CPU/TP8 route walks diagonally past its lower-left corner on the way to MOD1.
+    #
+    #     TP8 copper to pad 39 copper, closest approach : 0.3594 mm at (73.372, -46.628)
+    #     what a pour sliver needs to survive there     : 0.2 (zone clearance to TP8)
+    #                                                   + 0.2 (the zone's min_thickness)
+    #                                                   = 0.400 mm
+    #
+    # Forty-one microns short. The fill still puts copper on the pad -- KiCad keeps an
+    # island that touches a pad -- so the pad LOOKS connected in a render and is not
+    # attached to anything else on the board. Widening the corridor is not available:
+    # on TP8's other flank the Net-(RA1A-R1.1) track is 0.2644 mm away against a 0.2 mm
+    # rule, so there is 0.064 mm of slack to give, and the prize would be a 0.2 mm hair
+    # of pour as a CPU ground return. B.Cu under the pad is three tracks at 0.201 mm
+    # pitch, so there is no via site either.
+    #
+    # So the connection stops depending on the pour. 2.37 mm of F.Cu from pin 39 to C15
+    # pad 2 -- the ground side of the CPU's own decoupling cap, and the nearest GND
+    # copper that is unambiguously part of the plane. Clearance to pad 40, the tightest
+    # thing it passes, is 0.225 mm. Verified by KiCad's DRC: unconnected 1 -> 0, with no
+    # new violation anywhere on the board.
+    add(NET["GND"], [("F.Cu", [[74.34, -47.12], [76.7, -46.925]])])
 
     seg_txt = "".join(f'''\t(segment
 \t\t(start {x0} {y0})

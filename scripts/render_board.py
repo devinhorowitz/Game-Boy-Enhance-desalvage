@@ -179,13 +179,41 @@ class Canvas:
         rx, ry = rx_mm * self.s, ry_mm * self.s
         self.d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=colour)
 
-    def roundrect(self, x, y, hw, hh, cr, colour):
-        (ax, ay), (bx, by) = self.P(x - hw, y - hh), self.P(x + hw, y + hh)
-        r = min(cr * self.s, (bx - ax) / 2, (by - ay) / 2)
-        if r <= 0.5:
-            self.d.rectangle([ax, ay, bx, by], fill=colour)
-        else:
-            self.d.rounded_rectangle([ax, ay, bx, by], radius=r, fill=colour)
+    def roundrect(self, x, y, hw, hh, cr, colour, ang=0.0):
+        """A pad, TURNED THE WAY THE BOARD TURNS IT.
+
+        345 of this board's 956 pads carry their own 90 or 270 degree rotation -- every
+        fine-pitch QFP and SOP side row -- and this used to draw all of them from the
+        stored (size w h) as though it were width-by-height in BOARD axes. U1's pin 39 was
+        drawn 0.3 mm wide and 1.25 tall where it is physically 1.25 by 0.3: a picture whose
+        whole job is to show what size and orientation each land really is, drawing a
+        quarter of them across the wrong axis. ECO-18 gave geom.collect() the angle; this
+        is the other half.
+        """
+        a = ang % 360
+        if abs(a % 90) < 1e-6:
+            if abs(a % 180) > 1e-6:
+                hw, hh = hh, hw
+            (ax, ay), (bx, by) = self.P(x - hw, y - hh), self.P(x + hw, y + hh)
+            r = min(cr * self.s, (bx - ax) / 2, (by - ay) / 2)
+            if r <= 0.5:
+                self.d.rectangle([ax, ay, bx, by], fill=colour)
+            else:
+                self.d.rounded_rectangle([ax, ay, bx, by], radius=r, fill=colour)
+            return
+        # 24 pads on this board sit at 1.25, 15.25, 21, 111, 285.25 and 343 degrees. Walk
+        # the rounded rectangle's boundary in the PAD's frame and rotate every point out,
+        # the same y-down convention geom._pad_gap measures with.
+        cr = max(0.0, min(cr, hw, hh))
+        pts = []
+        for sx, sy, a0 in ((1, 1, 0.0), (-1, 1, 90.0), (-1, -1, 180.0), (1, -1, 270.0)):
+            ox, oy = sx * (hw - cr), sy * (hh - cr)
+            for k in range(7):
+                th = math.radians(a0 + 15.0 * k)
+                pts.append((ox + cr * math.cos(th), oy + cr * math.sin(th)))
+        t = math.radians(a)
+        self.polygon([(x + lx * math.cos(t) - ly * math.sin(t),
+                       y + lx * math.sin(t) + ly * math.cos(t)) for lx, ly in pts], colour)
 
     def ring(self, x, y, r_mm, colour, w_mm):
         cx, cy = self.P(x, y)
@@ -234,14 +262,15 @@ def paint(c, board, base, layers, *, fills=True, highlight=True, dim=1.0):
             key = (round(ax, 4), round(ay, 4), round(bx, 4), round(by, 4))
             c.line(ax, ay, bx, by,
                    w, ADDED if (highlight and key in a_seg) else fade(cu))
-        for ref, x, y, hw, hh, cr, plays, _n in pads:
+        for pad in pads:
+            ref, x, y, hw, hh, cr, plays, _n = pad[:8]
             if not (lay in plays or "*.Cu" in plays):
                 continue
             col = ADDED if (highlight and ref in a_pad) else fade(cu)
             if abs(hw - hh) < 1e-9 and cr >= hw - 1e-9:
                 c.disc(x, y, hw, col)
             else:
-                c.roundrect(x, y, hw, hh, cr, col)
+                c.roundrect(x, y, hw, hh, cr, col, pad[8] if len(pad) > 8 else 0.0)
 
     for x, y, _n in vias:
         col = ADDED if (highlight and (round(x, 4), round(y, 4)) in a_via) else \
@@ -272,7 +301,7 @@ def flag_shorts(c, board, base, A_via, A_pad, layers=None):
         if f"via ({x},{y})" in hazard:            # a via is on every layer by definition
             c.ring(x, y, 0.62, ALERT, 0.10)
             n += c.holds(x, y)
-    for ref, x, y, hw, hh, _cr, plays, _net in A_pad:
+    for ref, x, y, hw, hh, _cr, plays, _net in (q[:8] for q in A_pad):
         if ref not in hazard:
             continue
         if layers and not any(l in plays or "*.Cu" in plays for l in layers):
@@ -462,7 +491,7 @@ def rotation_sensitive(board):
     import bom_split
     _s, _v, pads = geom.collect(board)
     first = {}
-    for pref, x, y, _hw, _hh, _cr, _lay, _net in pads:
+    for pref, x, y, _hw, _hh, _cr, _lay, _net in (p[:8] for p in pads):
         ref, _, pn = pref.partition(".")
         if pn == "1":
             first.setdefault(ref, (x, y))
