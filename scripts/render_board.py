@@ -655,6 +655,25 @@ def sheet(board, base):
 
 
 # ------------------------------------------------------------------ drive
+def source_digest(board, base):
+    """{"board": sha, "base": sha} -- WHAT THESE PICTURES WERE MADE FROM.
+
+    ECO-24. The per-view `pixels` digests below can only be checked by RE-RENDERING, which
+    needs Pillow -- and this project's CI installs nothing on purpose, so check [15] used to
+    report "did not run" there and a stale render sailed through a green build. Nobody would
+    have noticed until a fab got a picture of a board that no longer existed.
+
+    These two hashes need no Pillow, no KiCad and no rendering: they are the SHA-256 of the
+    board text and the base text that produced the images. Comparing them catches exactly
+    the failure that matters -- the board moved and the pictures did not -- on any runner
+    that can open a file. The pixel digests remain the stronger check where Pillow exists;
+    this is the half that always runs.
+    """
+    import hashlib
+    return {"board": hashlib.sha256(board.encode("utf-8")).hexdigest()[:16],
+            "base": hashlib.sha256(base.encode("utf-8")).hexdigest()[:16]}
+
+
 def digest(im):
     return hashlib.sha256(im.tobytes()).hexdigest()[:16]
 
@@ -679,7 +698,8 @@ def main():
         return 0
 
     import PIL
-    man = {"pillow": PIL.__version__, "supersample": SS, "views": {}}
+    man = {"pillow": PIL.__version__, "supersample": SS,
+           "source": source_digest(board, base), "views": {}}
     bad = []
     for name, build in vs:
         im, caption = build(board, base)

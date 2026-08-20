@@ -56,6 +56,7 @@ MEMBERS = [
     ("ECO-21_22uf_line_to_25v.md", "ECO-21_22uf_line_to_25v.md"),
     ("ECO-22_the_project_file.md", "ECO-22_the_project_file.md"),
     ("ECO-23_kicad10_companion.md", "ECO-23_kicad10_companion.md"),
+    ("ECO-24_render_freshness.md", "ECO-24_render_freshness.md"),
 ]
 
 
