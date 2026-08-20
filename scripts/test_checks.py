@@ -42,6 +42,19 @@ def _run(fn, board):
     return list(cc.errors), s.getvalue()
 
 
+def _repour(board):
+    """Stand in for a KiCad `Fill All Zones`: change one vertex inside the FIRST stored
+    filled_polygon. Perturbing any old `(xy ...)` is not enough -- zone OUTLINES use the
+    same token and they are not what check [14] digests."""
+    import geom
+    m = geom._FILL.search(board)
+    if not m:
+        return board
+    blk = m.group(0)
+    new = blk.replace("(xy ", "(xy 0.001 0.001) (xy ", 1)
+    return board[:m.start()] + new + board[m.end():]
+
+
 def cc_by_ref():
     import kisexp
     return kisexp.by_ref(cc.board())
@@ -124,6 +137,13 @@ def main():
         ("[13] a fiducial loses the clearance that holds the pour back",
          cc.check_geometry,
          good.replace("(clearance 0.55)", "", 1)),
+        # [14] guards the stale zone fill and is built to go RED the day someone re-pours,
+        # because three documents say "re-pour before fab" and become wrong at that moment.
+        # The mutation stands in for a re-pour: perturb one fill vertex so the signature
+        # changes, exactly as a real Fill All Zones would.
+        ("[14] the zone fill gets recomputed",
+         cc.check_zone_fill,
+         _repour(good)),
         ("[11] a duplicate reference designator",
          cc.check_structure,
          corrupt(VICTIM_REF, "Reference", VICTIM_REF, OTHER_REF)),

@@ -8,9 +8,12 @@ Cross-checks the documents against the board they describe, so a change to one t
 not mirrored in the other fails loudly instead of rotting.
 
   [1]  REPRODUCIBLE   -- scripts/build_board.py rebuilds the shipped board byte-for-byte
-                         from the committed ECO-5 base.                     [ERROR]
+                         from MouseBiteLabs' committed AGBM-02.                     [ERROR]
   [2]  PACKAGE PARITY -- every document inside the shipped zip is byte-identical to its
                          copy in the tree.                                  [ERROR]
+  [2b] LIB FOOTPRINT  -- the shipped ClockxControl_GBA_GBC.kicad_mod is what the board's
+                         own MOD1 block derives to -- not a hand-kept second copy of it.
+                                                                            [ERROR]
   [3]  ECO-8 LEDGER   -- the swap table in ECO-8 names the same eleven refs, the same old
                          values and the same new values as the generator and the board.
                                                                             [ERROR]
@@ -30,9 +33,11 @@ not mirrored in the other fails loudly instead of rotting.
   [11] STRUCTURE      -- the board parses, parens balance, no duplicate refdes. [ERROR]
   [12] ASSEMBLY SPLIT -- nothing reaches the pick-and-place without a BOM line to buy it,
                          nothing is on both buy documents, and the generated buy documents
-  [13] REAL GEOMETRY   -- the copper this fork ADDS clears MouseBiteLabs' by the project's
-                         own netclass rule, and the fiducials are readable.       [ERROR]
                          are what a fresh run produces.                     [ERROR]
+  [13] REAL GEOMETRY  -- the copper this fork ADDS clears MouseBiteLabs' by the project's
+                         own netclass rule, and the fiducials are readable.  [ERROR]
+  [14] ZONE FILL      -- the fill is still MouseBiteLabs' stock fill, so gerbers plotted
+                         from this file would short. GOES RED WHEN RE-POURED. [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -46,11 +51,18 @@ the check carries a SNAPSHOT with a reason on every line. A deliberate change up
 snapshot in the same commit; an undeliberate one stops being invisible. Checks [4], [9]
 and [10] are that shape.
 
-Check [10] is the sharper version of it, also borrowed: a check that goes RED WHEN THE BUG
-IS FIXED. ECO-7 documents two unrouted nets as blockers. When someone routes them, the
-board and the document disagree -- and the check fails, forcing the document to be
-corrected in the same commit that fixes the board. A blocker that gets quietly fixed and
-leaves its scary paragraph behind is how a repository starts lying about itself.
+Checks [10] and [14] are the sharper version of it, also borrowed: A CHECK THAT GOES RED
+WHEN THE STATE IT DESCRIBES CHANGES. [10] guarded two blockers as open; the ECO-13 rebase
+closed both and [10] fired, forcing four documents to be corrected in the same commit --
+then it was inverted, and now guards them as closed. [14] does the same for the stale zone
+fill: three documents say "re-pour before fab", and the day someone does, those paragraphs
+become wrong. A blocker that gets quietly fixed and leaves its scary paragraph behind is how
+a repository starts lying about itself.
+
+Checks [13] and [14] also close a gap the first twelve shared: they were all TOPOLOGICAL --
+what exists, what it is called, what it connects to -- and none could measure a distance or
+read a pour. That is how a 0.1632 mm clearance violation and six unreadable fiducials
+shipped past all of them. scripts/geom.py is the arithmetic they were missing.
 """
 from __future__ import annotations
 
@@ -283,6 +295,30 @@ DNP_ADDED = {
 }
 BASE_ZIP_REF = ("AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip"
                 "::AGBM-02 Design Files/AGBM-02_AA_1-1.kicad_pcb")
+
+
+def check_library_footprint():
+    print("[2b] the shipped .kicad_mod is what the board's own MOD1 block derives to")
+    path = os.path.join(ROOT, "clockxcontrol-integration", "footprint",
+                        "ClockxControl_GBA_GBC.kicad_mod")
+    try:
+        have = open(path, encoding="utf-8").read()
+    except OSError as e:
+        err(f"the ClockxControl library footprint is missing: {e}")
+        return
+    try:
+        want = build_board.library_footprint(board())
+    except Exception as e:                                        # noqa: BLE001
+        err(f"cannot derive the library footprint: {type(e).__name__}: {e}")
+        return
+    if have == want:
+        ok(f"library footprint matches the board ({len(have)} chars, derived)")
+        return
+    err("the shipped .kicad_mod is NOT what the board's MOD1 derives to. Before ECO-14 "
+        "these drifted unnoticed -- the library labelled the landings 1/2/3 where the "
+        "board says SEL/L/R, its centre text was 1.2 against 1.05, and its reference read "
+        "MOD. Anyone re-importing the library got a different part from the one this fork "
+        "verified. Run scripts/build_board.py, which regenerates it.")
 
 
 def check_dnp_ledger():
@@ -841,6 +877,79 @@ def check_geometry():
 
 
 # =====================================================================================
+# [14] THE ZONE FILL IS STALE, AND EVERY DOCUMENT SAYS SO. RED WHEN IT IS RE-POURED.
+# =====================================================================================
+# The most consequential open item in this package, and the easiest to forget: the fill in
+# the deliverable is MouseBiteLabs' STOCK fill, computed before a single track of this
+# fork's copper existed. Plot gerbers from it without opening KiCad and running Fill All
+# Zones, and the added pads and vias come out swallowed by the GND, VDD2 and VDD35 pours.
+# Three documents say "re-pour before fab"; until now nothing enforced it.
+#
+# This asserts the state rather than trusting the prose, and reports the SIZE of the hazard
+# so it cannot read as theoretical. It goes RED when somebody finally re-pours -- the same
+# shape as check [10] -- because at that moment the "stale fill" paragraphs in those
+# documents become wrong and need rewriting in the same commit.
+FILL_DOCS = ("clockxcontrol-integration/ECO-6_clockxcontrol_footprint.md",
+             "clockxcontrol-integration/ECO-14_clock_domain_and_audit_fixes.md",
+             "pcbway-assembly/README.md")
+
+
+def check_zone_fill():
+    print("[14] the zone fill is still MouseBiteLabs' (RED means it was re-poured)")
+    import geom
+    b = board()
+    try:
+        base = geom.base()
+    except OSError as e:
+        warn(f"base board unreadable ({e}) -- check [14] did not run")
+        return
+    b_sig, b_n = geom.fill_signature(base)
+    o_sig, o_n = geom.fill_signature(b)
+    if b_sig != o_sig:
+        err(f"THE ZONE FILL HAS BEEN RECOMPUTED ({b_n} -> {o_n} polygons, {b_sig} -> "
+            f"{o_sig}). That is good news, and it makes these documents wrong -- they all "
+            f"say the fill is stale and must be re-poured before fab. Correct them in the "
+            f"same commit: " + ", ".join(FILL_DOCS))
+        return
+    ok(f"fill is byte-identical to the base ({o_n} polygons, {o_sig}) -- not re-poured")
+
+    # How big is the hazard? Count the copper THIS FORK ADDS that a stale fill swallows.
+    zf = geom.fills(b)
+    tbl = kisexp.net_table(b)
+    base_via = {(round(x, 4), round(y, 4)) for x, y, _n in kisexp.vias(base)}
+    swallowed = []
+    for x, y, n in kisexp.vias(b):
+        if (round(x, 4), round(y, 4)) in base_via:
+            continue
+        net = tbl.get(n, str(n))
+        hit = set()
+        for lay in ("F.Cu", "In1.Cu", "In2.Cu", "B.Cu"):
+            hit |= set(geom.in_foreign_fill(x, y, lay, net, zf))
+        if hit:
+            swallowed.append(f"via ({x},{y}) {net} -> {'+'.join(sorted(hit))}")
+    owner = {}
+    for nm, pads in kisexp.nets_by_name(b).items():
+        for pref in pads:
+            owner[pref] = nm
+    base_refs = set(kisexp.by_ref(base))
+    for ref, fp in sorted(kisexp.by_ref(b).items()):
+        if ref in base_refs or fp.at is None or "*" in ref:
+            continue
+        net = owner.get(f"{ref}.1", "<netless>")
+        hit = set(geom.in_foreign_fill(fp.at[0], fp.at[1], fp.layer, net, zf))
+        if hit:
+            swallowed.append(f"{ref} ({net}) -> {'+'.join(sorted(hit))}")
+    if swallowed:
+        note(f"{len(swallowed)} added object(s) inside a foreign-net pour until the "
+             f"re-pour: " + "; ".join(swallowed[:6])
+             + (f"; +{len(swallowed) - 6} more" if len(swallowed) > 6 else ""))
+        ok(f"{len(swallowed)} added object(s) sit in a foreign-net pour -- DO NOT PLOT "
+           f"GERBERS from this file; open it in KiCad, Fill All Zones, re-run DRC")
+    else:
+        ok("no added object sits in a foreign-net pour -- still re-pour before fab")
+
+
+# =====================================================================================
 # [11] the board is structurally sound
 # =====================================================================================
 def check_structure():
@@ -945,11 +1054,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("-v", "--verbose", action="store_true")
     verbose = ap.parse_args().verbose
-    for fn in (check_reproducible, check_package_parity, check_eco8_ledger,
+    for fn in (check_reproducible, check_package_parity, check_library_footprint,
+               check_eco8_ledger,
                check_dnp_ledger, check_bom_vs_board, check_supplier_pns,
                check_cited_paths, check_doc_imagery, check_module_window,
                check_blockers, check_structure, check_assembly_split,
-               check_geometry):
+               check_geometry, check_zone_fill):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

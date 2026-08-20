@@ -260,11 +260,12 @@ so in its own docstring rather than implying coverage it lacks.
 
 Three cases were added to `scripts/test_checks.py`, one per way the fixed defects could
 return — the via moving back, a fiducial landing on the via again, and a fiducial losing its
-clearance override. All three fire; the suite is **11 cases, 0 blind**.
+clearance override. All three fire; a fourth followed with check [14] below, and the suite is now
+**12 cases, 0 blind**.
 
 ---
 
-## 14.5 Open, and recorded rather than fixed
+## 14.5 Recorded rather than fixed — and what the follow-up pass then fixed
 
 **The renders are pre-rebase.** Every PNG in `clockxcontrol-integration/render/` has an identical
 git blob SHA before and after ECO-13 — they show the AGBM-01 board. They are displayed as "the
@@ -278,22 +279,43 @@ is three buttons × two terminals rather than six independent pads, one landing 
 the module's button interface open. **Verify against a physical module** — this is the same open
 item as the landing geometry being photo-derived.
 
-**The shipped footprint does not match the board.**
-`clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod` has the centre text at size
-1.2 against the board's 1.05, carries four extra silk strings, and names its reference `MOD` not
-`MOD1`. Pads, mask margins and outlines are identical. Check [2] compares the zip to the tree and
-never the `.kicad_mod` to the board.
+**Three of the five items above were fixable without KiCad, and were fixed.** They are kept here
+rather than moved out, because a defect that vanishes from the record cannot be checked for
+having come back.
 
-**`TP83`/`TP84`/`TP85` and `JP4` lack `exclude_from_pos_files`.** The generated CPL is correct
-anyway, because `bom_split.py` keys off `exclude_from_bom` — but that is the splitter's rule saving
-an attribute set that is wrong. MouseBiteLabs' own equivalents (`TP27`–`TP29`) are `dnp`.
+**FIXED — the shipped footprint no longer has an independent existence.**
+`clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod` had the centre text at size
+1.2 against the board's 1.05, carried four extra silk strings, and named its reference `MOD` not
+`MOD1`; pads, mask margins and outlines were already identical. The fault was not the drift, it
+was that a second hand-kept copy existed at all: check [2] compared the zip to the tree and never
+the `.kicad_mod` to the board, so any future divergence would have been just as invisible.
+`build_board.py` now grows a `library_footprint()` that **derives** the `.kicad_mod` from the
+board's own `MOD1` block — strips the placement, restores `REF**`, keeps the pads, the outline and
+the four texts the board actually carries (`CLOCKXCONTROL`, `SEL`, `L`, `R`) — and emits it
+alongside the board on every run. 3,709 characters of hand-kept file became 3,181 of generated
+one. New check **[2b]** re-derives it from the shipped board and compares; `--no-footprint`
+suppresses the emission for anyone who wants the board alone.
 
-**Zone fills are stale, and that is the state the deliverable ships in.** All 14 added pads and all
-9 added vias lie inside foreign-net poured copper; 8 are genuine net-to-net overlaps, two of them
-rail-to-rail. This is documented in ECO-6 §6.8, ECO-7 and ECO-13 as "re-pour before fab" and it was
-equally true on the AGBM-01 base — but it means **plotting gerbers from this file without opening
-KiCad and running Fill All Zones produces a shorted board.** No gate in this repository is
-zone-aware.
+**FIXED — `TP83`/`TP84`/`TP85` and `JP4` now carry `exclude_from_pos_files`.** The generated CPL
+was correct anyway, because `bom_split.py` keys off `exclude_from_bom` — but that was the
+splitter's rule saving an attribute set that was wrong, and the wrongness would have surfaced the
+moment anyone opened the board in KiCad and exported a position file by hand. The attribute now
+matches MouseBiteLabs' own convention for the same kind of object: their `TP18` and `TP80` are
+`exclude_from_pos_files`, their `TP27`–`TP29` are `exclude_from_pos_files dnp`. Ours are
+`exclude_from_bom exclude_from_pos_files` — not bought, not placed, but not `dnp` either, because
+unlike Nick's they are landing pads this fork actually intends to be etched.
+
+**STILL TRUE, NOW GATED — zone fills are stale, and that is the state the deliverable ships in.**
+All 14 added pads and all 9 added vias lie inside foreign-net poured copper; 8 are genuine
+net-to-net overlaps, two of them rail-to-rail. This is documented in ECO-6 §6.8, ECO-7 and ECO-13
+as "re-pour before fab" and it was equally true on the AGBM-01 base — but it means **plotting
+gerbers from this file without opening KiCad and running Fill All Zones produces a shorted
+board.** The state has not changed; what changed is that it is no longer un-gated. New check
+**[14]** hashes the `filled_polygon` set against the base's (152 polygons, `e94ca194ae163914`)
+and re-counts the objects sitting in foreign pours. It is deliberately the ECO-13 shape — a check
+that **goes red when the problem is fixed** — because on the day someone opens KiCad and re-pours,
+three documents' "re-pour before fab" paragraphs become lies, and [14] will fail until they are
+corrected in the same commit.
 
 ---
 
@@ -312,9 +334,14 @@ zone-aware.
 ## Verification
 
 * `python3 scripts/build_board.py --check` — byte-identical rebuild after the `PADS` change
-* `python3 scripts/check_consistency.py` — 0 errors; check [10] still green under the corrected
-  pad transform
-* `python3 scripts/test_checks.py` — 8/8 negative tests firing
+* `python3 scripts/pack_board.py --check` — package matches the tree (22 members)
+* `python3 scripts/bom_split.py --check` — 68 assembly lines / 5 hand-buy / 180 placements
+* `python3 scripts/check_stock.py --offline` — 182 of 185 buyable refs resolved, 3 unresolved
+  by decision (`MOD1`, `SP1`, `U1`)
+* `python3 scripts/check_consistency.py` — **0 errors, 4 warnings** across 15 checks; check [10]
+  still green under the corrected pad transform, and [2b], [13] and [14] are new here
+* `python3 scripts/test_checks.py` — **12 cases, 0 blind**: every check this ECO added has a
+  mutation that makes it fail
 * Audit provenance: 44 agents, 1,139 tool calls, every finding adversarially verified against the
   board files before it was acted on. Two findings this document does **not** carry were refuted on
   re-derivation: a claimed missing `B.Cu` cartridge keepout (it is present on AGBM-02, verbatim)

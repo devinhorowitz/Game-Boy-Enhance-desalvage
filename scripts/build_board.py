@@ -63,6 +63,7 @@ import json
 import os
 import re
 import sys
+import textwrap
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -79,6 +80,8 @@ SHIPPED_ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board",
 SHIPPED_MEMBER = "agbm-02-clockxcontrol/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"
 OUT = os.path.join(ROOT, "clockxcontrol-integration", "board",
                    "AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb")
+FOOTPRINT_OUT = os.path.join(ROOT, "clockxcontrol-integration", "footprint",
+                             "ClockxControl_GBA_GBC.kicad_mod")
 
 # --- ECO-6 geometry ------------------------------------------------------------------
 # The module body is 18.65 x 12.00 mm; MOD_X/MOD_Y is its centre. rev B moved it west out
@@ -588,6 +591,12 @@ def build():
 \t)
 '''
 
+    # ECO-14: these carry `exclude_from_pos_files` as well as `exclude_from_bom`. They are
+    # WIRE PADS and a SOLDER JUMPER -- a human tins them and lands a wire, and no
+    # pick-and-place operation touches either. The generated CPL was already correct without
+    # the flag, but only because bom_split.py happens to key off `exclude_from_bom`; the
+    # BOARD said something different from what the CPL did, and MouseBiteLabs' own
+    # equivalents (TP18, TP80) carry the flag. Now the board says what it means.
     def tp(ref, x, y, dia, net, netname, silk, val, sx=0.0, sy=1.5):
         return f'''\t(footprint "Bucketmouse:TestPoint_Pad_D1.0mm"
 \t\t(layer "F.Cu")
@@ -595,7 +604,7 @@ def build():
 \t\t(at {x} {y})
 \t\t(descr "ClockxControl mezzanine landing - position is photo-derived, verify against a physical module")
 \t\t(tags "clockxcontrol landing")
-\t\t(attr exclude_from_bom)
+\t\t(attr exclude_from_bom exclude_from_pos_files)
 \t\t(property "Reference" "{ref}"
 \t\t\t(at 0 -1.6 0)
 \t\t\t(layer "F.SilkS")
@@ -693,7 +702,7 @@ def build():
 \t\t(at 45 -64.2)
 \t\t(descr "CK1 isolation jumper for the ClockxControl CLK run. Numbered JP4 because JP2 and JP3 are MouseBiteLabs' own RAM straps on AGBM-02. LEAVE OPEN for a crystal build; BRIDGE when populating the ClockxControl.")
 \t\t(tags "solder jumper open")
-\t\t(attr smd exclude_from_bom)
+\t\t(attr smd exclude_from_bom exclude_from_pos_files)
 \t\t(property "Reference" "JP4"
 \t\t\t(at 0 -1.6 0)
 \t\t\t(layer "F.SilkS")
@@ -793,11 +802,48 @@ def build():
                      vias=len(vias), net=NEWNET, hand=sorted(derived))
 
 
+def library_footprint(board_text):
+    """Derive clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod
+    FROM the board's own MOD1 block, so the two cannot drift.
+
+    ECO-14 found they had. The shipped library file labelled the three landings "1", "2",
+    "3" and carried a "pad end" string the board does not have, its centre text was 1.2
+    against the board's 1.05, and its reference read "MOD" not "MOD1". Pads and outlines
+    agreed, so nothing was wrong on a board built from the .kicad_pcb -- but anyone
+    re-importing the library got a different footprint from the one this fork verified,
+    and check [2] compares the zip to the tree, never the .kicad_mod to the board.
+
+    Deriving it removes the question. The transform is small and mechanical: drop the
+    instance placement, restore the library reference convention, and keep everything
+    else exactly as the board has it.
+    """
+    i = board_text.find('\n\t(footprint "ClockxControl_GBA_GBC"')
+    if i < 0:
+        raise AssertionError("no ClockxControl footprint on the board to derive from")
+    j = board_text.find("\n\t)\n", i + 1)
+    blk = board_text[i + 1:j + 3]
+    blk = blk.replace("\n\t", "\n").lstrip("\t").rstrip()
+    # a library footprint has no instance placement and no board-assigned nets or uuids
+    blk = re.sub(r'\n\t\(at [-\d.]+ [-\d.]+ ?[-\d.]*\)', "", blk, count=1)
+    blk = re.sub(r'\n\t+\(net \d+ "[^"]*"\)', "", blk)
+    # the footprint-level uuid identifies a board INSTANCE, not a library part
+    blk = re.sub(r'\n\t\(uuid "[0-9a-f-]+"\)', "", blk, count=1)
+    blk = blk.replace('(property "Reference" "MOD1"', '(property "Reference" "REF**"')
+    head = ('(footprint "ClockxControl_GBA_GBC"\n'
+            '\t(version 20241229)\n'
+            '\t(generator "scripts/build_board.py")\n'
+            '\t(generator_version "9.0")\n')
+    blk = blk.replace('(footprint "ClockxControl_GBA_GBC"\n', head, 1)
+    return blk + "\n"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--check", action="store_true",
                     help="build in memory and diff against the shipped board; write nothing")
     ap.add_argument("-o", "--out", default=OUT)
+    ap.add_argument("--no-footprint", action="store_true",
+                    help="skip rewriting the derived .kicad_mod library file")
     a = ap.parse_args()
     txt, st = build()
     print(f"built {st['orig_len']} -> {st['new_len']} chars "
@@ -819,6 +865,12 @@ def main():
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(txt)
     print(f"wrote {a.out}")
+    # The library footprint is DERIVED from the board, in the same run, so the two cannot
+    # drift. ECO-14 found they had. See library_footprint().
+    if not a.no_footprint:
+        with open(FOOTPRINT_OUT, "w", encoding="utf-8") as f:
+            f.write(library_footprint(txt))
+        print(f"wrote {FOOTPRINT_OUT}")
     return 0
 
 

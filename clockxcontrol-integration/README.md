@@ -26,7 +26,10 @@ host-side footprint for this module. Anything inferred rather than measured is f
 
 A KiCad footprint built from the extracted geometry is in
 [`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod), and the
-modified board is in [`board/`](board/).
+modified board is in [`board/`](board/). The `.kicad_mod` is **generated from the board**, not kept
+by hand beside it: `scripts/build_board.py` derives it from the board's own `MOD1` block on every
+run, and check [2b] re-derives it and compares, so the library part and the placed part cannot
+drift apart.
 
 The engineering record, in order:
 
@@ -403,7 +406,7 @@ de-salvaged board's favour, not against it.
 ```
 ECO-6_clockxcontrol_footprint.md              engineering record for the board edit
 board/agbm-02-clockxcontrol.zip               the modified board: AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb
-footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern built from the DMG Color geometry
+footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern, DERIVED from the board's MOD1
 render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
 render/agbm01_cxc_placement.png               the window below the RAM, the C7 move and the deleted vias
 render/agbm01_cxc_board_after6.png            copper diff: landings, wire pads, JP4 and the full routing

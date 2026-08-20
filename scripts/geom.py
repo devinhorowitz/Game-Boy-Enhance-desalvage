@@ -106,3 +106,65 @@ def edge_dist(px,py,esegs):
     for ax,ay,bx,by in esegs:
         best=min(best,_p2s(px,py,ax,ay,bx,by))
     return best
+
+# ---------------------------------------------------------------------- zone fills
+# ECO-14. kisexp has no zone reader and this module said so; that limit is exactly what
+# let "the fill is stale" stay a sentence in a document instead of a number in a gate.
+# These read the STORED fill -- the polygons KiCad last computed -- not a re-computation.
+# Nothing here fills a zone; it only measures the fill that is in the file.
+
+_FILL = re.compile(r'\(filled_polygon\s*\(layer "([^"]+)"\)([\s\S]{0,400000}?)\n\t\t\)')
+_XY = re.compile(r'\(xy ([-\d.]+) ([-\d.]+)\)')
+
+
+def fills(board):
+    """[(layer, net_name, [(x, y), ...])] for every stored fill polygon.
+
+    The net comes from the enclosing (zone ...), so the scan walks backwards from each
+    filled_polygon to the zone header that owns it.
+    """
+    out = []
+    for m in _FILL.finditer(board):
+        head = board.rfind('(zone', 0, m.start())
+        net = "?"
+        if head >= 0:
+            nm = re.search(r'\(net_name "([^"]*)"\)', board[head:head + 400])
+            if nm:
+                net = nm.group(1)
+        pts = [(float(a), float(b)) for a, b in _XY.findall(m.group(2))]
+        if pts:
+            out.append((m.group(1), net, pts))
+    return out
+
+
+def fill_signature(board):
+    """A stable digest of every stored fill polygon.
+
+    Identical digests on two boards mean the fill was never recomputed between them --
+    which is the whole point: it turns "we did not re-pour" into something checkable.
+    """
+    import hashlib
+    blocks = [m.group(0) for m in _FILL.finditer(board)]
+    return hashlib.sha256("".join(blocks).encode()).hexdigest()[:16], len(blocks)
+
+
+def inside(px, py, poly):
+    """Ray-cast point-in-polygon. Boundary counts as inside."""
+    n = len(poly)
+    hit = False
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if (yi > py) != (yj > py):
+            xc = (xj - xi) * (py - yi) / (yj - yi) + xi
+            if px < xc:
+                hit = not hit
+        j = i
+    return hit
+
+
+def in_foreign_fill(px, py, layer, net, zf):
+    """Names of foreign-net fills on `layer` that swallow the point."""
+    return [zn for zl, zn, poly in zf
+            if zl == layer and zn != net and inside(px, py, poly)]
