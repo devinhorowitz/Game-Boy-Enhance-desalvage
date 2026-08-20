@@ -135,7 +135,7 @@
    "mfr": "Microchip",
    "flag": "Confirms this is an oscillator, not a power switch -- the MIC1553 is an IttyBitty RC 555-type astable. It drives the low-battery LED blink.",
    "note": "555-type timer/oscillator, 500 kHz",
-   "alternate": "0 at both distributors with a 24-week lead, the longest on the board (verified 2026-08-19). Nothing to substitute: the MIC1553 is an IttyBitty 555-type oscillator with no drop-in equivalent in SOT-23-5. It drives the low-battery LED blink, which is already dead for another reason (ECO-7's Net-(Q5B-G) blocker), so it is not on the critical path for a first build."
+   "alternate": "0 at BOTH distributors with a 24-week lead, the longest on the board (re-verified live 2026-08-20). No packaging alternative exists: MIC1553YM5 without the -TR reel suffix is not an orderable part at either distributor. The family siblings ARE in stock -- MIC1555YM5-TR (Digi-Key 17,066 / Mouser 21,650 at $0.47) and MIC1557YM5-TR (87,464 / 23,471 at $0.47, 4-week lead) -- but both are 5 MHz PROGRAMMABLE timers against this part's fixed 500 kHz, so they are reported here and NOT proposed: swapping one in is an engineering decision against the datasheet, not a reel change. CORRECTION, 2026-08-20: this note used to end 'it drives the low-battery LED blink, which is already dead for another reason (ECO-7's Net-(Q5B-G) blocker), so it is not on the critical path for a first build.' That has been false since ECO-13. The rebase onto AGBM-02 closed that blocker -- check [10] asserts Net-(Q5B-G) is whole on this fork AND on MouseBiteLabs' own board -- so the LED works and U14 IS on the critical path. It is the one line that can hold up a build."
   },
   {
    "refs": [
@@ -157,7 +157,7 @@
    "mfr": "Texas Instruments",
    "flag": "TPS22917DBVT is the same die on a different reel; see `alternate`. Which of the two to order is a stock question, not an engineering one.",
    "note": "Load switch, Ron 80 mohm typ",
-   "alternate": "TPS22917DBVT -- the SAME DIE on a different reel (10,909 in stock, $1.14, verified 2026-08-19) while DBVR sits at zero with a 16-week lead. Not an engineering decision; change it at order time if DBVR is still out."
+   "alternate": "TPS22917DBVT -- the SAME DIE on a smaller reel (Digi-Key 10,879 at $1.14, Mouser 1,973 at $1.13, verified live 2026-08-20) while DBVR sits at zero at both with a 16-week lead. Not an engineering decision; change it at order time if DBVR is still out. The 'C' grade parts do not exist as orderable numbers -- neither TPS22917CDBVR nor TPS22917CDBVT matches at either distributor -- so DBVT is the only swap."
   },
   {
    "refs": [
