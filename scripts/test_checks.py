@@ -252,6 +252,13 @@ def main():
                   good.replace("(at 97.9 -37.95)", "(at 97.9 -30.0)", 1)))
     # [15] is the render gate. Any board change at all must make the committed PNGs stale;
     # if it does not, the renderer is not actually reading the board.
+    # [19] ECO-23. The KiCad 10 companion is a DERIVED artifact; if the KiCad 9 board moves
+    # and it does not, the repository is carrying two different boards. Moving one track
+    # endpoint in the source is exactly that.
+    cases.append(("[19] the KiCad 9 board moves and the KiCad 10 copy does not",
+                  cc.check_kicad10,
+                  good.replace("(start 38.725 -47.775)", "(start 38.725 -47.875)", 1),
+                  "track coverage differs"))
     cases.append(("[15] the board moves and the renders do not",
                   cc.check_renders,
                   good.replace("(at 91.95 -44.95 180)", "(at 91.95 -45.35 180)", 1)))

@@ -89,5 +89,9 @@ jobs:
       # RED on every commit from ECO-16 to ECO-20 while every local run was green.
       - name: The drift guard can still fail
         run: python3 scripts/test_checks.py
+      # The CONVERSION needs KiCad 10 and does not run here; the PROOF is pure text, so it
+      # does. A KiCad 10 companion that has drifted from the KiCad 9 board is two boards.
+      - name: The KiCad 10 companion is the same copper
+        run: python3 scripts/kicad10.py --check
       - name: Drift guard
         run: python3 scripts/check_consistency.py

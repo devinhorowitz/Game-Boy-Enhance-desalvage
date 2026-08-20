@@ -1804,6 +1804,53 @@ def check_assembly_split():
              f"still have no resolved MPN -- not an error, but not an orderable BOM either")
 
 
+# =====================================================================================
+# [19] the KiCad 10 companion is the same board, not a second board
+# =====================================================================================
+# ECO-23. The KiCad 9 file stays the source of truth -- it is what check [1] rebuilds
+# byte-for-byte from MouseBiteLabs' committed zip -- and the KiCad 10 file beside it is a
+# DERIVED ARTIFACT, like the renders. A derived artifact that nothing re-derives is a
+# second board, and two boards in one repository is how a fab ends up with the wrong one.
+#
+# TEXT ONLY, DELIBERATELY. The CONVERSION needs KiCad 10 and cannot run on this project's
+# bare CI runner, but the PROOF is pure string handling, so the gate runs everywhere the
+# rest of the suite does. scripts/kicad10.py owns the comparison; this calls it, so the
+# tool that writes the file and the gate that accepts it cannot disagree about what "the
+# same copper" means.
+def check_kicad10():
+    print("[19] the KiCad 10 companion carries the same copper as the KiCad 9 board")
+    try:
+        import kicad10
+    except ImportError as e:                                      # noqa: BLE001
+        warn(f"kicad10 unavailable ({e}) -- check [19] did not run")
+        return
+    if not os.path.exists(kicad10.BOARD10):
+        err(f"{os.path.relpath(kicad10.BOARD10, ROOT)} is missing. The KiCad 10 companion "
+            f"ships with the board; regenerate it with `python3 scripts/kicad10.py` on a "
+            f"machine with KiCad 10 installed.")
+        return
+    try:
+        b9 = board()                       # the SHIPPED KiCad 9 board, out of the zip
+        b10 = kisexp.load(kicad10.BOARD10)
+    except OSError as e:
+        warn(f"a board is unreadable ({e}) -- check [19] did not run")
+        return
+    v9, v10 = kicad10.version(b9), kicad10.version(b10)
+    if v10 <= v9:
+        err(f"the KiCad 10 companion is file version {v10}, not newer than the KiCad 9 "
+            f"board's {v9} -- it was not regenerated after the last board change")
+        return
+    bad = kicad10.compare(b9, b10)
+    if bad:
+        err(f"the two boards are NOT the same copper ({len(bad)} difference(s)): "
+            + "; ".join(bad[:6])
+            + ". Re-run `python3 scripts/kicad10.py` and commit both boards together.")
+    else:
+        ok(f"KiCad 9 (v{v9}) and KiCad 10 (v{v10}) agree: {len(kicad10.runs(b9))} collinear "
+           f"track run(s), {len(kicad10.vias(b9))} via(s), "
+           f"{len(kicad10.footprints(b9))} footprint(s), every pad and net identical")
+
+
 def main():
     global verbose
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -1816,7 +1863,7 @@ def main():
                check_blockers, check_structure, check_assembly_split,
                check_geometry, check_zone_fill, check_renders,
                check_upstream_links, check_paste, check_cpl_datum,
-               check_rotation_convention):
+               check_rotation_convention, check_kicad10):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0
