@@ -296,12 +296,21 @@ def neighbour_gaps(board, ref="MOD1", limit=8):
             continue
         if not fp.layer.startswith(side):
             continue
+        # A DISTANCE TO THE BODY'S EDGE IS NOT A CLEARANCE IF THE PART IS INSIDE IT.
+        # BODY is four line segments, so a footprint sitting wholly within the rectangle
+        # reports a comfortable positive gap -- it is measuring how far it is from the wall,
+        # not that it is in the room. ECO-19's C7A is the live case: its land is 2.15 mm
+        # inside MOD1's body on purpose, and this read 1.420 mm as though it were clear.
+        # Containment is reported as a NEGATIVE distance, which sorts to the front and
+        # cannot be mistaken for headroom.
+        inside_body = (x0 <= fp.at[0] <= x1 and y0 <= fp.at[1] <= y1)
         cy = outline(fp, f"{side}.CrtYd")
         if cy:
-            out.append((r, "crtyd", min(_seg_seg(b, c) for b in BODY for c in cy)))
+            d = min(_seg_seg(b, c) for b in BODY for c in cy)
+            out.append((r, "crtyd", -d if inside_body else d))
             continue
         pd = [p for p in pads if p[0].startswith(r + ".")]
         if pd:
-            out.append((r, "pad", min(min(_p2s(p[1], p[2], *b) for b in BODY)
-                                      - max(p[3], p[4]) for p in pd)))
+            d = min(min(_p2s(p[1], p[2], *b) for b in BODY) - max(p[3], p[4]) for p in pd)
+            out.append((r, "pad", -d if inside_body else d))
     return sorted(out, key=lambda t: t[2])[:limit]

@@ -12,7 +12,7 @@
     },
     "agbm02_cxc_1to1_600dpi.png": {
       "caption": "1:1 print sheet at 600 dpi with a 10 mm ruler",
-      "pixels": "68d0ac6e409cbfff",
+      "pixels": "302921514a0dd812",
       "size": [
         594,
         682
@@ -20,7 +20,7 @@
     },
     "agbm02_cxc_diff.png": {
       "caption": "all layers, this fork's copper at full value, 19 ringed",
-      "pixels": "6b582834326dccbb",
+      "pixels": "eb2ca1417b8eb46d",
       "size": [
         1471,
         928
@@ -28,7 +28,7 @@
     },
     "agbm02_cxc_fit.png": {
       "caption": "module fit at 46 px/mm, 3 landed, 3 not",
-      "pixels": "975de22f2bd9091c",
+      "pixels": "17756435bd4424e4",
       "size": [
         1028,
         836
@@ -44,7 +44,7 @@
     },
     "agbm02_cxc_placement.png": {
       "caption": "module window at 34 px/mm, 11 ringed",
-      "pixels": "56e71b28faca8fb7",
+      "pixels": "c236c9e2fa0cf4a3",
       "size": [
         859,
         977
@@ -52,7 +52,7 @@
     },
     "agbm02_front.png": {
       "caption": "F.Cu, 18 object(s) ringed in a foreign pour",
-      "pixels": "c0a8d2782830941f",
+      "pixels": "d3bd954f8879a9d5",
       "size": [
         1471,
         894
@@ -68,7 +68,7 @@
     },
     "agbm02_pin1_front.png": {
       "caption": "front: 16 rotation-sensitive part(s), 6 polarised",
-      "pixels": "7d411715a729ea5f",
+      "pixels": "cd1ecbfb74467fd6",
       "size": [
         1471,
         924

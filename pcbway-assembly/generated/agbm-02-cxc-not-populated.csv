@@ -2,6 +2,7 @@ refs,qty,value,mpn,mfr,footprint,status,stock,note
 BT1,1,Battery,,,Bucketmouse:AGB-Battery,,,DNP
 C3,1,27p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP
 C4,1,33p,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP
+C7A,1,0.1u DNP-alt,,,Bucketmouse:C_0603_1608Metric_Boxed_2,,,DNP
 FID1 FID2 FID3 FID4 FID5 FID6,6,Fiducial,,,Fiducial:Fiducial_1mm_Mask2mm,,,"optical alignment target -- copper and mask, no part"
 JP1,1,Jumper_2_Open,,,Bucketmouse:SJ,,,DNP
 JP4,1,CXC CLK,,,CXC:SolderJumper_2_Open,,,"copper, closed with solder"

@@ -9,7 +9,7 @@
         "P4",
         "SP1"
       ],
-      "bytes": 423012,
+      "bytes": 423215,
       "desc": "back, after you have hand-soldered the rest too",
       "keeps": [
         "+hand-fitted",
@@ -42,7 +42,7 @@
         "P4",
         "SP1"
       ],
-      "bytes": 413093,
+      "bytes": 413936,
       "desc": "front, after you have hand-soldered the rest too",
       "keeps": [
         "+hand-fitted",
@@ -70,7 +70,7 @@
     },
     "agbm02_pcbway_bottom.png": {
       "bodyless": [],
-      "bytes": 423112,
+      "bytes": 422609,
       "desc": "back, exactly the parts PCBWay's line places",
       "keeps": [
         "assembly"
@@ -92,7 +92,7 @@
     },
     "agbm02_pcbway_top.png": {
       "bodyless": [],
-      "bytes": 404875,
+      "bytes": 405636,
       "desc": "front, exactly the parts PCBWay's line places",
       "keeps": [
         "assembly"

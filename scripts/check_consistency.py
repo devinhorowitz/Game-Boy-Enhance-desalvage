@@ -298,6 +298,12 @@ def _check_one_eco(label, doc_path, gen):
 #
 # Only ECO-7's own additions need a reason here, and each carries one.
 DNP_ADDED = {
+    "C7A": "ECO-19: the STOCK C7 land, restored at (91.9, -41.1) and left unpopulated so "
+           "this fork stops being a side-grade for anyone whose other mods solder to C7 "
+           "where MouseBiteLabs has kept it across both AGBM-01 and AGBM-02. It is DNP "
+           "rather than absent because the land is what those mods need; populating it "
+           "fouls a ClockxControl lying on the board, which is why exactly one of C7 / C7A "
+           "is ever fitted.",
     "X1": "ECO-7: the ClockxControl drives CK1 directly, so the 4.194304 MHz crystal "
           "must be absent on a module build",
     "C3": "ECO-7: 27p load cap, sits straight on CK1",
@@ -738,6 +744,17 @@ PLACED = {
 }
 
 
+# DNP lands deliberately inside the module window, each with its reason. A land is not a
+# body; a part is. Membership here is the ONLY way a footprint in the window passes, and it
+# still has to be dnp.
+WINDOW_DNP_LANDS = {
+    "C7A": "ECO-19. The stock C7 land, back at (91.9, -41.1) where MouseBiteLabs has kept "
+           "it across both AGBM-01 and AGBM-02, so mods that solder to C7 there still have "
+           "their landmark. DNP: populate C7 for a ClockxControl build, C7A for a stock "
+           "one, never both.",
+}
+
+
 def check_module_window():
     print("[9] the ECO-6 module window is still component-free, and its parts have not moved")
     fps = kisexp.by_ref(board())
@@ -745,13 +762,26 @@ def check_module_window():
         err("MOD1 is not on the board -- the whole ECO-6 window claim is unverifiable")
         return
     mx, my, _ = fps["MOD1"].at
-    intruders = []
+    intruders, tolerated = [], []
     for fp in fps.values():
         if fp.ref in WINDOW_OCCUPANTS or fp.at is None or fp.layer != "F.Cu":
             continue
         dx, dy = abs(fp.at[0] - mx), abs(fp.at[1] - my)
-        if dx <= WINDOW_HALF_X and dy <= WINDOW_HALF_Y:
-            intruders.append(f"{fp.ref} ({fp.value}) at {fp.at[0]},{fp.at[1]}")
+        if not (dx <= WINDOW_HALF_X and dy <= WINDOW_HALF_Y):
+            continue
+        am = re.search(r"\(attr ([^)]*)\)", fp.body)
+        is_dnp = bool(am and "dnp" in am.group(1).split())
+        # THE WINDOW EXISTS SO A MODULE CAN LIE FLAT, and what stops that is a BODY, not a
+        # land. ECO-19 puts the stock C7 land back inside the window, DNP, so this fork stops
+        # being a side-grade for anyone whose other mods solder to C7 where it has always
+        # been. Bare, it is copper and mask. The rule stays strict where it matters: a
+        # footprint in the window that is NOT dnp still fails, and a dnp one has to be
+        # named here, so nobody can quietly park a real part in the window by flagging it.
+        if is_dnp and fp.ref in WINDOW_DNP_LANDS:
+            tolerated.append(fp.ref)
+        else:
+            intruders.append(f"{fp.ref} ({fp.value}) at {fp.at[0]},{fp.at[1]}"
+                             + ("" if is_dnp else " -- NOT dnp"))
     moved = []
     for ref, (x, y, _why) in PLACED.items():
         if ref not in fps or fps[ref].at is None:
@@ -762,6 +792,9 @@ def check_module_window():
             moved.append(f"{ref} at ({ax}, {ay}), snapshot says ({x}, {y})")
         else:
             note(f"{ref} at ({x}, {y})")
+    if tolerated:
+        ok(f"window clear of bodies; {', '.join(sorted(tolerated))} present as DNP land(s) "
+           f"by design (ECO-19)")
     if intruders:
         err(f"footprint origin(s) inside the {2 * WINDOW_HALF_X} x {2 * WINDOW_HALF_Y} mm "
             f"module window -- the module physically cannot go on: " + ", ".join(intruders))
@@ -893,6 +926,12 @@ FIDUCIAL_PAD_CLEARANCE = "(clearance 0.55)"
 MODULE_GAPS = (
     # This fork's own wire pads, placed deliberately just clear of the body so the three
     # wires stay short (3.8 / 5.9 / 4.7 mm per ECO-6 §6.5). Tightest on the board, on purpose.
+    # ECO-19's alternate C7 land, INSIDE the module body by 1.420 mm and negative for that
+    # reason. This is the design, not a collision: the land is bare copper and mask, and it
+    # is DNP -- populate C7 (the moved one) for a ClockxControl build or C7A for a stock one,
+    # never both. A NEGATIVE number here can only ever be a part that is inside the module's
+    # own body, so the floor rule below skips DNP parts and fails on anything else.
+    ("C7A",  "crtyd", -1.420),
     ("TP83", "pad",   0.400),
     ("TP84", "pad",   0.400),
     ("TP85", "pad",   0.400),
@@ -996,12 +1035,26 @@ def check_geometry():
             [f"{len(gaps)} neighbour(s) found, ledger has {len(MODULE_GAPS)}"])
             + ". Update MODULE_GAPS and ECO-6 §6.6's clearance table in the same commit.")
     else:
-        floor = min(d for _r, _bs, d in gaps)
+        # The floor applies to parts that will actually BE there. A DNP land is copper and
+        # mask; the module sits over it the way it already sits over 25 of MouseBiteLabs'
+        # vias. Anything not DNP inside the body is a genuine collision.
+        fps_all = kisexp.by_ref(b)
+        def _dnp(r):
+            am = re.search(r"\(attr ([^)]*)\)", fps_all[r].body) if r in fps_all else None
+            return bool(am and "dnp" in am.group(1).split())
+        real = [(r, bs, d) for r, bs, d in gaps if not _dnp(r)]
+        enclosed = [f"{r} ({d:.3f} mm inside)" for r, _bs, d in gaps if d < 0 and not _dnp(r)]
+        floor = min(d for _r, _bs, d in real) if real else 99.0
+        dnp_in = [r for r, _bs, d in gaps if d < 0 and _dnp(r)]
         ok(f"MOD1 fits: {len(gaps)} same-side neighbour(s) all where the ledger says, "
-           f"tightest {floor:.3f} mm ({gaps[0][0]}, {gaps[0][1]})")
-        if floor < GAP_FLOOR:
-            err(f"MOD1's tightest neighbour is {floor:.3f} mm, under the {GAP_FLOOR} mm "
-                f"floor this project set for a module edge")
+           f"tightest populated {floor:.3f} mm ({real[0][0] if real else '-'})"
+           + (f"; {', '.join(dnp_in)} inside the body and DNP, by design" if dnp_in else ""))
+        if enclosed:
+            err(f"POPULATED footprint(s) inside MOD1's own body -- the module cannot go on: "
+                + ", ".join(enclosed))
+        elif floor < GAP_FLOOR:
+            err(f"MOD1's tightest populated neighbour is {floor:.3f} mm, under the "
+                f"{GAP_FLOOR} mm floor this project set for a module edge")
 
     # --- the fiducials have to be READABLE, which is a contrast problem ----------------
     fps = kisexp.by_ref(b)

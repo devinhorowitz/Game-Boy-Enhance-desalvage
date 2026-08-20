@@ -48,6 +48,7 @@ The engineering record, in order:
 | [ECO-16](ECO-16_assembled_renders.md) | the board raytraced as PCBWay assembles it, borrowing Solar-Glow's render pipeline; found an unannotated crystal parked off the board that `classify()` calls placeable |
 | [ECO-17](ECO-17_paste_and_the_right_ram.md) | **254 solder-paste apertures on parts nobody places — including the membrane contacts** — and `U2` pasted on both of its two nested lands. Also the RAM's 3D body, which named the salvage package while the BOM buys the bigger one |
 | [ECO-18](ECO-18_rotation_convention.md) | the CPL's rotation convention, settled: all 180 rotations are byte-identical to `kicad-cli`'s own export, and 14 of 21 footprint families put pin 1 exactly where KiCad's stock library does |
+| [ECO-19](ECO-19_stock_c7_land_restored.md) | the stock `C7` land back at (91.9, −41.1) as a DNP alternate, so this fork stops being a side-grade for mods that solder there — and KiCad's own DRC, which found `U1` pad 39 with no ground and all six fiducials placed on things |
 
 ---
 
