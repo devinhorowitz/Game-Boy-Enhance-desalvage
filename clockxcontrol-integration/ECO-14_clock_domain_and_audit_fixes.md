@@ -265,19 +265,110 @@ clearance override. All three fire; a fourth followed with check [14] below, and
 
 ---
 
+## 14.4b What building the renderer found
+
+Two defects, both found the same way: by writing a **second independent implementation** and
+watching it disagree with the first. Neither would have been found by re-reading the code.
+
+### The picture and the gate counted different boards
+
+`scripts/render_board.py` rings every object a stale pour swallows. It came out with **19**. Check [14],
+written earlier in this same ECO, reported **15**. One of them was wrong about the board sitting
+in front of both of them.
+
+Check [14] was. It counted **footprints whose refdes was new**, tested at the **footprint
+origin**, on **`fp.layer`**, against the net of **pad 1**. Four approximations stacked, and the
+last one hides the worst:
+
+* A footprint origin is not a pad. `MOD1`'s origin sits 5–7 mm east of its own landings, because
+  the module body extends past the landed sites. Testing the origin answers a question about a
+  point where there is no copper.
+* One net for a whole footprint is wrong the moment a part has pads on different nets. `MOD1`'s
+  three pads are `TP2`, `TP9` and `TP8`; testing all three against `TP2` reported one hit on
+  `VDD35` where the pads really straddle **`VDD35` and `VDD2`** — two different rails.
+* `fp.layer` is where a footprint is *placed*, not the layers its pads occupy.
+* **And the blind spot: a refdes-keyed rule cannot see a part that MOVED.** `C7` is
+  MouseBiteLabs', not this fork's, so `if ref in base_refs: continue` skipped it — but ECO-6
+  *moves* `C7` from (91.9, −41.1) to (93.1, −37.4) to open the module window, and at the new spot
+  **`C7.2` (`GND`) lands inside the `VDD35` pour**. A real net-to-net overlap, rail to rail,
+  invisible to the gate that exists to count exactly that.
+
+The fix is not a better rule in two places, it is **one rule in one place**: `geom.added()` keys
+on **geometry, not refdes** — a moved pad is new copper at its new coordinates — and
+`geom.swallowed()` measures **at each pad, on the layers that pad occupies, against that pad's
+own net**. Check [14] and the renderer both call it, so they can no longer disagree. The 19
+objects are now ledgered line by line with a reason each, and the check fails if the set changes
+at all.
+
+### Nothing had ever asked whether the module physically fits
+
+Every gate in this repository measured copper. `MOD1` is an 18.65 × 12.00 mm object that sits on
+the board, and whether it clears its neighbours rested entirely on a table in ECO-6 §6.6 — which,
+it turned out, had been measured off `fab_fit.png`, one of the pre-rebase renders. There was no
+way to tell whether the numbers still held.
+
+They did. Every courtyard row reproduces on AGBM-02 to three decimals. That was luck, not design,
+and `geom.neighbour_gaps()` now holds them in check [13] with a 0.35 mm floor. Two things the
+measurement taught that the old table did not say:
+
+* **Same side, or it is not a neighbour.** A sweep that ignores which side a part is on puts
+  `C12` at **0.055 mm** and `U17` at 0.65 mm. Both are on `B.Cu` — 1.6 mm of FR4 away. The
+  0.055 mm reads like an imminent collision and is nothing at all.
+* **The rows were not all the same measurement.** Parts with a courtyard were measured
+  courtyard-to-body; bare test pads have no courtyard and were measured pad-copper-to-body. Under
+  one "courtyard gaps" heading, a reader compares `TP18`'s 0.93 against `U2`'s 0.55 as if they
+  were the same quantity. The table now names the basis per row.
+
+The tightest same-side gap is **0.400 mm**, and it is this fork's own `TP83`/`TP84`/`TP85` — sat
+deliberately just clear of the body so the three wires stay short. `U2` at 0.550 mm is the next,
+and it is a package edge rather than a joint anyone has to get an iron onto.
+
+---
+
 ## 14.5 Recorded rather than fixed — and what the follow-up pass then fixed
 
-**The renders are pre-rebase.** Every PNG in `clockxcontrol-integration/render/` has an identical
-git blob SHA before and after ECO-13 — they show the AGBM-01 board. They are displayed as "the
-layout" and "the copper diff". Flagged in the README; regenerating them needs KiCad.
+**FIXED — the renders are no longer pre-rebase, because they are no longer hand-made.** Every PNG
+in `clockxcontrol-integration/render/` had an identical git blob SHA before and after ECO-13 —
+they showed the AGBM-01 board while being displayed as "the layout" and "the copper diff". The
+first draft of this section said regenerating them needed KiCad. That was wrong, and the reason
+it was wrong is the more useful finding: ECO-6 §6.6 said the views came from "a renderer built
+against the board file directly", and **that renderer was never committed**. The pictures were
+orphaned outputs of a lost tool — the same defect as the hand-kept `.kicad_mod`, in a different
+medium.
 
-**Three of the module's six through-holes have no landing.** `MOD1` lands pads at local
-(4.525, 1.0), (7.025, 3.5) and (7.025, 1.0); the other three lattice sites exist only as `F.Fab`
-circles (`GHOSTS` in the generator). The landed set is an **L**, not a row or column split, which
-is not what a "GBA half / GBC half" explanation would predict. No document says why. If the lattice
-is three buttons × two terminals rather than six independent pads, one landing per button leaves
-the module's button interface open. **Verify against a physical module** — this is the same open
-item as the landing geometry being photo-derived.
+`scripts/render_board.py` is the missing generator, written against the board through the same
+`kisexp`/`geom` readers every gate uses. Seven views, all derived: `agbm02_front`, `agbm02_back`,
+`agbm02_cxc_diff`, `agbm02_cxc_placement`, `agbm02_cxc_landings`, `agbm02_cxc_fit` and the 1:1
+600 dpi print sheet. Nine pre-rebase PNGs were culled. New check **[15]** re-renders each view
+from the committed board and compares the **raw pixel buffer** — pixels rather than PNG bytes, so
+a Pillow build changing its deflate settings is not mistaken for a board that moved — and a second
+rule fails on any PNG in `render/` the generator does not produce, since an ungenerated file is
+exactly how the AGBM-01 images survived four ECOs. One image is ledgered as exempt:
+`dmgc_cpu_01_2-5_cxc_footprint.png` is MouseBiteLabs' own land pattern on his DMG-Color CPU-01,
+rendered from *his* gerbers, and nothing here can regenerate it.
+
+The renderer draws the **stored** pour, not an approximate re-pour. The old one did the latter,
+which is a friendlier picture and a worse one: it showed a board that does not exist in the file
+and concealed the very defect check [14] exists to gate.
+
+**STILL OPEN — three of the module's six through-holes have no landing.** Drawing the lattice
+instead of describing it made its geometry exact: a **2 × 3 grid on a 2.500 mm pitch in both
+axes**, at `MOD1`-local x ∈ {4.525, 7.025} and y ∈ {−1.5, 1.0, 3.5}. Landed are (4.525, 1.0) →
+`SEL`, (7.025, 3.5) → `L`, (7.025, 1.0) → `R`; the other three are `F.Fab` circles of radius
+0.635 mm and nothing else. The landed set spans both columns and two of three rows — an **L**, not
+a row, a column or a diagonal. `render/agbm02_cxc_fit.png` now shows all six, the landed three
+ringed green and the unlanded three grey, so the question is visible rather than buried in prose.
+
+Two things fell out, neither of which closes it:
+
+* **2.500 mm is not 0.100 inch.** A 0.1″ lattice is 2.540 mm, so an imperial module would put
+  this footprint 0.04 mm out per step and 0.08 mm across the grid. Small against a plated hole,
+  but it is a photo-derivation artifact and one pass with calipers settles it.
+* **The tempting explanation is wrong, and it is worth recording that it is.** Three landed sites
+  and three wire pads (`TP83`/`TP84`/`TP85`) invites "six sites, six signals — three landed, three
+  wired". ECO-6 §6.7 item 3b kills it: the module's `CLK`/`V+`/`V−` pads *have no holes*, which is
+  precisely why they are wired rather than landed. So the three unlanded lattice sites are three
+  unexplained plated holes, and **a physical module is still the only way to settle it**.
 
 **Three of the five items above were fixable without KiCad, and were fixed.** They are kept here
 rather than moved out, because a defect that vanishes from the record cannot be checked for
@@ -326,8 +417,13 @@ corrected in the same commit.
    CPU's clock input is unknown to everyone. One trace answers it.
 2. **Open in KiCad, re-pour, run DRC.** §14.2's violation is fixed; this is to catch
    anything the generated copper still hides from a hard-copper-only model.
-3. **The module's landing geometry and hole lattice against a physical part** — §14.5.
+3. **The module's landing geometry and hole lattice against a physical part** — §14.5. Two
+   specific questions now, not one: *which* three of the six lattice sites the module actually
+   needs landed, and whether its pitch is the 2.500 mm this footprint models or the 2.540 mm of
+   an imperial 0.1″ grid. Calipers and a continuity beep answer both.
 4. **The CPL rotation convention** against PCBWay's per-package zero reference.
+5. **Lay a real module on `render/agbm02_cxc_1to1_600dpi.png`** — print at 100%, check the 10 mm
+   ruler measures 10 mm, then confirm the body and the lattice line up before anything is ordered.
 
 ---
 
@@ -338,9 +434,11 @@ corrected in the same commit.
 * `python3 scripts/bom_split.py --check` — 68 assembly lines / 5 hand-buy / 180 placements
 * `python3 scripts/check_stock.py --offline` — 182 of 185 buyable refs resolved, 3 unresolved
   by decision (`MOD1`, `SP1`, `U1`)
-* `python3 scripts/check_consistency.py` — **0 errors, 4 warnings** across 15 checks; check [10]
-  still green under the corrected pad transform, and [2b], [13] and [14] are new here
-* `python3 scripts/test_checks.py` — **12 cases, 0 blind**: every check this ECO added has a
+* `python3 scripts/render_board.py --check` — all 7 views re-render pixel-for-pixel
+* `python3 scripts/check_consistency.py` — **0 errors, 3 warnings** across 16 checks; check [10]
+  still green under the corrected pad transform, and [2b], [13]'s mechanical-fit half, [14]'s
+  hazard ledger and [15] are new here
+* `python3 scripts/test_checks.py` — **16 cases, 0 blind**: every check this ECO added has a
   mutation that makes it fail
 * Audit provenance: 44 agents, 1,139 tool calls, every finding adversarially verified against the
   board files before it was acted on. Two findings this document does **not** carry were refuted on

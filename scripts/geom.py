@@ -168,3 +168,140 @@ def in_foreign_fill(px, py, layer, net, zf):
     """Names of foreign-net fills on `layer` that swallow the point."""
     return [zn for zl, zn, poly in zf
             if zl == layer and zn != net and inside(px, py, poly)]
+
+
+# ------------------------------------------------------- what THIS FORK put on the board
+# One implementation, shared by check [14] and by scripts/render_board.py. They used to
+# have two, and the two disagreed -- 15 objects against 19 -- which is how the bug below
+# was found. A gate and the picture of the same board must not be able to differ.
+
+CU_LAYERS = ("F.Cu", "In1.Cu", "In2.Cu", "B.Cu")
+
+
+def added(board, base):
+    """(segs, vias, pads) present in `board` and absent from `base`, keyed on geometry.
+
+    KEYED ON GEOMETRY, NOT ON REFDES. That distinction is the whole point: a part
+    MouseBiteLabs already had, which this fork MOVED, is new copper at its new
+    coordinates. ECO-6 moves `C7`, and a refdes-keyed rule cannot see where it landed.
+    """
+    bs, bv, bp = collect(base)
+    ms, mv, mp = collect(board)
+    k4 = lambda t: tuple(round(v, 4) if isinstance(v, float) else v for v in t)
+    xy = lambda p: (round(p[1], 4), round(p[2], 4), round(p[3], 4), round(p[4], 4))
+    sb = {k4(s) for s in bs}
+    vb = {(round(x, 4), round(y, 4)) for x, y, _n in bv}
+    pb = {xy(p) for p in bp}
+    return ([s for s in ms if k4(s) not in sb],
+            [v for v in mv if (round(v[0], 4), round(v[1], 4)) not in vb],
+            [p for p in mp if xy(p) not in pb])
+
+
+def swallowed(board, base):
+    """Sorted [(label, net, "pour+pour")] for every added object inside a foreign pour.
+
+    Measured AT THE PAD, on the layers that pad actually occupies, against THAT PAD'S OWN
+    net. The first version of this measured at the footprint ORIGIN, on `fp.layer`, against
+    the net of pad 1 -- three approximations at once. On `MOD1` that reported one hit on
+    `VDD35` where the pads really straddle `VDD35` and `VDD2`, and it could not see `C7` at
+    all.
+    """
+    zf = fills(board)
+    _segs, A_via, A_pad = added(board, base)
+    out = []
+    for x, y, net in A_via:
+        hit = set()
+        for lay in CU_LAYERS:
+            hit |= set(in_foreign_fill(x, y, lay, net, zf))
+        if hit:
+            out.append((f"via ({x},{y})", net, "+".join(sorted(hit))))
+    for ref, x, y, _hw, _hh, _cr, plays, net in A_pad:
+        hit = set()
+        for lay in CU_LAYERS:
+            if lay in plays or "*.Cu" in plays:
+                hit |= set(in_foreign_fill(x, y, lay, net or "<netless>", zf))
+        if hit:
+            out.append((ref, net or "<netless>", "+".join(sorted(hit))))
+    return sorted(out)
+
+
+# ---------------------------------------------------------------- mechanical fit
+# Every gate before this one measured COPPER. The module is a physical object that sits on
+# the board, and nothing checked whether it fits -- ECO-6 carried a table of neighbour
+# clearances measured off a render, and when that render turned out to be pre-rebase there
+# was no way to tell whether the numbers still held. These recompute them from the board.
+
+_FPGEO2 = re.compile(r'\(fp_(line|rect|poly)([\s\S]{0,600}?)\n\t\t\)')
+
+
+def _xf(fp):
+    fx, fy, rot = fp.at
+    a = math.radians(-rot)
+    return lambda lx, ly: (fx + lx * math.cos(a) - ly * math.sin(a),
+                           fy + lx * math.sin(a) + ly * math.cos(a))
+
+
+def outline(fp, tag):
+    """Segments of `fp`'s `tag` graphics (e.g. "F.CrtYd", "F.Fab") in board coords."""
+    T = _xf(fp)
+    segs = []
+    for m in _FPGEO2.finditer(fp.body):
+        if tag not in m.group(2):
+            continue
+        pts = [T(float(x), float(y)) for x, y in
+               re.findall(r'\((?:start|end|xy) ([-\d.]+) ([-\d.]+)\)', m.group(2))]
+        if m.group(1) == "rect" and len(pts) == 2:
+            (x0, y0), (x1, y1) = pts
+            segs += [(x0, y0, x1, y0), (x1, y0, x1, y1),
+                     (x1, y1, x0, y1), (x0, y1, x0, y0)]
+        elif m.group(1) == "line" and len(pts) == 2:
+            segs.append((pts[0][0], pts[0][1], pts[1][0], pts[1][1]))
+        elif m.group(1) == "poly" and len(pts) >= 2:
+            for i in range(len(pts)):
+                p, q = pts[i], pts[(i + 1) % len(pts)]
+                segs.append((p[0], p[1], q[0], q[1]))
+    return segs
+
+
+def _seg_seg(a, c):
+    return min(_p2s(a[0], a[1], *c), _p2s(a[2], a[3], *c),
+               _p2s(c[0], c[1], *a), _p2s(c[2], c[3], *a))
+
+
+def neighbour_gaps(board, ref="MOD1", limit=8):
+    """[(neighbour, basis, mm)] from `ref`'s body to its nearest SAME-SIDE neighbours.
+
+    SAME SIDE MATTERS. A naive sweep puts C12 at 0.055 mm, which reads like a collision and
+    is not one -- C12 is on B.Cu, the far side of a 1.6 mm board. Only parts on the same
+    side as `ref` can foul it.
+
+    `basis` is the honest part: a neighbour with a courtyard is measured courtyard-to-body
+    ("crtyd"); a bare test pad has none, so it is measured pad-copper-to-body ("pad"). ECO-6
+    mixed the two under one "courtyard gaps" heading, which is how a reader would compare
+    0.93 against 0.55 and not know they are different measurements.
+    """
+    fps = kisexp.by_ref(board)
+    me = fps[ref]
+    side = "F" if me.layer.startswith("F") else "B"
+    bx = [v for s in outline(me, f"{side}.Fab") for v in (s[0], s[2])]
+    by = [v for s in outline(me, f"{side}.Fab") for v in (s[1], s[3])]
+    if not bx:
+        return []
+    x0, x1, y0, y1 = min(bx), max(bx), min(by), max(by)
+    BODY = [(x0, y0, x1, y0), (x1, y0, x1, y1), (x1, y1, x0, y1), (x0, y1, x0, y0)]
+    _s, _v, pads = collect(board)
+    out = []
+    for r, fp in fps.items():
+        if r == ref or fp.at is None or "*" in r:
+            continue
+        if not fp.layer.startswith(side):
+            continue
+        cy = outline(fp, f"{side}.CrtYd")
+        if cy:
+            out.append((r, "crtyd", min(_seg_seg(b, c) for b in BODY for c in cy)))
+            continue
+        pd = [p for p in pads if p[0].startswith(r + ".")]
+        if pd:
+            out.append((r, "pad", min(min(_p2s(p[1], p[2], *b) for b in BODY)
+                                      - max(p[3], p[4]) for p in pd)))
+    return sorted(out, key=lambda t: t[2])[:limit]

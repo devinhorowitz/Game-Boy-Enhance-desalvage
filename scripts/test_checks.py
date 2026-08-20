@@ -137,6 +137,18 @@ def main():
         ("[13] a fiducial loses the clearance that holds the pour back",
          cc.check_geometry,
          good.replace("(clearance 0.55)", "", 1)),
+        # [13] also gates MECHANICAL fit as of this pass -- whether the module physically
+        # clears its same-side neighbours. Nothing measured that before: every gate was
+        # about copper. Nudging C7 back toward the module closes the 0.820 mm gap ECO-6
+        # opened by moving it, which is the exact regression the ledger exists to catch.
+        ("[13] C7 drifts back toward the module body",
+         cc.check_geometry,
+         good.replace("(at 93.1 -37.4 180)", "(at 93.1 -38.4 180)", 1)),
+        # [2b] the shipped .kicad_mod must stay DERIVED from the board. Editing the library
+        # copy by hand is precisely the drift that let it fall out of step for four ECOs.
+        ("[2b] the board's MOD1 changes and the library copy does not",
+         cc.check_library_footprint,
+         good.replace('"CLOCKXCONTROL"', '"CLOCKXCONTROLX"', 1)),
         # [14] guards the stale zone fill and is built to go RED the day someone re-pours,
         # because three documents say "re-pour before fab" and become wrong at that moment.
         # The mutation stands in for a re-pour: perturb one fill vertex so the signature
@@ -166,6 +178,18 @@ def main():
             print("  BLIND:  [12] a hand-buy part left in the position file -> NOT caught. "
                   "The machine would be asked to place a part it was never sold.")
             extra_failed += 1
+
+    # [14]'s hazard set is LEDGERED as of this pass, because the first version of it
+    # miscounted (footprint origin, pad 1's net, refdes-keyed) and nothing noticed. Sliding
+    # TP83 north takes it out of the GND pour, which changes the set the ledger pins.
+    cases.append(("[14] an added pad leaves the pour the ledger has it in",
+                  cc.check_zone_fill,
+                  good.replace("(at 97.9 -37.95)", "(at 97.9 -30.0)", 1)))
+    # [15] is the render gate. Any board change at all must make the committed PNGs stale;
+    # if it does not, the renderer is not actually reading the board.
+    cases.append(("[15] the board moves and the renders do not",
+                  cc.check_renders,
+                  good.replace("(at 91.95 -44.95 180)", "(at 91.95 -45.35 180)", 1)))
 
     failures = extra_failed
     for label, fn, mutated in cases:

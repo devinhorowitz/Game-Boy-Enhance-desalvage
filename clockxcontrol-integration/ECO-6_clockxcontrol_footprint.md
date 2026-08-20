@@ -278,35 +278,85 @@ the board), the **§6.4 result still holds**.
 ## 6.6 Fab-view renders
 
 There is no `kicad-cli` in the environment these edits were made in, so the views in `render/`
-are produced by a renderer built against the board file directly: board outline, copper, an
-**approximate zone re-pour** (every zone clipped to the board, minus higher-priority zones, minus
-a 0.2 mm halo around every other-net track, pad, via and hole), soldermask openings, silkscreen
-and drills. It is a fab preview, not a gerber export — treat it as a visual check, and take the
-real gerbers from KiCad.
+are produced by a renderer built against the board file directly: board outline, copper tracks
+and arcs, pads, vias, the zone fills and the drills. It is a fab preview, not a gerber export —
+treat it as a visual check, and take the real gerbers from KiCad. Soldermask, silkscreen, paste
+and the true outline of the board's 32 `custom` pads are not drawn.
+
+**That renderer is now `scripts/render_board.py`, and it is committed.** ECO-14 §14.5 records
+why that sentence needed writing: the first renderer never was, so the PNGs shipped with no
+generator, and when ECO-13 rebased this fork from AGBM-01 onto AGBM-02 every one of them went
+on describing a board the repository no longer contained. Their git blob SHAs were identical
+before and after. Check **[15]** re-renders each view from the committed board and compares the
+raw pixel buffer, so a picture can no longer outlive the board it was drawn from.
+
+**The pour drawn is the STORED one, which is the stale one.** The earlier renderer drew an
+*approximate re-pour* — what the pour ought to look like. That is a friendlier picture and a
+worse one: it showed a board that does not exist in the file, and it concealed the very defect
+check [14] exists to gate. These views draw MouseBiteLabs' fill as KiCad last computed it,
+before this fork added any copper, and ring the 19 objects it swallows.
 
 | File | What |
 |---|---|
-| `render/fab_front.png` | whole front side |
-| `render/fab_back.png` | whole back side, mirrored so silk reads |
-| `render/fab_landings.png` | the landings, clean |
-| `render/fab_landings_fit.png` | the same, annotated — landings, wire pads and wire lengths |
-| `render/agbm01_cxc_placement.png` | placement diagram: the module window, its neighbours, `C7` before and after, the deleted stitching vias |
-| `render/agbm01_cxc_board_after6.png` | copper diff — every new track, via and pad against the original board |
-| `render/fab_fit.png` | **fit check**: the module body drawn in place, its plated holes over the `MOD1` pads, its hole-less pads ringed at ±0.5 mm with their wires, and the gap to every neighbour |
-| `render/fab_landings_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
+| `render/agbm02_front.png` | `F.Cu`, whole board, this fork's copper in yellow |
+| `render/agbm02_back.png` | `B.Cu`, mirrored so it reads as you look at it |
+| `render/agbm02_cxc_diff.png` | copper diff — MouseBiteLabs' copper faded to a third, everything at full value is what ECO-6 added or moved |
+| `render/agbm02_cxc_placement.png` | placement: the module window, the `C7` move, the `MOD1` landings, the routing and the three wire pads |
+| `render/agbm02_cxc_landings.png` | the three landed lattice sites, close up |
+| `render/agbm02_cxc_fit.png` | **fit check**: the module body and courtyard drawn in place, with **all six** lattice sites — the three this fork lands ringed green, the three it does not ringed grey |
+| `render/agbm02_cxc_1to1_600dpi.png` | **1:1 scale, 600 dpi.** Print at 100% with no scaling and lay a real module on the paper. A 10 mm ruler is drawn on the sheet to confirm the print came out to scale. |
 
-Body clearances, from `fab_fit.png` — courtyard gaps, so the real body-to-body figures are a
-little larger:
+### 6.6.1 What the fit view settled, and what it did not
 
-| Neighbour | Gap to the module body |
-|---|---|
-| `U2` (RAM), above | 0.55 mm |
-| `C7`, below | 0.82 mm |
-| `TP18`, left | 0.93 mm |
-| `P1` (cartridge connector), below | 2.05 mm |
-| `R3`, right | 2.13 mm |
-| `TP114` / `TP115`, right | 2.23 mm |
-| `U10`, right | 2.34 mm |
+Drawing the lattice instead of describing it makes its geometry exact: **a 2 × 3 grid on a
+2.500 mm pitch in both axes**, at `MOD1`-local x ∈ {4.525, 7.025} and y ∈ {−1.5, 1.0, 3.5}.
+Landed are (4.525, 1.0) → `SEL`, (7.025, 3.5) → `L` and (7.025, 1.0) → `R`; the other three are
+`F.Fab` circles of radius 0.635 mm and nothing else. The landed set spans both columns and two
+of the three rows — an **L**, not a row, a column or a diagonal.
+
+Two things fall out of that, neither of which closes the open item:
+
+* **2.500 mm is not 0.100 inch.** A 0.1″ lattice would be 2.540 mm, so if the real module is
+  imperial this footprint accumulates 0.04 mm per step and 0.08 mm across the grid. That is
+  small against a plated hole, but it is a photo-derivation artifact and it is measurable on a
+  physical module in one pass with calipers.
+* **The tempting explanation is wrong.** Three landed sites and three wire pads (`TP83`/`TP84`/
+  `TP85`) invites "the six sites are six signals, three landed and three wired". §6.7 item 3b
+  kills it: the module's `CLK`/`V+`/`V−` pads *have no holes*, which is precisely why they are
+  wired rather than landed. So the three unlanded lattice sites are still three unexplained
+  plated holes. Recording the refutation here because the next reader will have the same idea.
+
+Body clearances, from `render/agbm02_cxc_fit.png` and now **held by check [13]** rather than
+read off a picture. Two things this table did not previously say, both of which change how it
+should be read:
+
+* **The rows are not all the same measurement.** A neighbour with a courtyard is measured
+  courtyard-to-body; a bare test pad has no courtyard, so it is measured pad-copper-to-body.
+  Comparing `TP18`'s 0.93 with `U2`'s 0.55 as though they were the same quantity is a mistake
+  the old single heading invited.
+* **Only same-side parts can foul the module.** A sweep that ignores which side a part is on
+  puts `C12` at 0.055 mm and `U17` at 0.65 mm, which read like collisions. Both are on `B.Cu`,
+  1.6 mm of FR4 away. They are not neighbours in any sense that matters.
+
+| Neighbour | Basis | Gap to the module body |
+|---|---|---|
+| `TP83` / `TP84` / `TP85` — this fork's own wire pads | pad | 0.400 mm |
+| `U2` (RAM), above | courtyard | 0.550 mm |
+| `C7`, below — *after* the ECO-6 move | courtyard | 0.820 mm |
+| `TP18`, left | pad | 0.925 mm |
+| `P1` (cartridge connector), below | pad | 2.050 mm |
+| `R3`, right | courtyard | 2.145 mm |
+
+`TP83`/`TP84`/`TP85` are the tightest thing on the board at 0.400 mm, and that is deliberate —
+they sit just clear of the body so the three wires stay short (§6.5). `U2` at 0.550 mm is a
+package edge, not a joint anyone has to get an iron onto, which is why it is acceptable there
+and would not be on a hand-soldered part. Check [13] fails below a 0.35 mm floor.
+
+**These figures survived the ECO-13 rebase unchanged**: every courtyard row above reproduces
+on AGBM-02 to three decimals against what was measured on AGBM-01. That was luck, not design —
+nothing was holding them, which is why they are ledgered now. `TP114`/`TP115` at 2.23 mm and
+`U10` at 2.34 mm were in the old table and are outside the eight nearest neighbours on AGBM-02;
+they are further away than `R3` and no longer worth a row.
 
 Rev A, for comparison, was `R3` 0.25 / `U2` 0.25 / `TP114`+`TP115` 0.35 / `U10` 0.47 /
 `P1` 2.35 / `TP18` 2.80. Every neighbour that was inside half a millimetre is now outside two,

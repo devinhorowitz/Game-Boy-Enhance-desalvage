@@ -110,7 +110,11 @@ Four of six signals already have labelled front-side pads, three of them (`L`, `
 in one row at 3 mm pitch that MouseBiteLabs put there for the hotkey/touch-control mods, and V+ is
 the cart connector's `S1` pad. Only GND has nothing convenient.
 
-![AGBM-01 front, ClockxControl-relevant areas](render/agbm01_cxc_overview.png)
+![AGBM-02 front, this fork's copper in yellow](render/agbm02_front.png)
+
+The same board from the back — mirrored, so it reads as you look at it with the board in hand:
+
+![AGBM-02 back, mirrored](render/agbm02_back.png)
 
 ---
 
@@ -261,7 +265,7 @@ than MouseBiteLabs had it. The same window and the same single
 blocker appear on **AGBM-01, AGBM-02 and AGBM-11**. On this fork's `_GBE-plus` board the ECO-5
 fiducial `FID2` (88.5…89.5, −48.5…−47.5) also lands inside and would need nudging.
 
-![Proposed placement on AGBM-01](render/agbm01_cxc_placement.png)
+![Placement on AGBM-02](render/agbm02_cxc_placement.png)
 
 ### As built in ECO-6
 
@@ -304,20 +308,26 @@ The layout: three solder-through landings (yellow), the module’s hole-less CLK
 rings) wired down to the three wire pads (cyan), `C7` in its new home, the two `VDD2` stitching
 vias that had to go, `JP4` and the routing:
 
-![ECO-6 layout](render/agbm01_cxc_board_after6.png)
+![ECO-6 layout](render/agbm02_cxc_diff.png)
 
 And the same area as a fab preview — green rings are the solder-through landings, orange rings show
 where the module's hole-less CLK/V+/V− pads land (±0.5 mm), and the red lines are the three wires
-to the pads below. `render/fab_landings_1to1_600dpi.png` is the same view at 1:1 for printing and
+to the pads below. [`render/agbm02_cxc_1to1_600dpi.png`](render/agbm02_cxc_1to1_600dpi.png) is
+the same view at 1:1 for printing and
 laying a real module on:
 
-![Fab view of the landings](render/fab_landings_fit.png)
+![Fab view of the landings](render/agbm02_cxc_landings.png)
 
 And the fit check with the module body drawn in place — its three plated holes over the `MOD1`
 landings, its three hole-less pads ringed at ±0.5 mm with their wires, and the gap to every
 neighbour:
 
-![Fit check](render/fab_fit.png)
+![Fit check](render/agbm02_cxc_fit.png)
+
+Print this one at 100% with no scaling and lay a real module on the paper. The 10 mm ruler drawn
+above the body is there to catch a scaled print before you measure anything against it:
+
+![1:1 print sheet, 600 dpi](render/agbm02_cxc_1to1_600dpi.png)
 
 **Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
 antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
@@ -407,17 +417,17 @@ de-salvaged board's favour, not against it.
 ECO-6_clockxcontrol_footprint.md              engineering record for the board edit
 board/agbm-02-clockxcontrol.zip               the modified board: AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb
 footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern, DERIVED from the board's MOD1
-render/agbm01_cxc_overview.png                AGBM-01 front, the signals involved
-render/agbm01_cxc_placement.png               the window below the RAM, the C7 move and the deleted vias
-render/agbm01_cxc_board_after6.png            copper diff: landings, wire pads, JP4 and the full routing
-                                              *** PRE-REBASE: these renders are of the AGBM-01 board ***
-render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from his gerbers
-render/fab_front.png                          fab view, whole front side
-render/fab_back.png                           fab view, whole back side (mirrored)
-render/fab_landings.png                       fab view of the landings
-render/fab_fit.png                            fit check: module body drawn in place, holes, wires, clearances
-render/fab_landings_fit.png                   annotated: solder-through landings, wire pads and wire lengths
-render/fab_landings_1to1_600dpi.png           1:1 scale print sheet - print at 100% and lay a module on it
+render/agbm02_front.png                       F.Cu, whole board, this fork's copper in yellow
+render/agbm02_back.png                        B.Cu, mirrored so it reads as you look at it
+render/agbm02_cxc_diff.png                    copper diff: MouseBiteLabs' faded, this fork's at full value
+render/agbm02_cxc_placement.png               the window below the RAM, the C7 move, landings and wire pads
+render/agbm02_cxc_landings.png                the three landed lattice sites, close up
+render/agbm02_cxc_fit.png                     fit check: module body and courtyard, all six lattice sites
+render/agbm02_cxc_1to1_600dpi.png             1:1 print sheet - print at 100% and lay a module on it
+render/render-manifest.json                   pixel digest of each view, and the Pillow that drew it
+render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from HIS gerbers --
+                                              a DIFFERENT board, and the one image here that is not
+                                              generated from AGBM-02
 ```
 
 ## Sources
@@ -432,7 +442,8 @@ render/fab_landings_1to1_600dpi.png           1:1 scale print sheet - print at 1
 ## License & attribution
 
 Derivative analysis of the **MouseBiteLabs Game Boy Enhance (AGBM)** and **Game Boy DMG Color**,
-both licensed **CC BY-SA 4.0**. This document, the renderings in `render/`, and the footprint in
+both licensed **CC BY-SA 4.0**. This document, the renderings in `render/` (all generated from
+the board by `scripts/render_board.py`), and the footprint in
 `footprint/` are released under the same licence. The ClockxControl is a product of insideGadgets;
 no part of their design is reproduced here — the land pattern is the *host-side* pattern published
 by MouseBiteLabs under CC BY-SA.

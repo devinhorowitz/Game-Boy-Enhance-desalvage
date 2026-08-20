@@ -35,9 +35,14 @@ not mirrored in the other fails loudly instead of rotting.
                          nothing is on both buy documents, and the generated buy documents
                          are what a fresh run produces.                     [ERROR]
   [13] REAL GEOMETRY  -- the copper this fork ADDS clears MouseBiteLabs' by the project's
-                         own netclass rule, and the fiducials are readable.  [ERROR]
+                         own netclass rule, the fiducials are readable, and the module
+                         physically FITS its same-side neighbours.           [ERROR]
   [14] ZONE FILL      -- the fill is still MouseBiteLabs' stock fill, so gerbers plotted
-                         from this file would short. GOES RED WHEN RE-POURED. [ERROR]
+                         from this file would short, and the LEDGERED set of 19 objects the
+                         stale fill swallows is still exactly that set.
+                         GOES RED WHEN RE-POURED.                            [ERROR]
+  [15] RENDERS        -- every PNG in render/ re-renders, pixel for pixel, from the board
+                         committed beside it.                                [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -619,8 +624,11 @@ def check_doc_imagery():
             if rel not in files and not os.path.exists(os.path.join(ROOT, rel)):
                 err(f"{md} displays {src}, which is not in the tree")
                 missing += 1
+    # Only IMAGES can be "displayed"; render-manifest.json lives here because it belongs
+    # beside what it describes, not because a document was ever going to show it.
     orphan = sorted(f for f in files
                     if f.startswith("clockxcontrol-integration/render/")
+                    and f.lower().endswith((".png", ".jpg", ".jpeg", ".svg", ".gif"))
                     and f not in shown)
     if orphan:
         warn(f"render(s) no document displays -- they still ship in the package, so this "
@@ -813,6 +821,33 @@ FIDUCIAL_WINDOW = 1.00    # 0.5 mm pad + 0.5 mm solder_mask_margin
 FIDUCIAL_PAD_CLEARANCE = "(clearance 0.55)"
 
 
+# MOD1's mechanical neighbourhood, snapshotted with a reason per line. Nothing measured
+# this before: every gate was about copper, and whether the module physically FITS rested on
+# a table in ECO-6 §6.6 taken off a render that turned out to be pre-rebase. The figures did
+# survive the rebase -- all four of ECO-6's courtyard rows reproduce to three decimals -- but
+# nothing was holding them there.
+#
+# Same-side only. A sweep that ignores which side a part is on puts C12 at 0.055 mm, which
+# reads like a collision; C12 is on B.Cu, 1.6 mm of FR4 away.
+MODULE_GAPS = (
+    # This fork's own wire pads, placed deliberately just clear of the body so the three
+    # wires stay short (3.8 / 5.9 / 4.7 mm per ECO-6 §6.5). Tightest on the board, on purpose.
+    ("TP83", "pad",   0.400),
+    ("TP84", "pad",   0.400),
+    ("TP85", "pad",   0.400),
+    # MouseBiteLabs' parts. U2 is the RAM the window sits below -- a package edge, not a
+    # hand-soldered joint, which is why 0.55 mm is acceptable here and would not be on a
+    # part someone has to get an iron onto.
+    ("U2",   "crtyd", 0.550),
+    # C7 is the 0603 ECO-6 MOVES to open the window. This is the gap AFTER the move.
+    ("C7",   "crtyd", 0.820),
+    ("TP18", "pad",   0.925),
+    ("P1",   "pad",   2.050),
+    ("R3",   "crtyd", 2.145),
+)
+GAP_FLOOR = 0.35        # below this, a module edge and a neighbour are too close to trust
+
+
 def check_geometry():
     print("[13] the copper this fork adds clears MouseBiteLabs', and the fiducials are readable")
     import geom
@@ -847,6 +882,23 @@ def check_geometry():
            f"{CLEARANCE_RULE} mm")
     for t in tight:
         note(f"tight but legal: {t}")
+
+    # --- does the module physically FIT? Copper clearance never asked. ------------------
+    gaps = geom.neighbour_gaps(b, "MOD1", limit=len(MODULE_GAPS))
+    drift = [f"{r} {basis} {d:.3f} mm (ledger says {w[1]} {w[2]:.3f})"
+             for (r, basis, d), w in zip(gaps, MODULE_GAPS)
+             if r != w[0] or basis != w[1] or abs(d - w[2]) > 0.002]
+    if len(gaps) != len(MODULE_GAPS) or drift:
+        err(f"MOD1's mechanical neighbourhood has MOVED: " + "; ".join(drift or
+            [f"{len(gaps)} neighbour(s) found, ledger has {len(MODULE_GAPS)}"])
+            + ". Update MODULE_GAPS and ECO-6 §6.6's clearance table in the same commit.")
+    else:
+        floor = min(d for _r, _bs, d in gaps)
+        ok(f"MOD1 fits: {len(gaps)} same-side neighbour(s) all where the ledger says, "
+           f"tightest {floor:.3f} mm ({gaps[0][0]}, {gaps[0][1]})")
+        if floor < GAP_FLOOR:
+            err(f"MOD1's tightest neighbour is {floor:.3f} mm, under the {GAP_FLOOR} mm "
+                f"floor this project set for a module edge")
 
     # --- the fiducials have to be READABLE, which is a contrast problem ----------------
     fps = kisexp.by_ref(b)
@@ -893,6 +945,42 @@ FILL_DOCS = ("clockxcontrol-integration/ECO-6_clockxcontrol_footprint.md",
              "clockxcontrol-integration/ECO-14_clock_domain_and_audit_fixes.md",
              "pcbway-assembly/README.md")
 
+# The hazard set, snapshotted with a reason per line. Measured AT EACH PAD, on the layers
+# that pad occupies, against that pad's own net -- see geom.swallowed(). Every entry here
+# is a real net-to-net overlap in the shipped file that a re-pour removes.
+FILL_HAZARD = (
+    # C7 is MouseBiteLabs' part, not this fork's. ECO-6 MOVES it out of the module window,
+    # and the spot it moves to puts its GND pad inside the VDD35 pour. A rule keyed on
+    # "is this refdes new?" cannot see this line; that is why the key is geometry.
+    ("C7.2",   "GND",       "VDD35"),
+    # The two fiducials that sit on the GND pour. They are meant to -- a fiducial wants an
+    # even background -- and the (clearance 0.55) override from ECO-14 §14.3 holds the
+    # copper back so the mask window reads. Listed because they are still overlaps.
+    ("FID1.1", "<netless>", "GND"),
+    ("FID4.1", "<netless>", "GND"),
+    # JP4, the CK1/CXC_CLK cut-and-jumper, sits over GND on both pads.
+    ("JP4.1",  "/CPU/CK1",  "GND"),
+    ("JP4.2",  "CXC_CLK",   "GND"),
+    # The three landed module pads. They straddle TWO pours, not one: pad 1 is over VDD35,
+    # pads 2 and 3 over VDD2. The superseded footprint-origin rule reported only VDD35.
+    ("MOD1.1", "/CPU/TP2",  "VDD35"),
+    ("MOD1.2", "/CPU/TP9",  "VDD2"),
+    ("MOD1.3", "/CPU/TP8",  "VDD2"),
+    # Two of the three wire test pads. TP85 is GND, so its GND pour is not foreign.
+    ("TP83.1", "CXC_CLK",   "GND"),
+    ("TP84.1", "VDD3",      "GND"),
+    # Every via ECO-6 adds. All nine, on the rails they cross.
+    ("via (47.5,-59.5)",   "CXC_CLK",  "GND+VDD5"),
+    ("via (55.15,-53.25)", "/CPU/TP9", "GND+VDD2+VDD3"),
+    ("via (55.65,-49.65)", "/CPU/TP2", "GND+VDD3"),
+    ("via (79.85,-41.1)",  "/CPU/TP2", "GND"),
+    ("via (83.25,-39.6)",  "/CPU/TP9", "GND"),
+    ("via (93.3,-38.7)",   "GND",      "VDD35"),
+    ("via (97.1,-34.1)",   "VDD3",     "AGND+VAUD"),
+    ("via (97.9,-38.6)",   "CXC_CLK",  "GND+VDD3"),
+    ("via (99.25,-35.9)",  "VDD3",     "GND"),
+)
+
 
 def check_zone_fill():
     print("[14] the zone fill is still MouseBiteLabs' (RED means it was re-poured)")
@@ -913,40 +1001,115 @@ def check_zone_fill():
         return
     ok(f"fill is byte-identical to the base ({o_n} polygons, {o_sig}) -- not re-poured")
 
-    # How big is the hazard? Count the copper THIS FORK ADDS that a stale fill swallows.
-    zf = geom.fills(b)
-    tbl = kisexp.net_table(b)
-    base_via = {(round(x, 4), round(y, 4)) for x, y, _n in kisexp.vias(base)}
-    swallowed = []
-    for x, y, n in kisexp.vias(b):
-        if (round(x, 4), round(y, 4)) in base_via:
+    # How big is the hazard? Every object THIS FORK put inside a foreign pour, LEDGERED --
+    # so the set cannot change without someone updating this table in the same commit.
+    #
+    # The first version of this counted footprints whose REFDES was new, tested at the
+    # footprint ORIGIN, on fp.layer, against the net of pad 1. Three approximations, and a
+    # blind spot underneath them: a part MouseBiteLabs already had, which ECO-6 MOVED, has
+    # an old refdes and new copper, so the rule skipped it. C7 is exactly that part, and at
+    # the spot ECO-6 moved it to, C7.2 lands in the VDD35 pour. It reported 15; the truth
+    # is 19. geom.swallowed() is now the one implementation, shared with the renderer.
+    have = geom.swallowed(b, base)
+    if set(have) != set(FILL_HAZARD):
+        gone = sorted(set(FILL_HAZARD) - set(have))
+        new_ = sorted(set(have) - set(FILL_HAZARD))
+        err(f"the stale-fill hazard set has CHANGED ({len(FILL_HAZARD)} -> {len(have)}). "
+            + (f"no longer swallowed: {gone}. " if gone else "")
+            + (f"newly swallowed: {new_}. " if new_ else "")
+            + "If copper moved, update FILL_HAZARD in the same commit and say why in the "
+              "ECO. If the fill was re-poured, so should these documents be: "
+            + ", ".join(FILL_DOCS))
+        return
+    pads = sum(1 for lab, _n, _p in have if not lab.startswith("via "))
+    note(f"{len(have)} added object(s) inside a foreign-net pour until the re-pour: "
+         + "; ".join(f"{lab} ({net}) -> {pour}" for lab, net, pour in have[:6])
+         + (f"; +{len(have) - 6} more" if len(have) > 6 else ""))
+    ok(f"{len(have)} added object(s) sit in a foreign-net pour ({pads} pad(s), "
+       f"{len(have) - pads} via(s)), matching the ledger -- DO NOT PLOT GERBERS from this "
+       f"file; open it in KiCad, Fill All Zones, re-run DRC")
+
+
+# =====================================================================================
+# [15] the pictures are a function of the board, not a memory of one
+# =====================================================================================
+# ECO-6 §6.6 said the views in render/ came from "a renderer built against the board file
+# directly". That renderer was never committed, so what shipped was a set of PNGs with no
+# generator. When ECO-13 rebased the fork from AGBM-01 onto AGBM-02, every render went on
+# describing a board this repository no longer contains -- and nothing noticed, because
+# their git blob SHAs were identical before and after. ECO-14 §14.5 caught it by hand.
+#
+# scripts/render_board.py is the missing generator. This re-runs it and compares the RAW
+# PIXEL BUFFER of every view against the PNG in the tree, so a picture cannot outlive the
+# board it was drawn from. Pixels rather than PNG bytes: a different Pillow build changing
+# its deflate settings is not a board that moved, and the check says so when it happens.
+# The one image in render/ that is NOT a render of this board, ledgered with its reason so
+# the orphan rule below does not demand a generator for it.
+NOT_OUR_BOARD = {
+    "dmgc_cpu_01_2-5_cxc_footprint.png":
+        "MouseBiteLabs' own ClockxControl land pattern on his DMG-Color CPU-01 2.5 board, "
+        "rendered from HIS gerbers. It is the reference this fork's footprint was derived "
+        "against, not a picture of AGBM-02, so nothing here can regenerate it.",
+}
+
+
+def check_renders():
+    print("[15] every render is what the committed board re-renders to")
+    try:
+        import render_board
+        from PIL import Image
+        import PIL
+    except ImportError as e:
+        warn(f"Pillow unavailable ({e}) -- check [15] did not run")
+        return
+    try:
+        # The SHIPPED board -- the same text every other check reads -- not the tree file.
+        # [1] and [2] already hold those three copies together, and reading the shipped one
+        # is what lets scripts/test_checks.py mutate a board and watch this check fire.
+        b = board()
+        import geom
+        base = geom.base()
+    except OSError as e:
+        warn(f"a board is unreadable ({e}) -- check [15] did not run")
+        return
+    man = {}
+    if os.path.exists(render_board.MANIFEST):
+        man = json.load(open(render_board.MANIFEST))
+    vs = render_board.views(b)
+    stale, missing = [], []
+    for name, build in vs:
+        path = os.path.join(render_board.OUTDIR, name)
+        if not os.path.exists(path):
+            missing.append(name)
             continue
-        net = tbl.get(n, str(n))
-        hit = set()
-        for lay in ("F.Cu", "In1.Cu", "In2.Cu", "B.Cu"):
-            hit |= set(geom.in_foreign_fill(x, y, lay, net, zf))
-        if hit:
-            swallowed.append(f"via ({x},{y}) {net} -> {'+'.join(sorted(hit))}")
-    owner = {}
-    for nm, pads in kisexp.nets_by_name(b).items():
-        for pref in pads:
-            owner[pref] = nm
-    base_refs = set(kisexp.by_ref(base))
-    for ref, fp in sorted(kisexp.by_ref(b).items()):
-        if ref in base_refs or fp.at is None or "*" in ref:
-            continue
-        net = owner.get(f"{ref}.1", "<netless>")
-        hit = set(geom.in_foreign_fill(fp.at[0], fp.at[1], fp.layer, net, zf))
-        if hit:
-            swallowed.append(f"{ref} ({net}) -> {'+'.join(sorted(hit))}")
-    if swallowed:
-        note(f"{len(swallowed)} added object(s) inside a foreign-net pour until the "
-             f"re-pour: " + "; ".join(swallowed[:6])
-             + (f"; +{len(swallowed) - 6} more" if len(swallowed) > 6 else ""))
-        ok(f"{len(swallowed)} added object(s) sit in a foreign-net pour -- DO NOT PLOT "
-           f"GERBERS from this file; open it in KiCad, Fill All Zones, re-run DRC")
-    else:
-        ok("no added object sits in a foreign-net pour -- still re-pour before fab")
+        want = render_board.digest(build(b, base)[0])
+        have = render_board.digest(Image.open(path).convert("RGB"))
+        if want != have:
+            stale.append(f"{name} (tree {have} != re-render {want})")
+    if missing:
+        err(f"render(s) named by the generator but absent from the tree: "
+            + ", ".join(missing) + " -- run scripts/render_board.py")
+    if stale:
+        extra = ""
+        if man.get("pillow") and man["pillow"] != PIL.__version__:
+            extra = (f" NOTE: the manifest was written by Pillow {man['pillow']} and this "
+                     f"is {PIL.__version__}; a rasteriser change can do this without any "
+                     f"board having moved.")
+        err(f"render(s) no longer match the board they claim to show: "
+            + ", ".join(stale) + " -- re-run scripts/render_board.py and commit the PNGs "
+            + "in the same commit as the board change." + extra)
+    if not missing and not stale:
+        ok(f"all {len(vs)} view(s) re-render pixel-for-pixel from the shipped board "
+           f"(Pillow {PIL.__version__})")
+    # The generated set and the tree must be the same set, or a stale PNG survives forever
+    # simply by no longer being named -- which is exactly how the AGBM-01 renders lasted.
+    named = {n for n, _ in vs}
+    ondisk = {f for f in os.listdir(render_board.OUTDIR) if f.endswith(".png")}
+    orphan = sorted(ondisk - named - set(NOT_OUR_BOARD))
+    if orphan:
+        err(f"render(s) in the tree that the generator does not produce: "
+            + ", ".join(orphan) + " -- either add a view for them or delete them; an "
+            + "ungenerated PNG is how the pre-rebase AGBM-01 images survived four ECOs")
 
 
 # =====================================================================================
@@ -1059,7 +1222,7 @@ def main():
                check_dnp_ledger, check_bom_vs_board, check_supplier_pns,
                check_cited_paths, check_doc_imagery, check_module_window,
                check_blockers, check_structure, check_assembly_split,
-               check_geometry, check_zone_fill):
+               check_geometry, check_zone_fill, check_renders):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0
