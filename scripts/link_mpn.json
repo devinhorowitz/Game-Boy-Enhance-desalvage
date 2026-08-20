@@ -1,176 +1,292 @@
 {
- "_comment": "Digi-Key short-link -> manufacturer part number, resolved 2026-08-19 by fetching each link. The links live in the UPSTREAM schematic's per-symbol `Source` property (AGBM-01 (AA Batteries)/AGBM-01_Design Files.zip), which is the only record of WHICH part MouseBiteLabs picked for a generic value like `1u` or `100k`. curl gets HTTP 403 from www.digikey.com (their bot protection, not the egress proxy), so these were resolved through a fetch tool rather than scripted; the mapping is static, so freezing it here is correct. Everything VOLATILE about these parts -- stock, price, lifecycle status -- is fetched live from the Digi-Key and Mouser APIs by scripts/check_stock.py and is deliberately NOT frozen here.",
- "_source": "per-symbol (property \"Source\" ...) in the upstream schematic sheets",
+ "_comment": "Digi-Key short-link -> manufacturer part number. The links live in the per-symbol (property \"Source\" ...) of the UPSTREAM schematic, which is the only record of WHICH part MouseBiteLabs picked for a generic value like '1u' or '100k'. REGENERATED 2026-08-20 against AGBM-02 (ECO-15). The previous map was built from AGBM-01 and survived the ECO-13 rebase unchanged: it was missing 30 of AGBM-02's 57 links and still carried 7 that AGBM-01 had and AGBM-02 does not. curl and urllib both get HTTP 403 from www.digikey.com (their bot protection, not the egress proxy), so each link is resolved through a browser-grade fetch and recorded here by hand. Check [16] fails if a link in the base schematic is missing from this file.",
+ "_source": "per-symbol (property \"Source\" ...) in the upstream AGBM-02 schematic sheets",
+ "_base": "AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip",
  "links": {
-  "rpz9t4md": {
-   "mpn": "RC0603FR-07100KL",
-   "mfr": "YAGEO",
-   "expect": "100k"
+  "0ww37f47": {
+   "mpn": "CSS-1310TB",
+   "mfr": "Nidec Components",
+   "expect": "CSS-1310B"
+  },
+  "13cnr9vq": {
+   "mpn": "62684-402100ALF",
+   "mfr": "Amphenol ICC (FCI)",
+   "expect": "FFC CONNECTOR"
+  },
+  "28n9329f": {
+   "mpn": "NDC7002N",
+   "mfr": "onsemi",
+   "expect": "NDC7002N"
+  },
+  "2cqndb3b": {
+   "mpn": "SKRRABE010",
+   "mfr": "Alps Alpine",
+   "expect": "SKRRABE010"
   },
   "2ppmm3vt": {
    "mpn": "C0603C105K4RACTU",
    "mfr": "KEMET",
    "expect": "1u"
   },
-  "j50jww8m": {
-   "mpn": "C0603C103K5RACTU",
+  "2trwn31h": {
+   "mpn": "RC0603FR-0747RL",
+   "mfr": "YAGEO",
+   "expect": "47"
+  },
+  "377h8558": {
+   "mpn": "C0603C102K5RACTU",
    "mfr": "KEMET",
-   "expect": "0.01u"
+   "expect": "1000p"
   },
   "38d0p2b4": {
    "mpn": "RC0603FR-0720KL",
    "mfr": "YAGEO",
    "expect": "20k"
   },
-  "qqj3r2v5": {
-   "mpn": "RC0603FR-075K1L",
-   "mfr": "YAGEO",
-   "expect": "5.1k"
-  },
-  "1rfwtcff": {
-   "mpn": "RC0603FR-0718KL",
-   "mfr": "YAGEO",
-   "expect": "18k"
-  },
-  "h34j0h9q": {
-   "mpn": "C0603C101J5GACTU",
+  "3dr3j004": {
+   "mpn": "C0603C270J5GACTU",
    "mfr": "KEMET",
-   "expect": "100p"
-  },
-  "d1537pn3": {
-   "mpn": "RC0603FR-1315RL",
-   "mfr": "YAGEO",
-   "expect": "15"
+   "expect": "27p/47p"
   },
   "3p3jj3wt": {
    "mpn": "C0603C332K5RACTU",
    "mfr": "KEMET",
    "expect": "3300p"
   },
-  "q58vhz49": {
-   "mpn": "C0603C150J5GACTU",
-   "mfr": "KEMET",
-   "expect": "15p"
+  "43nq0332": {
+   "mpn": "0805L075SLYR",
+   "mfr": "Littelfuse Inc.",
+   "expect": "0805L075SLYR"
   },
-  "t0dpzzp1": {
-   "mpn": "RC0603FR-0733KL",
-   "mfr": "YAGEO",
-   "expect": "33k"
-  },
-  "nwddb5fm": {
-   "mpn": "RC0603FR-071KL",
-   "mfr": "YAGEO",
-   "expect": "1k"
-  },
-  "5ptw22qq": {
-   "mpn": "C0603C331J5GACTU",
-   "mfr": "KEMET",
-   "expect": "330p"
-  },
-  "vbm0z4md": {
-   "mpn": "2N7002",
-   "mfr": "onsemi",
-   "expect": "2N7002"
-  },
-  "jm5qjr7w": {
-   "mpn": "C0603C681J5GACTU",
-   "mfr": "KEMET",
-   "expect": "680p"
-  },
-  "vn4221jt": {
-   "mpn": "RC0603FR-077K5L",
-   "mfr": "YAGEO",
-   "expect": "7.5k"
-  },
-  "2trwn31h": {
-   "mpn": "RC0603FR-0747RL",
-   "mfr": "YAGEO",
-   "expect": "47"
-  },
-  "771087dh": {
-   "mpn": "ACM2520-801-3P-T002",
-   "mfr": "TDK",
-   "expect": "ACM2520-801-3P-T002"
-  },
-  "c329ffdd": {
-   "mpn": "MH1608-601Y",
-   "mfr": "Bourns",
-   "expect": "MH1608-601Y"
-  },
-  "hhdhqzd8": {
-   "mpn": "MMBT3906LT1G",
-   "mfr": "onsemi",
-   "expect": "2N3906"
-  },
-  "3t5fhht8": {
-   "mpn": "RC0603FR-13560KL",
-   "mfr": "YAGEO",
-   "expect": "560k"
-  },
-  "pwjt9n2j": {
-   "mpn": "RC0603FR-071ML",
-   "mfr": "YAGEO",
-   "expect": "1M"
-  },
-  "3391593q": {
-   "mpn": "RC0603FR-07200KL",
-   "mfr": "YAGEO",
-   "expect": "200k"
+  "54dnztr9": {
+   "mpn": "CIGT201610EHR47MNE",
+   "mfr": "Samsung Electro-Mechanics",
+   "expect": "0.47uH"
   },
   "5j230h4f": {
    "mpn": "MMBT3904LT1G",
    "mfr": "onsemi",
    "expect": "2N3904"
   },
-  "mt3hp154": {
-   "mpn": "RC0603FR-071M78L",
-   "mfr": "YAGEO",
-   "expect": "1.78M"
+  "5ptw22qq": {
+   "mpn": "C0603C331J5GACTU",
+   "mfr": "KEMET",
+   "expect": "330p"
   },
-  "tzhnmjv0": {
-   "mpn": "SN74LVC2G34DBVR",
-   "mfr": "Texas Instruments",
-   "expect": "SN74LVC2G34DBVR"
-  },
-  "m8cr1b0n": {
-   "mpn": "EXB-V8V331JV",
-   "mfr": "Panasonic",
-   "expect": "330"
-  },
-  "pd49zr2b": {
-   "mpn": "RC0603FR-071M5L",
-   "mfr": "YAGEO",
-   "expect": "1.5M"
-  },
-  "89v4f1wn": {
-   "mpn": "RC0603FR-072K2L",
-   "mfr": "YAGEO",
-   "expect": "2.2k"
-  },
-  "t1r20n2n": {
-   "mpn": "SN74HC02PWR",
-   "mfr": "Texas Instruments",
-   "expect": "SN74HC02PWR"
+  "5t5j99c2": {
+   "mpn": "ABLS-4.194304MHZ-B4-T",
+   "mfr": "Abracon LLC",
+   "expect": "4.194304MHz"
   },
   "734hmb3p": {
    "mpn": "SN74LVC1G332DBVR",
    "mfr": "Texas Instruments",
-   "expect": "SN74LVC1G332DBVR"
+   "expect": "SN74LVC1G332"
   },
-  "p8zptq5h": {
-   "mpn": "3313J-2-503E",
-   "mfr": "Bourns",
-   "expect": "50k"
+  "771087dh": {
+   "mpn": "ACM2520-801-3P-T002",
+   "mfr": "TDK",
+   "expect": "ACM2520-801-3P-T002"
+  },
+  "83vdcfv3": {
+   "mpn": "150060RS75000",
+   "mfr": "Wurth Elektronik",
+   "expect": "150060RS75000"
   },
   "85p4bp5h": {
    "mpn": "RC0603FR-07270RL",
    "mfr": "YAGEO",
    "expect": "270"
   },
+  "89v4f1wn": {
+   "mpn": "RC0603FR-072K2L",
+   "mfr": "YAGEO",
+   "expect": "2.2k"
+  },
+  "90j37vwp": {
+   "mpn": "GRT188R61E106ME13D",
+   "mfr": "Murata Electronics",
+   "expect": "10u"
+  },
+  "98cdp3tv": {
+   "mpn": "F0805B2R00FSTR",
+   "mfr": "KYOCERA AVX",
+   "expect": "F0805B2R00FSTR"
+  },
+  "b42wmndz": {
+   "mpn": "1SS355VMTE-17",
+   "mfr": "Rohm Semiconductor",
+   "expect": "1SS355VMTE-17"
+  },
+  "b8bf03mm": {
+   "mpn": "RC0603FR-103K3L",
+   "mfr": "YAGEO",
+   "expect": "3.3k"
+  },
+  "c329ffdd": {
+   "mpn": "MH1608-601Y",
+   "mfr": "Bourns",
+   "expect": "MH1608-601Y"
+  },
+  "d1537pn3": {
+   "mpn": "RC0603FR-1315RL",
+   "mfr": "YAGEO",
+   "expect": "15"
+  },
+  "h34j0h9q": {
+   "mpn": "C0603C101J5GACTU",
+   "mfr": "KEMET",
+   "expect": "100p/100p or 0 ohm"
+  },
+  "hhdhqzd8": {
+   "mpn": "MMBT3906LT1G",
+   "mfr": "onsemi",
+   "expect": "2N3906"
+  },
+  "j50jww8m": {
+   "mpn": "C0603C103K5RACTU",
+   "mfr": "KEMET",
+   "expect": "0.01u"
+  },
+  "jhr04t1t": {
+   "mpn": "TLV9364QPWRQ1",
+   "mfr": "Texas Instruments",
+   "expect": "TLV9364"
+  },
+  "jm5qjr7w": {
+   "mpn": "C0603C681J5GACTU",
+   "mfr": "KEMET",
+   "expect": "680p"
+  },
+  "m8cr1b0n": {
+   "mpn": "EXB-V8V331JV",
+   "mfr": "Panasonic",
+   "expect": "330"
+  },
+  "m958w3z3": {
+   "mpn": "C0603C104K5RACTU",
+   "mfr": "KEMET",
+   "expect": "0.1u"
+  },
+  "n8h0010f": {
+   "mpn": "RC0603FR-13200KL",
+   "mfr": "YAGEO",
+   "expect": "200k"
+  },
+  "nqdjrz7d": {
+   "mpn": "GRT21BR61C226ME13K",
+   "mfr": "Murata Electronics",
+   "expect": "22u"
+  },
+  "nrrw2pnh": {
+   "mpn": "MIC1553YM5-TR",
+   "mfr": "Microchip Technology",
+   "expect": "MIC1553"
+  },
+  "nwddb5fm": {
+   "mpn": "RC0603FR-071KL",
+   "mfr": "YAGEO",
+   "expect": "1k"
+  },
+  "p8zptq5h": {
+   "mpn": "3313J-2-503E",
+   "mfr": "Bourns",
+   "expect": "50k"
+  },
+  "pd49zr2b": {
+   "mpn": "RC0603FR-071M5L",
+   "mfr": "YAGEO",
+   "expect": "1.5M"
+  },
+  "pq9b8pqv": {
+   "mpn": "TPS3840DL20DBVR",
+   "mfr": "Texas Instruments",
+   "expect": "TPS3840DL20"
+  },
+  "q8jbrfqj": {
+   "mpn": "C0603C330J5GACTU",
+   "mfr": "KEMET",
+   "expect": "33p"
+  },
+  "qqj3r2v5": {
+   "mpn": "RC0603FR-075K1L",
+   "mfr": "YAGEO",
+   "expect": "5.1k"
+  },
+  "qv7nrc97": {
+   "mpn": "RC0603FR-1018KL",
+   "mfr": "YAGEO",
+   "expect": "18k"
+  },
+  "r3rqdzt8": {
+   "mpn": "LM4853MM/NOPB",
+   "mfr": "Texas Instruments",
+   "expect": "LM4853"
+  },
+  "r4b2bq43": {
+   "mpn": "SJ-3524-SMT-TR",
+   "mfr": "Same Sky (formerly CUI Devices)",
+   "expect": "SJ-3524-SMT"
+  },
+  "rpz9t4md": {
+   "mpn": "RC0603FR-07100KL",
+   "mfr": "YAGEO",
+   "expect": "100k/510k/820k/91k"
+  },
   "t130htj0": {
    "mpn": "RC0603FR-0710KL",
    "mfr": "YAGEO",
    "expect": "10k"
+  },
+  "t1r20n2n": {
+   "mpn": "SN74HC02PWR",
+   "mfr": "Texas Instruments",
+   "expect": "SN74HC02PWR"
+  },
+  "ttf7q4w7": {
+   "mpn": "150060VS75000",
+   "mfr": "Wurth Elektronik",
+   "expect": "150060VS75000"
+  },
+  "tzhnmjv0": {
+   "mpn": "SN74LVC2G34DBVR",
+   "mfr": "Texas Instruments",
+   "expect": "SN74LVC2G34DBVR"
+  },
+  "vbm0z4md": {
+   "mpn": "2N7002",
+   "mfr": "onsemi",
+   "expect": "2N7002"
+  },
+  "vn4221jt": {
+   "mpn": "RC0603FR-077K5L",
+   "mfr": "YAGEO",
+   "expect": "7.5k"
+  },
+  "vzm4m93z": {
+   "mpn": "NCV8164ASN250T1G",
+   "mfr": "onsemi",
+   "expect": "NCV8164ASN250T1G"
+  },
+  "w4f9v7ht": {
+   "mpn": "TPS22917DBVR",
+   "mfr": "Texas Instruments",
+   "expect": "TPS22917DBV"
+  },
+  "w5p7f0nd": {
+   "mpn": "TPSB107M010R0400",
+   "mfr": "KYOCERA AVX",
+   "expect": "100u"
+  },
+  "wn8fhvz4": {
+   "mpn": "RC0603FR-1033KL",
+   "mfr": "YAGEO",
+   "expect": "33k"
+  },
+  "zh4rmq4h": {
+   "mpn": "RK10J12R0A0B",
+   "mfr": "Alps Alpine",
+   "expect": "RK10J12R0A0B"
   }
  }
 }

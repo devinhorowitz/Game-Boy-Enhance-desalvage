@@ -186,22 +186,52 @@ MIC1553 drives the low-battery LED blink — which is already dead for an unrela
 expensive active on the board, which strengthens the review's Tier-2 case for the TPS63802
 transplant on cost as well as efficiency.
 
-### Three BOM defects that must be fixed before an order
+### ~~Three BOM defects that must be fixed before an order~~ — withdrawn, they were not defects
 
-- **Three Values are part numbers for the wrong thing.** All three are the same defect: the
-  board's `Value` field names something a distributor will not ship, while the schematic's
-  own Digi-Key link buys the right part. Consistency check [6] holds each pair and reports
-  it until the board is corrected.
-  - **`SW1`** says `CSS-1310B`; the orderable Nidec code is **`CSS-1310TB`**.
-  - **`P3`** says `SJ-3524-SMT`; the Digi-Key API returns **no exact match** for it. The
-    orderable CUI code is **`SJ-3524-SMT-TR`** (98,898 in stock, $0.89).
-  - **`Q1`/`Q3`** say `2N3904`/`2N3906` — **TO-92 part numbers on SOT-23 pads.** There is no
-    2N3904 in SOT-23; the SOT-23 parts are **`MMBT3904LT1G`**/**`MMBT3906LT1G`**, which is
-    what the schematic links actually buy. The power review predicted this one and nobody
-    had flagged it.
-- **`D1`/`D2` are described as Schottky diodes and are not.** `1SS355VMTE-17` is a Rohm *standard*
-  switching diode, 80 V, 100 mA. The review separately found `D1` is under-rated for the
-  reverse-battery clamp duty the schematic assigns it.
+**This section used to say `SW1`, `P3` and `Q1`/`Q3` were BOM defects that had to be fixed
+before an order. That was wrong, and [ECO-15](../clockxcontrol-integration/ECO-15_upstream_link_sync.md)
+withdraws it.** In KiCad the `Value` field is a **symbol name**; the orderable code lives in
+the per-symbol `Source` link, which is exactly where MouseBiteLabs put it. Nothing was ever
+going to be mis-ordered — the BOM buys the link's part in every case:
+
+| Ref | Board `Value` (a symbol name) | MouseBiteLabs' own `Source` link | What the BOM buys |
+|---|---|---|---|
+| `SW1` | `CSS-1310B` | `CSS-1310TB` | `CSS-1310TB` ✔ |
+| `P3` | `SJ-3524-SMT` | `SJ-3524-SMT-TR` | `SJ-3524-SMT-TR` ✔ |
+| `Q1` | `2N3904` | `MMBT3904LT1G` | `MMBT3904LT1G` ✔ |
+| `Q3` | `2N3906` | `MMBT3906LT1G` | `MMBT3906LT1G` ✔ |
+
+There is no 2N3904 in SOT-23, so a reader is still better off knowing the Value is generic —
+which is why check [6] keeps naming these three. It no longer calls them defects.
+
+The reason this fork believed it had found something is worth recording: `scripts/link_mpn.json`
+was built from **AGBM-01** and survived the ECO-13 rebase untouched, so 30 of AGBM-02's 57
+`Source` links had never been read — including the ones for `SW1`, `P3` and `D1`/`D2`. The fork
+was rediscovering answers it had simply not looked up. Check **[16]** now fails if any link in
+the base schematic is unresolved.
+
+- **`D1`/`D2` are described as Schottky diodes and are not.** This one stands, and is now
+  sourced rather than asserted: MouseBiteLabs' own link for `D1`/`D2` goes to a part Digi-Key
+  itself categorises **"DIODE STANDARD 80V 100MA UMD2"**. `1SS355VMTE-17` is a Rohm *standard*
+  switching diode. The part he bought is fine; the schematic's *Description* field is what is
+  wrong. The review separately found `D1` is under-rated for the reverse-battery clamp duty the
+  schematic assigns it.
+
+### Three lines this fork had made unbuyable — fixed by ECO-15
+
+Reading MouseBiteLabs' links turned up the opposite problem from the one above: three buy lines
+where **this fork had substituted a part he never chose, and landed on one with no stock.**
+
+| Refs | This fork bought | Stock | MouseBiteLabs' link | Stock | Now |
+|---|---|---|---|---|---|
+| `CP1`–`CP3` | `TPSB107K010R0400` (±10%) | **5** | `TPSB107M010R0400` (±20%) | 31,360 | his |
+| `C1`/`C21`/`C42`/`C58` | `GRT21BR61E226ME13L` (25 V) | **0** | `GRT21BR61C226ME13K` (16 V) | 8,228 | his |
+| `R26` | `RC0603FR-0733KL` | **0** | `RC0603FR-1033KL` | 25,665 | his |
+
+Nothing recorded why any of the three differed. The 22 µF line is the instructive one: it had
+already been swapped once *because the incumbent was at zero stock*, and the replacement was at
+zero too — both 25 V parts in that family are. Taking his 16 V part costs some DC-bias headroom,
+which ECO-15 records as a deliberate trade and a thing to scope on the first build.
 - ~~**`F1` and `PTC1` disagree across three places.**~~ **Fixed by
   [ECO-8](../clockxcontrol-integration/ECO-8_component_swaps.md).** The schematic said
   `F0805B2R00FSTR` (KYOCERA AVX 2 A fuse, 0.08 Ω) and `0805L075SLYR` (Littelfuse PPTC); both PCB
@@ -285,10 +315,20 @@ reliably fake the touch input.
    environment.
 2. Decide the two substitutions that are engineering calls, not sourcing ones: the 22 µF
    0805 line (DC-bias, above) and whether to apply the 10 µF `GRT` swap. The other three
-   are mechanical.
-3. Fix the remaining two BOM defects (`SW1`'s ordering code, the `D1`/`D2` Schottky
-   mis-description) and the two footprint mismatches; add tantalum polarity marking. The
-   `F1`/`PTC1` defect is closed by ECO-8.
+   are mechanical. **Both of those are now settled by ECO-15, and not the way this list
+   assumed:** the 10 µF `GRT` "swap" is not a swap at all — MouseBiteLabs' own link already
+   buys `GRT188R61E106ME13D`, so there is nothing to apply. And the 22 µF line went the
+   other way: no 25 V part in that family is in stock anywhere, so it returns to his 16 V
+   `GRT21BR61C226ME13K`.
+3. Correct the `D1`/`D2` *Description* field, which calls a standard switching diode a
+   Schottky, and fix the two footprint mismatches; add tantalum polarity marking. `SW1`'s
+   "ordering code defect" was withdrawn by ECO-15 — it was never one. The `F1`/`PTC1`
+   defect is closed by ECO-8.
+3b. **`U11`/`U12`/`U18` (`TPS22917DBVR`) and `U14` (`MIC1553YM5-TR`) read ZERO stock at both
+   distributors** as of 2026-08-20, and both are MouseBiteLabs' own parts, not fork
+   substitutions — so this is an availability problem in the base design, not a defect to
+   fix here. No stocked drop-in was found for either. Re-check before ordering; check [6]
+   warns while they stay dry.
 4. Settle the base-board question in §5 first — rebasing onto AGBM-02 deletes ECO-5 and both
    ECO-7 defects outright, so closing them by hand on AGBM-01 may be work spent on a board
    that is about to be replaced. If AGBM-01 is kept, close both defects and re-pour.

@@ -167,6 +167,7 @@ def main():
     stripped = good.replace("(attr smd exclude_from_bom exclude_from_pos_files)",
                             "(attr smd exclude_from_bom)", 1)
     extra_failed = 0
+    extra_cases = 0
     if stripped == good:
         print("  BLIND:  [12] the mutation found nothing to strip -- ECO-9's flags moved")
         extra_failed += 1
@@ -191,6 +192,62 @@ def main():
                   cc.check_renders,
                   good.replace("(at 91.95 -44.95 180)", "(at 91.95 -45.35 180)", 1)))
 
+    # [16] reads MouseBiteLabs' own Source links. Two ways it can rot, one case each.
+    # These mutate the JSON on disk rather than the board, so they restore it afterwards.
+    import json, shutil, tempfile
+    LINKS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "link_mpn.json")
+    OVERS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpn_overrides.json")
+
+    def _json_case(label, path, mutate):
+        keep = io.open(path, encoding="utf-8").read()
+        try:
+            d = json.loads(keep)
+            mutate(d)
+            io.open(path, "w", encoding="utf-8", newline="").write(json.dumps(d, indent=1))
+            errs, _ = _run(cc.check_upstream_links, good)
+            print(f"  {'ok:     ' if errs else 'BLIND:  '}{label}"
+                  f"{' -> caught' if errs else ' -> the check did NOT fire'}")
+            return 0 if errs else 1
+        finally:
+            io.open(path, "w", encoding="utf-8", newline="").write(keep)
+
+    extra_cases += 1
+    extra_failed += _json_case(
+        "[16] a link in MouseBiteLabs' schematic goes unresolved", LINKS,
+        lambda d: d["links"].pop(sorted(d["links"])[0]))
+    # SELF-SELECTING TARGET. Two earlier attempts proved nothing: "the first entry with an
+    # upstream" landed on a line whose value an ECO had changed (which [16] hands to check
+    # [3] and skips), and CP1 stopped being a divergence at all the moment ECO-15 put it
+    # back on MouseBiteLabs' part. So find a line that [16] is ACTUALLY counting right now
+    # -- same value on both sides, upstream recorded -- and strip its ledger.
+    def _pick_diverging():
+        import check_stock, kisexp
+        links = json.loads(io.open(LINKS, encoding="utf-8").read())["links"]
+        srcs = check_stock.schematic_sources()
+        vals = {r: fp.value for r, fp in kisexp.by_ref(cc.board()).items()}
+        for e in json.loads(io.open(OVERS, encoding="utf-8").read())["entries"]:
+            if not e.get("upstream"):
+                continue
+            for r in e["refs"]:
+                L = links.get(srcs.get(r, ""))
+                if L and L["mpn"] != e["mpn"] and vals.get(r) in (L.get("expect") or "").split("/"):
+                    return r
+        return None
+
+    extra_cases += 1
+    _victim = _pick_diverging()
+    if not _victim:
+        print("  BLIND:  [16] no same-value divergence exists to mutate -- case proves nothing")
+        extra_failed += 1
+    else:
+        def _strip(d):
+            e = next(x for x in d["entries"] if _victim in x["refs"])
+            e.pop("upstream", None)
+            e.pop("eco", None)
+            e.pop("flag", None)
+        extra_failed += _json_case(
+            f"[16] {_victim} silently stops matching his part", OVERS, _strip)
+
     failures = extra_failed
     for label, fn, mutated in cases:
         if mutated == good:
@@ -214,7 +271,9 @@ def main():
     else:
         print("  ok:     the unmutated board still passes")
 
-    print(f"\n== {len(cases) + 1} cases, {failures} blind ==")
+    # +1 for the unmutated control, +extra_cases for the ones that mutate JSON on disk and
+    # so run outside `cases`. Reporting len(cases)+1 under-counted the suite by two.
+    print(f"\n== {len(cases) + 1 + extra_cases} cases, {failures} blind ==")
     return 1 if failures else 0
 
 

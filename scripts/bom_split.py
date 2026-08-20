@@ -142,7 +142,12 @@ def build(boards=1, board=None):
             "refs": [], "value": fp.value, "footprint": fp.name,
             "mpn": e.get("mpn", ""), "mfr": e.get("mfr", ""),
             "status": e.get("status", ""), "stock": e.get("stock", ""),
-            "note": e.get("eco", "") or e.get("flag", "") or why,
+            # BOTH, not the first one present. A 'flag' is a warning to whoever assembles
+            # the board -- CP1-CP3's is "polarised part, no polarity marking on the
+            # footprint" -- and an 'eco' is why the part was chosen. ECO-15 gave CP1-CP3 an
+            # 'eco', which silently displaced that warning out of the CSV PCBWay reads.
+            "note": " -- ".join(x for x in (e.get("flag"), e.get("eco"), why if not
+                                            (e.get("flag") or e.get("eco")) else "") if x),
         })
         row["refs"].append(fp.ref)
 

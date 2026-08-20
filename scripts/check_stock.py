@@ -75,14 +75,28 @@ def schematic_sources():
         z = zipfile.ZipFile(SCHEMATIC_ZIP)
     except OSError:
         return out
+    # BALANCED PARENS, not a search for the next "\n\t)\n". The heuristic version ran past
+    # the end of a symbol and picked up the NEXT symbol's Source: it mapped 359 refdes where
+    # only 187 carry one, handing SW1's slide-switch link to U13 and Q3's transistor link to
+    # U5. Nothing was mis-ordered -- every victim was either overridden or not buyable -- but
+    # a part that landed next to a Source-carrying symbol without an override would have been
+    # bought as its neighbour, silently.
     for name in z.namelist():
         if not name.endswith(".kicad_sch"):
             continue
         t = z.read(name).decode("utf-8", "replace")
         for m in re.finditer(r"\(symbol\b", t):
-            st = m.start()
-            en = t.find("\n\t)\n", st)
-            blk = t[st:en if en > 0 else st + 9000]
+            st, depth = m.start(), 0
+            for j in range(st, len(t)):
+                if t[j] == "(":
+                    depth += 1
+                elif t[j] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        blk = t[st:j + 1]
+                        break
+            else:
+                continue
             ref = re.search(r'\(property "Reference" "([^"]+)"', blk)
             src = re.search(r'\(property "Source" "([^"]*)"', blk)
             if ref and src and "/short/" in src.group(1):

@@ -43,6 +43,8 @@ not mirrored in the other fails loudly instead of rotting.
                          GOES RED WHEN RE-POURED.                            [ERROR]
   [15] RENDERS        -- every PNG in render/ re-renders, pixel for pixel, from the board
                          committed beside it.                                [ERROR]
+  [16] UPSTREAM LINKS -- every Digi-Key link in MouseBiteLabs' schematic is resolved, and
+                         every buy line that departs from one says why.      [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -419,25 +421,38 @@ VALUE_IS_NOT_MPN = {
 # check asserts that the tracking document still says so -- a ledger entry that outlives
 # its tracking is the silence this whole file exists to prevent. Fix the board and the
 # entry goes stale, which the check also reports.
-KNOWN_DEFECT_PNS = {
+# These three pairs are NOT defects, and calling them defects was itself the defect.
+#
+# In KiCad the Value field is a SYMBOL NAME. The orderable code lives in the per-symbol
+# (property "Source" ...) link, which is where MouseBiteLabs put it. "2N3904" on SOT-23 pads
+# is not a package mismatch -- it is the generic name of the transistor, and Nick's own link
+# buys MMBT3904LT1G, the SOT-23 part. Likewise CSS-1310B -> CSS-1310TB and SJ-3524-SMT ->
+# SJ-3524-SMT-TR. The BOM buys the link's part in every case, so nothing was ever going to
+# be mis-ordered.
+#
+# The fork claimed to have found these ("the power review predicted this one and nobody had
+# flagged it"). Nobody had to: they were flagged in the schematic. What the fork had actually
+# done was fail to read 30 of the 57 links in MouseBiteLabs' AGBM-02 schematic -- see check
+# [16] and ECO-15 -- so it could not see that its "discoveries" were already his answers.
+#
+# They stay listed because a Value that does not name an orderable part is still worth a
+# reader knowing about, and because check [6] would otherwise report the Value/MPN mismatch
+# as an unexplained conflict. The wording is what changed.
+VALUE_IS_A_SYMBOL_NAME = {
     ("CSS-1310B", "CSS-1310TB"):
-        ("SW1's schematic Value is an incomplete Nidec ordering code; the orderable part "
-         "is CSS-1310TB. Tracked in pcbway-assembly/README.md as a BOM defect to fix "
-         "before an order.", "pcbway-assembly/README.md", "CSS-1310TB"),
-    # Found 2026-08-19 by the MPN resolution, and predicted before that by the power
-    # review's verifier: "the BOM value strings '2N3904'/'2N3906' on SOT-23 pads are
-    # themselves a part-number/package mismatch nobody flagged." 2N3904 and 2N3906 are
-    # TO-92 part numbers. There is no 2N3904 in SOT-23 -- the SOT-23 part is MMBT3904,
-    # which is exactly what the schematic's own Digi-Key link buys. The Value is wrong and
-    # the link is right, the same shape as SW1 and P3.
+        ("SW1's Value is the symbol name for the Nidec slide switch; the orderable code is "
+         "CSS-1310TB, which is what MouseBiteLabs' own Source link buys and what the BOM "
+         "orders. Not a defect. Recorded in pcbway-assembly/README.md.",
+         "pcbway-assembly/README.md", "CSS-1310TB"),
     ("2N3904", "MMBT3904LT1G"):
-        ("Q1's board Value is the TO-92 part number on SOT-23 pads. The schematic's link "
-         "buys MMBT3904LT1G, which is the SOT-23 part. Tracked in "
-         "pcbway-assembly/README.md.", "pcbway-assembly/README.md", "MMBT3904LT1G"),
+        ("Q1's Value is the generic NPN name. There is no 2N3904 in SOT-23; the SOT-23 part "
+         "is MMBT3904LT1G, which is what MouseBiteLabs' own Source link buys and what the "
+         "BOM orders. Not a defect. Recorded in pcbway-assembly/README.md.",
+         "pcbway-assembly/README.md", "MMBT3904LT1G"),
     ("2N3906", "MMBT3906LT1G"):
-        ("Q3's board Value is the TO-92 part number on SOT-23 pads. The schematic's link "
-         "buys MMBT3906LT1G, which is the SOT-23 part. Tracked in "
-         "pcbway-assembly/README.md.", "pcbway-assembly/README.md", "MMBT3906LT1G"),
+        ("Q3's Value is the generic PNP name; MouseBiteLabs' link buys MMBT3906LT1G and the "
+         "BOM orders it. Not a defect. Recorded in pcbway-assembly/README.md.",
+         "pcbway-assembly/README.md", "MMBT3906LT1G"),
 }
 
 
@@ -450,7 +465,7 @@ def check_supplier_pns():
         return
     def norm(s):
         return re.sub(r"[^A-Z0-9]", "", (s or "").upper())
-    bad, ledgered, matched, defects = [], 0, 0, 0
+    bad, ledgered, matched, symbolic = [], 0, 0, 0
     for e in entries:
         val, mpn = e.get("value") or "", e.get("mpn") or ""
         if not mpn:
@@ -463,15 +478,15 @@ def check_supplier_pns():
         if nv and nm and (nm.startswith(nv) or nv.startswith(nm)):
             matched += 1
             continue
-        if (val, mpn) in KNOWN_DEFECT_PNS:
-            why, doc, token = KNOWN_DEFECT_PNS[(val, mpn)]
+        if (val, mpn) in VALUE_IS_A_SYMBOL_NAME:
+            why, doc, token = VALUE_IS_A_SYMBOL_NAME[(val, mpn)]
             try:
                 tracked_still = token in open(os.path.join(ROOT, doc), encoding="utf-8").read()
             except OSError:
                 tracked_still = False
             if tracked_still:
-                warn(f"{e['refs']}: KNOWN OPEN DEFECT -- {why}")
-                defects += 1
+                note(f"{e['refs']}: Value is a symbol name -- {why}")
+                symbolic += 1
             else:
                 err(f"{e['refs']}: ledgered as a known defect but {doc} no longer mentions "
                     f"{token} -- either it was fixed (prune KNOWN_DEFECT_PNS and update the "
@@ -483,7 +498,43 @@ def check_supplier_pns():
         err("MPN/Value mismatch: " + "; ".join(bad))
     else:
         ok(f"{matched} self-describing, {ledgered} ledgered as value-not-MPN, "
-           f"{defects} known open defect(s)")
+           f"{symbolic} where the Value is a symbol name and the schematic's own link "
+           f"buys the orderable part")
+
+    # --- can the thing actually be BOUGHT? ------------------------------------------
+    # A WARNING, not an error: stock is somebody else's inventory on a particular day, not
+    # an invariant of this repository, and a gate that fails on market conditions is a gate
+    # people learn to ignore. But it must be SAID. Until ECO-15 the shipped BOM carried no
+    # Digi-Key stock figure at all -- that half of the last run never completed -- and
+    # three lines had quietly gone to zero underneath, one of them because this fork had
+    # substituted a part MouseBiteLabs never chose.
+    dry, thin, blind = [], [], 0
+    for e in entries:
+        if not e.get("mpn"):
+            continue
+        got = [(e.get(k) or {}).get("stock") for k in ("digikey", "mouser")]
+        nums = [v for v in got if isinstance(v, int)]
+        if not nums:
+            blind += 1
+            continue
+        tot = sum(nums)
+        label = f"{'/'.join(e['refs'])} ({e['mpn']})"
+        if tot == 0:
+            dry.append(label)
+        elif tot < 1000:
+            thin.append(f"{label}: {tot}")
+    if blind:
+        warn(f"{blind} buy line(s) carry NO stock figure from either distributor -- that is "
+             f"UNKNOWN, not zero. Re-run scripts/check_stock.py with credentials.")
+    if dry:
+        warn(f"{len(dry)} buy line(s) at ZERO stock at both distributors as of the "
+             f"data_as_of stamp -- an order cannot be placed for these today: "
+             + ", ".join(dry))
+    if thin:
+        note("thin: " + "; ".join(thin))
+    if not dry and not blind:
+        ok(f"every buy line has stock at a distributor" +
+           (f" ({len(thin)} under 1,000)" if thin else ""))
 
 
 # =====================================================================================
@@ -1113,6 +1164,95 @@ def check_renders():
 
 
 # =====================================================================================
+# [16] MouseBiteLabs' own part choices are read, and disagreeing with one is deliberate
+# =====================================================================================
+# Every symbol in the upstream schematic carries a (property "Source" ...) Digi-Key link.
+# That link is the ONLY record of which part MouseBiteLabs actually picked for a generic
+# value like "22u" -- the Value field is a symbol name, not an orderable code. scripts/
+# link_mpn.json resolves those links.
+#
+# It was built from AGBM-01 and survived the ECO-13 rebase untouched: 30 of AGBM-02's 57
+# links had never been read, including the ones for SW1, P3 and D1/D2 -- the three parts
+# pcbway-assembly/README.md called "BOM defects we found". They were not defects. Nick had
+# specified CSS-1310TB and SJ-3524-SMT-TR in his own Source property all along.
+#
+# Two rules. COMPLETENESS: every link in the base schematic must be resolved here, or the
+# fork is buying blind against choices it never read. DELIBERATENESS: where a buy line
+# disagrees with the link, the override must SAY SO -- an 'eco' or a 'flag'. Three lines
+# were diverging silently, and all three had landed on parts with no stock while the part
+# MouseBiteLabs chose was sitting in five figures.
+def check_upstream_links():
+    print("[16] MouseBiteLabs' own part links are all read, and every divergence is stated")
+    try:
+        import check_stock
+    except ImportError as e:
+        warn(f"check_stock unavailable ({e}) -- check [16] did not run")
+        return
+    try:
+        srcs = check_stock.schematic_sources()
+        links = json.load(open(os.path.join(ROOT, "scripts", "link_mpn.json"),
+                               encoding="utf-8"))["links"]
+    except (OSError, KeyError, ValueError) as e:
+        warn(f"the link map or the base schematic is unreadable ({e}) -- [16] did not run")
+        return
+    if not srcs:
+        warn("the base schematic yielded no Source links -- [16] proved nothing")
+        return
+    codes = set(srcs.values())
+    missing = sorted(codes - set(links))
+    if missing:
+        err(f"{len(missing)} link(s) in MouseBiteLabs' schematic are NOT resolved in "
+            f"scripts/link_mpn.json, so this fork is buying without having read his choice "
+            f"for them: " + ", ".join(missing[:8])
+            + (f", +{len(missing) - 8} more" if len(missing) > 8 else ""))
+    else:
+        ok(f"all {len(codes)} of MouseBiteLabs' AGBM-02 part links are resolved")
+    stale = sorted(set(links) - codes)
+    if stale:
+        warn(f"{len(stale)} resolved link(s) no longer appear in the base schematic -- "
+             f"harmless, but they are AGBM-01 leftovers: " + ", ".join(stale[:6]))
+
+    # --- where we buy something else, the override has to say why --------------------
+    try:
+        ov = json.load(open(os.path.join(ROOT, "scripts", "mpn_overrides.json"),
+                            encoding="utf-8"))["entries"]
+    except (OSError, KeyError, ValueError) as e:
+        warn(f"overrides unreadable ({e}) -- the divergence half of [16] did not run")
+        return
+    over = {r: e for e in ov for r in e["refs"]}
+    b = board()
+    vals = {r: fp.value for r, fp in kisexp.by_ref(b).items()}
+    silent, stated, revalued = [], 0, 0
+    for ref, code in sorted(srcs.items()):
+        L = links.get(code)
+        e = over.get(ref)
+        if not L or not e or not e.get("mpn") or e["mpn"] == L["mpn"]:
+            continue
+        # An ECO that CHANGES THE VALUE makes the link's part the wrong part by definition;
+        # check [3] already ledgers every one of those, so this is not a sourcing decision.
+        if L.get("expect") and ref in vals and vals[ref] not in L["expect"].split("/"):
+            revalued += 1
+            continue
+        # Otherwise the same value is being bought from a different part, and the override
+        # must NAME the upstream part it departs from. A 'flag' about something else is not
+        # enough: CP1-CP3 carried a polarity-marking flag while silently buying a +/-10%
+        # tantalum with five units in stock instead of MouseBiteLabs' +/-20% part with
+        # 31,360. Naming the part is what forces someone to have looked at it.
+        if e.get("upstream") and L["mpn"] in str(e["upstream"]) and (e.get("eco") or e.get("flag")):
+            stated += 1
+            continue
+        silent.append(f"{ref}: we buy {e['mpn']}, MouseBiteLabs' link buys {L['mpn']}")
+    if silent:
+        err(f"{len(silent)} buy line(s) depart from MouseBiteLabs' own part choice for the "
+            f"SAME value with nothing saying why. Either match his link, or add "
+            f'"upstream": "<his mpn>" and an "eco"/"flag" saying why not, in '
+            f"scripts/mpn_overrides.json: " + "; ".join(silent))
+    else:
+        ok(f"{stated} deliberate divergence(s) from MouseBiteLabs' links, each naming the "
+           f"part it departs from; {revalued} more are value changes check [3] owns")
+
+
+# =====================================================================================
 # [11] the board is structurally sound
 # =====================================================================================
 def check_structure():
@@ -1222,7 +1362,8 @@ def main():
                check_dnp_ledger, check_bom_vs_board, check_supplier_pns,
                check_cited_paths, check_doc_imagery, check_module_window,
                check_blockers, check_structure, check_assembly_split,
-               check_geometry, check_zone_fill, check_renders):
+               check_geometry, check_zone_fill, check_renders,
+               check_upstream_links):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0
