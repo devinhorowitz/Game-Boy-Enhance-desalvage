@@ -138,9 +138,41 @@ def nets_by_name(board):
     return nets
 
 
+# =====================================================================================
+# THE KICAD 10 FORMAT BREAK, AND WHY EVERY READER BELOW REFUSES TO RETURN NOTHING
+# =====================================================================================
+# KiCad 10 (file version 20260206) stopped referencing nets BY NUMBER and started
+# referencing them BY NAME: `(net 12)` on a segment or via became `(net "/CPU/TP8")`, and
+# a pad's `(net 12 "/CPU/TP8")` became `(net "/CPU/TP8")`. The `(net N "name")` declaration
+# table at the top of the file is gone entirely.
+#
+# Every regex in this repository that reads a net was written against the KiCad 9 form, so
+# on a KiCad 10 board they match NOTHING -- and each one used to return an empty list and
+# let the caller carry on. That is not a hypothetical: the first comparison run against a
+# KiCad 10 save of this very board printed "theirs 0 segments" and the natural reading was
+# that 3,557 tracks had been deleted. Nothing had been deleted; the parser had gone blind.
+#
+# This is the same failure `footprints()` already guards -- the CRLF parse that produced a
+# confident wrong conclusion about which board had routed a net. So the rule is uniform:
+# A READER THAT CAN SEE THE TOKEN BUT PARSE NONE OF IT RAISES. Silence is never zero.
+def _refuse_empty(board, token, found, what):
+    if found or token not in board:
+        return
+    v = re.search(r'\(version (\d+)\)', board)
+    raise ValueError(
+        f"this board contains {token!r} but {what} parsed ZERO of them"
+        + (f" -- it is file version {v.group(1)}" if v else "")
+        + ". KiCad 10 (version 20260206) writes nets BY NAME, `(net \"GND\")`, where "
+          "KiCad 9 (20241229) writes `(net 2)`; these readers understand the KiCad 9 form "
+          "only. Refusing to return an empty parse, because every clearance and "
+          "connectivity check downstream would pass vacuously on it.")
+
+
 def net_table(board):
     """The board's declared net list: {number: name}. Pads reference these."""
-    return {int(n): nm for n, nm in re.findall(r'\n\t\(net (\d+) "([^"]*)"\)', board)}
+    out = {int(n): nm for n, nm in re.findall(r'\n\t\(net (\d+) "([^"]*)"\)', board)}
+    _refuse_empty(board, "\n\t(net ", out, "net_table()")
+    return out
 
 
 def vias(board):
@@ -149,6 +181,7 @@ def vias(board):
     for m in re.finditer(
             r'\n\t\(via\n\t\t\(at ([-\d.]+) ([-\d.]+)\)(?:.|\n)*?\(net (\d+)\)', board):
         out.append((float(m.group(1)), float(m.group(2)), int(m.group(3))))
+    _refuse_empty(board, "\n\t(via", out, "vias()")
     return out
 
 

@@ -1172,14 +1172,16 @@ FILL_HAZARD = (
     # Two of the three wire test pads. TP85 is GND, so its GND pour is not foreign.
     ("TP83.1", "CXC_CLK",   "GND"),
     ("TP84.1", "VDD3",      "GND"),
-    # Every via ECO-6 adds. All nine, on the rails they cross.
+    # Every via ECO-6 adds. Eight since ECO-22 deleted the ninth -- the VDD3 via at
+    # (97.1, -34.1), whose DRILL sat 0.4680 mm from P1 pad S1's, against MouseBiteLabs'
+    # 0.5 mm min_hole_to_hole. P1.S1 is thru_hole on *.Cu, so the B.Cu run lands on it
+    # directly and the layer change was never needed.
     ("via (47.5,-59.5)",   "CXC_CLK",  "GND+VDD5"),
     ("via (55.15,-53.25)", "/CPU/TP9", "GND+VDD2+VDD3"),
     ("via (55.65,-49.65)", "/CPU/TP2", "GND+VDD3"),
     ("via (79.85,-41.1)",  "/CPU/TP2", "GND"),
     ("via (83.25,-39.6)",  "/CPU/TP9", "GND"),
     ("via (93.3,-38.7)",   "GND",      "VDD35"),
-    ("via (97.1,-34.1)",   "VDD3",     "AGND+VAUD"),
     ("via (97.9,-38.6)",   "CXC_CLK",  "GND+VDD3"),
     ("via (99.25,-35.9)",  "VDD3",     "GND"),
 )

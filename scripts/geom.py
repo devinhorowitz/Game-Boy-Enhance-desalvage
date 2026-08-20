@@ -45,6 +45,10 @@ def collect(board):
     tbl = kisexp.net_table(board)
     segs = [(float(a),float(b),float(c),float(d),float(w),l,tbl.get(int(n),str(n)))
             for a,b,c,d,w,l,n in _SEG.findall(board)]
+    # See kisexp._refuse_empty. _SEG matches the KiCad 9 `(net N)` form only, and a board
+    # saved by KiCad 10 yields zero segments from it -- which reads as "no copper" to every
+    # clearance check in this file.
+    kisexp._refuse_empty(board, "\n\t(segment", segs, "geom.collect()")
     vias = [(x,y,tbl.get(n,str(n))) for x,y,n in kisexp.vias(board)]
     pads = []
     for fp in kisexp.footprints(board):

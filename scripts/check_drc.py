@@ -49,6 +49,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import zipfile
 from collections import Counter
 from pathlib import Path
 
@@ -67,17 +68,45 @@ KNOWN_NEW = {
            "restored inside the module window, DNP, so mods that solder to C7 where "
            "MouseBiteLabs has always kept it still have their landmark. Exactly one of "
            "C7 / C7A is ever populated."),
-    "silk_over_copper": (12, "cosmetic: our own footprints' silkscreen."),
-    "silk_overlap": (25, "cosmetic: our own footprints' silkscreen."),
-    "lib_footprint_issues": (11, "cosmetic: MOD1, JP4, TP83-85, the fiducials and C7A are "
-                                 "BOARD-ONLY, so KiCad has no library copy to compare them "
-                                 "against and says so once per difference. C7A took this "
-                                 "from 8 to 11 when ECO-19 added it."),
-    "text_height": (6, "cosmetic: our silk text is smaller than the board's own rule."),
 }
+# ECO-22 EMPTIED THE REST OF THIS TABLE, and not by fixing 53 things. Four lines here --
+# silk_overlap 25, silk_over_copper 12, lib_footprint_issues 11, text_height 6 -- were
+# never violations of this board's rules at all. They were violations of KiCad's DEFAULT
+# rules, which is what ran because drc() wrote the board into a directory with no project
+# file. MouseBiteLabs sets all four to `ignore` in the .kicad_pro he has shipped since
+# AGBM-01. Reading his project instead of guessing at it took the fork's contribution from
+# "55 new violations" to ONE, and that one is deliberate.
 # MouseBiteLabs' board has 0 unconnected items and so, since ECO-20, does this one. An
 # entry here is an unconnected pad this fork is choosing to live with; there are none.
 KNOWN_UNCONNECTED: dict[str, str] = {}
+
+
+def project_file() -> str:
+    """MouseBiteLabs' own .kicad_pro, out of the base zip.
+
+    THE SINGLE MOST CONSEQUENTIAL LINE IN THIS FILE, AND IT WAS MISSING UNTIL ECO-22.
+    KiCad reads its design rules from the PROJECT, not the board. This function used to
+    write the board into an empty temp directory, so every run silently fell back to
+    KiCad's built-in defaults -- a different rule set from the one the board is designed
+    to, in both directions:
+
+        rule                     his .kicad_pro   KiCad default   effect of getting it wrong
+        min_hole_to_hole              0.5              0.25       hid a real drill collision
+        min_clearance                 0.15             0.0
+        min_track_width               0.1525           0.2
+        min_via_diameter              0.4              0.5
+        silk_overlap             IGNORE           warning         199 phantom violations
+        lib_footprint_issues     IGNORE           warning         199 phantom violations
+        text_height              IGNORE           warning          40 phantom violations
+        silk_over_copper         IGNORE           warning          39 phantom violations
+
+    Under the defaults this fork looked like it added 55 violations to a 695-violation
+    board. Under the rules the board is actually designed to, MouseBiteLabs' AGBM-02 has
+    203 and this fork has 204 -- and the one it adds is ECO-19's deliberate C7A courtyard.
+    The 489-violation difference is almost entirely checks HE TURNED OFF.
+    """
+    with zipfile.ZipFile(ROOT / "AGBM-02 (AA Batteries)" / "AGBM-02 Design Files.zip") as z:
+        return z.read("AGBM-02 Design Files/AGBM-02_AA_1-1.kicad_pro").decode("utf-8")
 
 
 def drc(board_text: str, tag: str, keep: Path | None = None) -> dict:
@@ -85,6 +114,9 @@ def drc(board_text: str, tag: str, keep: Path | None = None) -> dict:
     with tempfile.TemporaryDirectory() as td:
         pcb = Path(td) / f"{tag}.kicad_pcb"
         pcb.write_text(board_text, encoding="utf-8", newline="")
+        # The project has to sit beside the board and share its stem, or KiCad ignores it.
+        (Path(td) / f"{tag}.kicad_pro").write_text(project_file(), encoding="utf-8",
+                                                   newline="")
         R.refill_zones(pcb)
         out = Path(td) / f"{tag}.json"
         r = subprocess.run(["kicad-cli", "pcb", "drc", "--format", "json",
