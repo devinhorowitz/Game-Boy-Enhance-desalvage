@@ -55,6 +55,7 @@ MEMBERS = [
     ("ECO-20_drc_defects_closed.md", "ECO-20_drc_defects_closed.md"),
     ("ECO-21_22uf_line_to_25v.md", "ECO-21_22uf_line_to_25v.md"),
     ("ECO-22_the_project_file.md", "ECO-22_the_project_file.md"),
+    ("ECO-23_kicad10_companion.md", "ECO-23_kicad10_companion.md"),
 ]
 
 
@@ -79,6 +80,17 @@ def contents():
     # check_drc.py gates against: both read the same bytes from the same place.
     import check_drc
     out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pro"] = check_drc.project_file().encode("utf-8")
+    # ECO-23: the KiCad 10 companion ships beside the KiCad 9 board. KiCad 9 cannot open a
+    # version-20260206 file at all ("Failed to load board"), and KiCad 10 opening the 9 file
+    # would silently rewrite it on save -- so whichever KiCad the recipient has, one of these
+    # two opens clean and untouched. Check [19] proves they are the same copper.
+    import kicad10
+    out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC_kicad10.kicad_pcb"] = \
+        open(kicad10.BOARD10, "rb").read()
+    # ...with his rules under ITS stem too, or KiCad looks for a project that is not there
+    # and falls back to defaults -- which is the whole failure ECO-22 was about.
+    out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC_kicad10.kicad_pro"] = \
+        check_drc.project_file().encode("utf-8")
     return out
 
 
