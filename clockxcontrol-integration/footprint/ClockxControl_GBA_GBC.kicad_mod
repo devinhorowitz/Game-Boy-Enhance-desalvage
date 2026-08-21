@@ -31,7 +31,7 @@
 		)
 	)
 	(fp_text user "CLOCKXCONTROL"
-		(at 0 0 180)
+		(at -2.538 2.7004 180)
 		(layer "F.SilkS")
 		(uuid "22f6dbf7-faed-7cb0-06bf-b9fae2f57647")
 		(effects

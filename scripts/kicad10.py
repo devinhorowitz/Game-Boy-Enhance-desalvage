@@ -174,6 +174,30 @@ def runs(board):
 
 _GRAPH_LAYERS = ("SilkS", "Fab", "CrtYd", "Mask", "Paste", "Adhes", "Dwgs", "Cmts", "Eco")
 
+# THE THIRD NUMBER. `(at 0 0 180)` carries a ROTATION, and an `(at x y)` pattern anchored on
+# the closing paren matches NOTHING against it. Every fp_text on this board is placed with a
+# rotation, so the first version of graphics() extracted an EMPTY position for all of them --
+# and two texts in different places both became `()` and compared equal. That is how
+# `CLOCKXCONTROL` moving 2.5 mm out from under MouseBiteLabs' silkscreen survived both an
+# ad-hoc diff and the gate written to catch precisely that.
+#
+# Third time this repository has been bitten by a reader that returns nothing and reads as
+# "no difference" -- after the CRLF parse and the KiCad 10 net format. So `text` items are
+# now REQUIRED to yield a position, and rotation is captured rather than discarded: a label
+# turned 180 degrees is a different label.
+_PT = r'\((?:xy|start|mid|end|center|at) ([-\d.]+) ([-\d.]+)(?: ([-\d.]+))?\)'
+
+
+def _pts(body, kind, where):
+    out = tuple((round(float(a), Q), round(float(b), Q), round(float(c or 0), Q))
+                for a, b, c in re.findall(_PT, body))
+    if kind == "text" and not out:
+        raise ValueError(
+            f"{where}: a text item parsed to NO position. A blind reader here reports every "
+            f"text on the board as unchanged, so this refuses to compare rather than return "
+            f"a false match.")
+    return out
+
 
 def graphics(board):
     """Everything that is NOT copper: silkscreen, fab, courtyard, mask, and the placement
@@ -210,9 +234,7 @@ def graphics(board):
             if not lay or not any(k in lay.group(1) for k in _GRAPH_LAYERS):
                 continue
             items.append((m.group(1), lay.group(1),
-                          tuple((round(float(a), Q), round(float(b), Q)) for a, b in
-                                re.findall(r'\((?:xy|start|mid|end|center|at) ([-\d.]+) ([-\d.]+)\)',
-                                           m.group(2)))))
+                          _pts(m.group(2), m.group(1), f"{fp.ref} fp_{m.group(1)}")))
         if items:
             out["fp"][fp.ref] = tuple(sorted(items))
     for m in re.finditer(r'\n\t\(gr_(line|rect|poly|circle|arc|text)\b([\s\S]{0,40000}?)\n\t\)',
@@ -221,9 +243,7 @@ def graphics(board):
         if not lay or not any(k in lay.group(1) for k in _GRAPH_LAYERS):
             continue
         out["top"].append((m.group(1), lay.group(1),
-                           tuple((round(float(a), Q), round(float(b), Q)) for a, b in
-                                 re.findall(r'\((?:xy|start|mid|end|center|at) ([-\d.]+) ([-\d.]+)\)',
-                                            m.group(2)))))
+                           _pts(m.group(2), m.group(1), f"top-level gr_{m.group(1)}")))
     out["top"] = sorted(out["top"])
     return out
 
