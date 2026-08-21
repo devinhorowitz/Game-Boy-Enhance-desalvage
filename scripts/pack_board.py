@@ -57,6 +57,7 @@ MEMBERS = [
     ("ECO-22_the_project_file.md", "ECO-22_the_project_file.md"),
     ("ECO-23_kicad10_companion.md", "ECO-23_kicad10_companion.md"),
     ("ECO-24_render_freshness.md", "ECO-24_render_freshness.md"),
+    ("ECO-25_the_silkscreen_you_moved.md", "ECO-25_the_silkscreen_you_moved.md"),
 ]
 
 

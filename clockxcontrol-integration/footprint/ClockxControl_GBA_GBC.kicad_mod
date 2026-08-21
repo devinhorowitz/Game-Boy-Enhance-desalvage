@@ -9,6 +9,7 @@
 	(property "Reference" "REF**"
 		(at 0 -7.4 180)
 		(layer "F.SilkS")
+		(hide yes)
 		(uuid "d10f910b-8940-50f7-96b7-41dbe3d2676c")
 		(effects
 			(font
@@ -20,6 +21,7 @@
 	(property "Value" "ClockxControl"
 		(at 0 7.4 180)
 		(layer "F.Fab")
+		(hide yes)
 		(uuid "debe77e3-3839-4d3a-4b6e-77d0ff1b3201")
 		(effects
 			(font
