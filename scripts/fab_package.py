@@ -49,6 +49,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import zipfile
 from pathlib import Path
 
@@ -346,6 +347,110 @@ def _package_shape(pads):
     return "discrete", pitch
 
 
+# What makes a two-terminal part polarity-critical, read off the distributor description
+# rather than guessed from the reference prefix. A "C" can be a ceramic or a tantalum.
+_POLARISED = re.compile(r"tantalum|polari[sz]ed|\bLED\b|\bdiode\b", re.I)
+
+
+def _silk_points(fp):
+    """Every silkscreen VERTEX in a footprint, text excluded. -> [(x, y)] local coords.
+
+    Text is excluded on purpose: the reference designator is silkscreen too, and it sits
+    off to one side of nearly every part. Counting it would make every footprint on the
+    board look asymmetric and the polarity test would never fire.
+    """
+    out = []
+    for m in re.finditer(r"\(fp_(\w+)\b", fp.body):
+        i, d = m.start(), 0
+        for j in range(i, len(fp.body)):
+            if fp.body[j] == "(":
+                d += 1
+            elif fp.body[j] == ")":
+                d -= 1
+                if d == 0:
+                    break
+        blk = fp.body[i:j + 1]
+        if "SilkS" in blk and not blk.startswith("(fp_text"):
+            out += [(round(float(a), 3), round(float(b), 3)) for a, b in re.findall(
+                r"\((?:start|end|center|mid|xy) (-?[\d.]+) (-?[\d.]+)\)", blk)]
+    return sorted(out)
+
+
+def polarity_risk(board_text: str, described: dict) -> list:
+    """Placed parts that MUST go in one way round, on a land that does not say which.
+
+    THIS IS THE FAILURE NOBODY SEES UNTIL THE BOARD IS POWERED. A pick-and-place takes its
+    orientation from the position file's rotation, and if that is read against the part's
+    own pin 1 the wrong way, a symmetric land accepts the part backwards without complaint
+    -- no DRC, no AOI signature, no visual tell. Reversed tantalums fail shorted.
+
+    So the test is the honest one: the part is polarised (per the distributor's own
+    description) AND both its pads and its silkscreen are mirror-symmetric, meaning the
+    board carries no recoverable indication of which end is which. D1/D2 and DL1/DL2 are
+    polarised too and do NOT appear here, because their silk is not symmetric -- the SOD
+    land draws a bracket around the cathode end and the LED land draws the diode triangle.
+    """
+    out = []
+    for fp in kisexp.footprints(board_text):
+        if not fp.placed or fp.ref not in described:
+            continue
+        mpn, desc = described[fp.ref]
+        if not _POLARISED.search(desc):
+            continue
+        pads = _pad_geometry(fp)
+        if len(pads) != 2:
+            continue
+        sizes = {tuple(re.findall(r"\(size ([\d.]+) ([\d.]+)\)", blk)[0])
+                 for blk in kisexp.pad_blocks(fp.body)
+                 if re.findall(r"\(size ([\d.]+) ([\d.]+)\)", blk)}
+        silk = _silk_points(fp)
+        land_symmetric = len(sizes) == 1
+        silk_symmetric = silk == sorted((-x, y) for x, y in silk)
+        if land_symmetric and silk_symmetric:
+            out.append((fp.ref, mpn, desc))
+    return sorted(out)
+
+
+def described_parts() -> dict:
+    """{ref: (mpn, description)} from the resolved BOM. Descriptions are the distributor's
+    own words, which is what makes "is this polarised?" a fact rather than a guess."""
+    path = ROOT / "pcbway-assembly" / "resolved-mpns.json"
+    try:
+        res = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for e in res.get("entries", []):
+        blurb = " ".join(str(e.get(k) or "") for k in ("desc", "note", "value"))
+        for ref in e.get("refs", []):
+            out[ref] = (e.get("mpn") or "", blurb)
+    return out
+
+
+def order_risk() -> list:
+    """[(refs, mpn, guidance, fetched_on)] for buy lines dry at both distributors.
+
+    STOCK IS NOT WRITTEN INTO THIS SHEET AND THAT IS DELIBERATE -- check_stock.py's own
+    rule is that a frozen figure reads as current and is not. What IS durable, and what
+    the person placing the order actually needs, is WHICH lines were dry when the data was
+    fetched and whether a substitute exists at all: one of these is a reel change and the
+    other has no equivalent in the market.
+    """
+    path = ROOT / "pcbway-assembly" / "resolved-mpns.json"
+    try:
+        res = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    out = []
+    for e in res.get("entries", []):
+        stocks = [(e.get(d) or {}).get("stock") for d in ("digikey", "mouser")]
+        if [s for s in stocks if isinstance(s, int)] and not any(stocks):
+                out.append((" ".join(e["refs"]), e.get("mpn") or "",
+                        (e.get("alternate") or "").strip(),
+                        res.get("generated_utc", "?")))
+    return sorted(out)
+
+
 def assembly_counts(board_text: str) -> dict:
     """The four counts PCBWay's assembly form asks for, off the board and the BOM.
 
@@ -401,6 +506,26 @@ def order_sheet(board_text: str, members: dict) -> str:
     st = stackup(board_text)
     f = fab_facts(board_text)
     a = assembly_counts(board_text)
+    described = described_parts()
+    polar_list = "".join(
+        f"\n       {r:5s} {m:26s} {d.split(',')[0].strip()}"
+        for r, m, d in polarity_risk(board_text, described)) or "\n       (none)"
+    risk = order_risk()
+    # The repo's own note on each of these runs to a paragraph of provenance -- which
+    # revision closed which blocker, what a superseded sentence used to say. A fab does not
+    # need the history, only the decision, so take the head of it and point at the README
+    # for the rest. Splitting on ". " before a capital keeps "$1.14" and "-TR" intact.
+    def _head(text, n=2):
+        parts = re.split(r"(?<=[a-z)\d])\.\s+(?=[A-Z0-9])", text)
+        out = ". ".join(parts[:n]).strip()
+        return (out + ("." if out and not out.endswith(".") else "")
+                + (" Full reasoning: pcbway-assembly/README.md section 3."
+                   if len(parts) > n else ""))
+    risk_list = "\n".join(
+        f"  {refs} -- {mpn}\n     dry at BOTH distributors when the parts were last "
+        f"resolved ({when}).\n"
+        + textwrap.fill(_head(guidance), 92, initial_indent="     ", subsequent_indent="     ")
+        for refs, mpn, guidance, when in risk) or "  (none)"
     n_smd, n_thru = len(a["smd"]), len(a["through_hole"])
     n_bgaqfp, n_fine = len(a["bga"]) + len(a["quad"]), len(a["fine_pitch"])
     uth = a["unplaced_through_hole"]
@@ -520,15 +645,25 @@ ASSEMBLY
                           Follow the paste layer.
 
 THINGS A HUMAN HAS TO TELL THEM
-  1. CP1, CP2 and CP3 are POLARISED TANTALUMS ON A SYMMETRIC LAND WITH NO POLARITY MARK
-     anywhere on the board. If the line reads the rotation wrong, all three go in backwards
-     and nothing on the board says so. Confirm orientation before the run.
+  1. POLARISED PARTS ON A SYMMETRIC LAND WITH NO POLARITY MARK ANYWHERE ON THE BOARD.
+     If the line reads the rotation wrong these go in backwards, and nothing on the board
+     says so -- no DRC, no AOI signature, no visual tell, and a reversed tantalum fails
+     shorted. Confirm orientation before the run:{polar_list}
+     Every OTHER polarised part on this board IS marked and needs no special instruction:
+     D1/D2 have a bracket drawn round the cathode end and DL1/DL2 carry the diode triangle.
   2. Parts on the do-not-populate list are not all jumpers and test pads. P1 (cartridge
      slot) and P4 (link port) are real parts the builder fits by hand afterwards.
   3. U1's land takes a SALVAGED AGB CPU and is not on the BOM at all, because no
      distributor sells one. U2 is an ordinary orderable part and is on the BOM.
   4. Two solder jumpers (JP2, JP3) are closed by hand after assembly, and only if the
      CY62157EV30LL is fitted. Leave them open otherwise.
+
+PARTS THAT MAY NOT BE ORDERABLE
+{risk_list}
+  Every figure above carries the date it was fetched, because an undated stock number reads
+  as current and is not. Re-run scripts/check_stock.py before placing the order. Both lines
+  are MouseBiteLabs' own parts, not fork substitutions -- an availability problem in the
+  base design, and check [6] in this repository warns for as long as either stays dry.
 
 WHAT IS NOT IN THIS PACKAGE
   No stencil order, no panel drawing, no impedance control. If the assembler needs a paste

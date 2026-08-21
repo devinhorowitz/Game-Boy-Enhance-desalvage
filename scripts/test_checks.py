@@ -436,6 +436,16 @@ def main():
         fab_package._package_shape = lambda pads: ("dual", 0.5)
         _restore.append(lambda: setattr(fab_package, "_package_shape", keep))
 
+    # The polarity warning is the one instruction the gerbers cannot carry: drop a
+    # tantalum's refdes out of the sheet and nothing else on the board would ever say it
+    # goes in one way round.
+    def _order_sheet_drops_a_tantalum(members, man):
+        members["ORDER.txt"] = members["ORDER.txt"].replace(b"CP2", b"C__", 1)
+
+    extra_cases += 1
+    extra_failed += _fab_case("[21] the order sheet stops naming an unmarked polarised part",
+                              _order_sheet_drops_a_tantalum)
+
     _restore = []
     extra_cases += 1
     try:

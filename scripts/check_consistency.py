@@ -68,8 +68,12 @@ retired check, not a missing one.
                          layer count, and that the package classifier can still tell a QFP
                          from a dual package -- the assembly form's BGA/QFP count is
                          derived from it, and a blind classifier reports the same zero as
-                         a board with none. The full aperture-by-aperture comparison needs
-                         KiCad and lives in `fab_package.py --check`.  [ERROR]
+                         a board with none. And that the sheet still names every polarised
+                         part the board gives no polarity mark for -- CP1-CP3 -- since that
+                         is the one instruction the gerbers cannot carry and nothing
+                         downstream catches it being wrong. The full aperture-by-aperture
+                         comparison needs KiCad and lives in `fab_package.py --check`.
+                         [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -2048,6 +2052,26 @@ def check_fab_package():
         ok(f"the classifier still sees U1 as a QFP and U2 as a dual package, and the sheet's "
            f"{n} BGA/QFP agrees with the board ({len(counts['smd'])} SMD, "
            f"{len(counts['through_hole'])} through-hole, {counts['unique_mpns']} unique MPN(s))")
+
+    # THE ONE INSTRUCTION THE PACKAGE CANNOT ENCODE. CP1-CP3 are polarised tantalums on a
+    # mirror-symmetric land with mirror-symmetric silk: the board carries no indication of
+    # which end is which, so a line that reads the rotation the wrong way fits all three
+    # backwards and nothing catches it -- not DRC, not AOI, not a visual check. Reversed
+    # tantalums fail shorted. The sheet is the only place that warning can live, so it has
+    # to NAME every such part, and the naming has to come from the board rather than from
+    # a sentence somebody typed once.
+    risky = fab_package.polarity_risk(board(), fab_package.described_parts())
+    unnamed = [r for r, _m, _d in risky if r not in sheet]
+    if unnamed:
+        err("ORDER.txt does not name polarised part(s) that the board gives no polarity "
+            "mark for: " + ", ".join(unnamed) + " -- a machine cannot recover the "
+            "orientation and nothing downstream catches it being wrong")
+    elif not risky:
+        note("no placed part is both polarised and unmarked -- nothing to warn about")
+    else:
+        ok(f"the order sheet names all {len(risky)} polarised part(s) the board gives no "
+           f"polarity mark for ({', '.join(r for r, _m, _d in risky)}), and every other "
+           "polarised part on the board carries one")
 
 
 
