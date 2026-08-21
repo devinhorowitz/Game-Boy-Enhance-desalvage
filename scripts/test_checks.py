@@ -401,6 +401,20 @@ def main():
     extra_failed += _fab_case("[21] an inner copper layer is missing from the package",
                               _drop_a_copper_layer)
 
+    # THE CASE THAT MATTERS MOST. The first order sheet read the thickness off the KiCad
+    # stackup -- 1.2 mm -- when MouseBiteLabs' README says order 1.0 mm. Nothing in the
+    # gerbers carries a thickness, so that error survives all the way to a board that does
+    # not fit a shell. Strip his number out of the sheet and [21] has to notice.
+    def _order_sheet_loses_his_thickness(members, man):
+        import fab_package
+        t = fab_package.order_spec()["thickness"]
+        members["ORDER.txt"] = members["ORDER.txt"].replace(
+            t.encode(), b"1.6mm")
+
+    extra_cases += 1
+    extra_failed += _fab_case("[21] the order sheet stops stating his thickness",
+                              _order_sheet_loses_his_thickness)
+
     failures, skipped = extra_failed, []
     for case in cases:
         label, fn, mutated = case[:3]

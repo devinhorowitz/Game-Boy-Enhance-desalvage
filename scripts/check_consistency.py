@@ -1993,6 +1993,28 @@ def check_fab_package():
         ok(f"{len(names)} members: {len(cu)} copper layer(s), both masks, both silks, both "
            f"paste layers, the outline, PTH and NPTH drill, and the assembly documents")
         note(f"content digest {man.get('content')}, plotted by {man.get('kicad')}")
+    # THE ORDER OPTIONS ARE THE PART THE GERBERS CANNOT CARRY, and the one that was wrong.
+    # The KiCad stackup says 1.2 mm; MouseBiteLabs' own README says order 1.0 mm, and a
+    # sheet generated off the stackup would have bought boards that do not fit a shell.
+    # So the sheet has to agree with HIS README, and this is what says it still does.
+    import fab_package
+    try:
+        spec = fab_package.order_spec()
+    except SystemExit as e:
+        err(f"MouseBiteLabs' order spec cannot be read: {e}")
+        return
+    with zipfile.ZipFile(FAB_ZIP) as z:
+        sheet = z.read("ORDER.txt").decode("utf-8") if "ORDER.txt" in z.namelist() else ""
+    absent = [f"{k} = {v!r}" for k, v in
+              (("thickness", spec["thickness"]), ("layers", spec["layers"]))
+              if v not in sheet]
+    if absent:
+        err("ORDER.txt does not state MouseBiteLabs' own order option(s): "
+            + "; ".join(absent) + " -- his README is what a builder orders from, and the "
+            "KiCad stackup disagrees with it, so the sheet must carry his number")
+    else:
+        ok(f"the order sheet carries his spec: {spec['thickness']}, {spec['layers']} layers, "
+           f"{spec['surface_finish'].replace('**', '').split('(')[0].strip()}")
 
 
 

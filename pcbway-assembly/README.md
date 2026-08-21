@@ -329,9 +329,16 @@ timestamp and generator version normalised out so two runs of the same board com
 | | |
 |---|---|
 | Layers | **4** |
-| Finished thickness | **1.2 mm** — not the 1.6 mm default |
-| Surface finish | **ENIG recommended.** 0.5 mm-pitch TSOP and QFN lands, and six optical fiducials that want a flat reflective surface |
+| Finished thickness | **1.0 mm** — not the 1.6 mm default, and **not** the 1.2 mm the KiCad stackup states. See below |
+| Surface finish | **ENIG.** MouseBiteLabs allows HASL *only* with tactile switches fitted; this board keeps its membrane contacts, so ENIG is required |
 | Assembly | **both sides.** The fine-pitch work is on the back |
+
+**On the thickness, because the two sources disagree.** The KiCad file carries
+`(general (thickness 1.2))` and a stackup whose layers sum to 1.2 mm. MouseBiteLabs' own
+README — for AGBM-01, AGBM-02 and AGBM-11 alike — says **order 1.0 mm**. The stackup is a
+drawing aid he never adjusted; the shell is what decides. `ORDER.txt` reads the order options
+straight out of his README and flags the conflict, because the `.gbrjob` shipped alongside the
+gerbers repeats the stackup's number. Check [21] asserts the sheet still carries his.
 
 `ORDER.txt` inside the zip repeats all of this, so it travels with the upload.
 
