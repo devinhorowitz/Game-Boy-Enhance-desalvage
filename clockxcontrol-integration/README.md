@@ -1,17 +1,20 @@
-# ClockxControl integration on the AGBM — feasibility study
+# ClockxControl integration on the AGBM
 
 Can the MouseBiteLabs **Game Boy Enhance (AGBM)** carry a footprint for insideGadgets'
 **GBA ClockxControl**, and drop the stock 4.194304 MHz crystal that the mod requires be removed?
 
-**Status: analysed, and cut into the board.** The land pattern is placed, wired and
-clearance-verified on this fork's `_GBE-plus` board — see
-[ECO-6](ECO-6_clockxcontrol_footprint.md) and [`board/agbm-02-clockxcontrol.zip`](board/agbm-02-clockxcontrol.zip).
-It has not been through KiCad's own DRC, and the shell fit is unverified; read ECO-6 §6.7 before
-fabbing. Board numbers are taken from the design files in this repository (KiCad 9 `.kicad_pcb` for
-AGBM-01 rev 1.2b, AGBM-02 rev 1.1, AGBM-11 rev 1.3). The ClockxControl land pattern is taken
-from **MouseBiteLabs' own DMGC-CPU-01 rev 2.5 gerbers** (Game Boy DMG Color), whose v2.5
-release note reads *"Added space for adding ClockxControl by insideGadgets"* — the first known
-host-side footprint for this module. Anything inferred rather than measured is flagged.
+**Yes, and it is cut into the board.** The land pattern is placed, wired, clearance-verified and
+DRC-clean on this fork's `_GBE-plus` board — [`board/agbm-02-clockxcontrol.zip`](board/agbm-02-clockxcontrol.zip).
+The shell fit is unverified; read §7 before fabbing.
+
+Board numbers come from the design files in this repository (KiCad 9 `.kicad_pcb`, AGBM-02 rev 1.1).
+The ClockxControl land pattern is taken from **MouseBiteLabs' own DMGC-CPU-01 rev 2.5 gerbers**
+(Game Boy DMG Color), whose release note reads *"Added space for adding ClockxControl by
+insideGadgets"* — the first known host-side footprint for this module. Anything inferred rather
+than measured is flagged.
+
+Why each choice was made, and every decision that is still open, is in
+[`DESIGN-DECISIONS.md`](DESIGN-DECISIONS.md).
 
 ---
 
@@ -20,42 +23,15 @@ host-side footprint for this module. Anything inferred rather than measured is f
 | Question | Answer |
 |---|---|
 | A real solder-down footprint the module mounts onto? | **Yes, for the three button pads.** Those are plated through-holes: the module lies flat and is fixed by dropping solder through the hole onto the pad below. MouseBiteLabs already ships this on the DMG Color CPU board. |
-| And CLK / V+ / V−? | **Wires — the module has no holes there**, they are plain top-side pads. So those three get labelled wire pads immediately outside the module body: **3.9, 6.0 and 4.8 mm** of wire, against 40–60 mm on a stock install. |
-| Does the AGBM have room for it? | **Yes, once one 0603 moves.** Relocating `C7` opens an 18.65 × 12.00 mm component-free window on the front side directly below the RAM, clear of every mechanical keepout. Done in ECO-6. |
-| Delete the crystal because the mod requires removing it? | **Yes, but as a DNP build option, not a deletion.** Keep X1/C3/C4 on the board, unpopulated for ClockxControl builds. |
+| And CLK / V+ / V−? | **Wires — the module has no holes there**, they are plain top-side pads. So those three get labelled wire pads immediately outside the module body: **3.8, 5.9 and 4.7 mm** of wire, against 40–60 mm on a stock install. |
+| Does the AGBM have room for it? | **Yes, once one 0603 moves.** Relocating `C7` opens an 18.65 × 12.00 mm component-free window on the front side directly below the RAM, clear of every mechanical keepout. |
+| Delete the crystal because the mod requires removing it? | **Yes, but as a DNP build option, not a deletion.** `X1`/`C3`/`C4` stay on the board, unpopulated for ClockxControl builds. |
 
 A KiCad footprint built from the extracted geometry is in
-[`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod), and the
-modified board is in [`board/`](board/). The `.kicad_mod` is **generated from the board**, not kept
-by hand beside it: `scripts/build_board.py` derives it from the board's own `MOD1` block on every
-run, and check [2b] re-derives it and compares, so the library part and the placed part cannot
-drift apart.
-
-The engineering record, in order:
-
-| | What |
-|---|---|
-| [ECO-6](ECO-6_clockxcontrol_footprint.md) | the land pattern, the `C7` relocation, the wire pads, `JP4`, and the rev B shift west |
-| [ECO-7](ECO-7_u2_supply_and_dnp.md) | `X1`/`C3`/`C4` marked DNP; the `U2` pin-37 and `Net-(Q5B-G)` blockers, and why the review's fix for them must not be applied |
-| [ECO-8](ECO-8_component_swaps.md) | thirteen part swaps from the [power review](../power-review/README.md) — `U7` off a rail it is not specified for, `PTC1` off a hold current it is under, and ~26 mW |
-| [ECO-9](ECO-9_assembly_split.md) | make the board say what a pick-and-place can actually buy and place — it was asking for the salvaged CPU |
-| [ECO-10](ECO-10_precision_pass.md) | the precision and longevity pass — and the finding that the converter's own feedback current was moving the rails more than the resistors were |
-| [ECO-11](ECO-11_gate_drive_and_D1.md) | `Q9`/`Q10` to a logic-level FET, because the brownout latch was not guaranteed to arm — and why the `D1` finding was refused |
-| [ECO-12](ECO-12_wiki_audit_corrections.md) | the [wiki audit](../wiki-audit/README.md)'s two board changes — the stale `R3`/`R4`/`R64` annotation this fork was ordering, and giving `VOUT3` back the 108 mV ECO-8 trimmed |
-| [ECO-13](ECO-13_rebase_onto_agbm02.md) | **the base board is now MouseBiteLabs' AGBM-02.** ECO-5 culled, both ECO-7 blockers closed, `U2` becomes an orderable part — a build needs one donor chip, not two |
-| [ECO-14](ECO-14_clock_domain_and_audit_fixes.md) | a 44-agent audit of ECO-6/7 on the new base: the module is powered at 3.3 V but drives a pin in a 2.5 V domain; one real DRC violation; the `JP3`→`JP4` rename that never reached the docs; a rotation-sign bug in our own reader |
-| [ECO-15](ECO-15_upstream_link_sync.md) | 30 of MouseBiteLabs' 57 part links had never been read, so three "BOM defects we found" were his answers all along — and three lines this fork had substituted were at zero stock |
-| [ECO-16](ECO-16_assembled_renders.md) | the board raytraced as PCBWay assembles it, borrowing Solar-Glow's render pipeline; found an unannotated crystal parked off the board that `classify()` calls placeable |
-| [ECO-17](ECO-17_paste_and_the_right_ram.md) | **254 solder-paste apertures on parts nobody places — including the membrane contacts** — and `U2` pasted on both of its two nested lands. Also the RAM's 3D body, which named the salvage package while the BOM buys the bigger one |
-| [ECO-18](ECO-18_rotation_convention.md) | the CPL's rotation convention, settled: all 180 rotations are byte-identical to `kicad-cli`'s own export, and 14 of 21 footprint families put pin 1 exactly where KiCad's stock library does |
-| [ECO-19](ECO-19_stock_c7_land_restored.md) | the stock `C7` land back at (91.9, −41.1) as a DNP alternate, so this fork stops being a side-grade for mods that solder there — and KiCad's own DRC, which found `U1` pad 39 with no ground and all six fiducials placed on things |
-| [ECO-20](ECO-20_drc_defects_closed.md) | **both of those closed.** Pin 39 gets 2.368 mm of copper to `C15`, because the pour was 41 µm short of fitting; all six fiducials re-placed by a search that finally models shell holes, keepouts and mask apertures — and stops pretending a front mark cares what the back is doing. Unconnected pads: 1 → **0** |
-| [ECO-21](ECO-21_22uf_line_to_25v.md) | the 22 µF bulk line goes to **25 V** for DC-bias headroom, on YAGEO's `CC0805MKX5R8BB226`. A sweep of all 22 parts in that body found that **no 25 V part preserves both AEC-Q200 and Murata's soft termination** — both 25 V `GRT` parts are at zero — so the trade is stated rather than smoothed over. BOM only; the board does not move |
-| [ECO-22](ECO-22_the_project_file.md) | **the DRC had never read this board's rules.** `check_drc.py` ran with no `.kicad_pro`, so KiCad used its own defaults: 489 of the 710 violations in a KiCad 10 report are checks MouseBiteLabs sets to `ignore`. Against his actual project file the base has 203 and this fork has 204. The right rulebook also found a real one — a `VDD3` via drilled 0.468 mm from `P1.S1` against his 0.5 mm rule — now deleted, because `P1.S1` is through-hole and `B.Cu` reaches it directly |
-| [ECO-23](ECO-23_kicad10_companion.md) | a **KiCad 10 copy of the board ships alongside** the KiCad 9 one, because neither KiCad reads the other's file. KiCad 9 stays the source of truth so check [1]'s byte-identical rebuild survives; the copy is derived, and check [19] proves it is the same copper by comparing *track coverage* rather than segments — KiCad 10 merges collinear tracks, and a naive diff calls that 314 deleted traces |
-| [ECO-24](ECO-24_render_freshness.md) | **a stale render could ride a green build.** Check [15] re-renders to compare pixels, which needs Pillow, which CI deliberately does not install — so it reported `did not run` on every push. Both renderers now stamp their manifest with the SHA of the board and base they drew from, and comparing those needs nothing at all |
-| [ECO-25](ECO-25_the_silkscreen_you_moved.md) | **five silkscreen edits from the user's own KiCad session had never been merged**, because ECO-22's comparison of that upload covered copper and called the result "functionally identical". `C7` and `C7A` — the same land in two places — were printing their refdes on top of each other. Check [19] had the identical blind spot and now compares 508 text placements and 3,607 non-copper graphics |
-| [ECO-26](ECO-26_the_third_blind_reader.md) | ECO-25's new silkscreen reader used an `(at x y)` pattern that **cannot match `(at 0 0 180)`** — so every `fp_text` on the board extracted an empty position and all text compared equal. It hid one more edit: `MOD1`'s `CLOCKXCONTROL` label, moved off MouseBiteLabs' silkscreen. Third blind reader in one session; a text item with no position is now an error |
+[`footprint/ClockxControl_GBA_GBC.kicad_mod`](footprint/ClockxControl_GBA_GBC.kicad_mod). It is
+**generated from the board**, not kept by hand beside it: `scripts/build_board.py` derives it from
+the board's own `MOD1` block on every run, and check [2b] re-derives it and compares, so the
+library part and the placed part cannot drift apart.
 
 ---
 
@@ -73,10 +49,10 @@ From insideGadgets' own **Installation (GBA)** tab, quoted verbatim:
 > Device 2 to GBA TP9 (L trigger)
 > Device 3 to GBA TP8 (R trigger)
 
-Six connections. Module is **18 × 12 × 1.6 mm** published; MouseBiteLabs drew it as
+Six connections. The module is **18 × 12 × 1.6 mm** published; MouseBiteLabs drew it as
 **18.65 × 12.00**. It draws ~12 mA of its own plus 40–60 mA more when the console is actually
-overclocked. GBA firmware offers 0.333x / 0.5x / 0.666x / 1x / 1.25x / 1.5x / 1.75x, selected by
-holding **Select** and tapping **L** or **R**; hold Select for 2 s to return to 1x.
+overclocked. GBA firmware offers 0.333× / 0.5× / 0.666× / 1× / 1.25× / 1.5× / 1.75×, selected by
+holding **Select** and tapping **L** or **R**; hold Select for 2 s to return to 1×.
 
 ### "GBA SI" is a typo for the pad silkscreened **S1**, and S1 is the 3.3 V rail
 
@@ -84,9 +60,8 @@ This matters, because "SI" reads as the link-port serial-in line, which would be
 to draw 12 mA. It isn't that. In insideGadgets' own install photo
 ([`IMG_6317.jpg`](https://shop.insidegadgets.com/wp-content/uploads/2019/11/IMG_6317.jpg)) the red
 V+ wire lands on the pad silkscreened **`S1`**, in the `C2 S2 C1 S1` group at the right-hand end of
-the cartridge connector's solder row — **verified 2026-08-20 by enlarging that photo**, where the
-silkscreen and the solder joint are unambiguous, rather than inferred. On the AGBM that pad is `P1` pad `S1`, and it is on net **`VDD3`** — the
-switched 3.3 V logic rail — on **all three board variants**:
+the cartridge connector's solder row — verified by enlarging that photo, rather than inferred. On
+the AGBM that pad is `P1` pad `S1`, and it is on net **`VDD3`**, the switched 3.3 V logic rail:
 
 ```
 P1 (CART SLOT) pad S1  ->  VDD3     (AGBM-01, AGBM-02, AGBM-11: identical)
@@ -95,7 +70,7 @@ P1             pad S2  ->  VDD5
 P1             pad C2  ->  /CPU/IN35
 ```
 
-So: **V+ = VDD3**, gated by `U18` (TPS22917) off `VOUT3`, so the module powers down with the
+So **V+ = VDD3**, gated by `U18` (TPS22917) off `VOUT3`, so the module powers down with the
 console — no standby drain. Same behaviour as a stock GBA.
 
 ---
@@ -104,10 +79,7 @@ console — no standby drain. Same behaviour as a stock GBA.
 
 All coordinates are KiCad board coordinates in mm, front side (`F.Cu`) unless noted.
 The oscillator corner (`X1`, `C3`, `C4`, `R1`, `R41`, `TP80`, `TP81`) and the `L`/`R`/`SEL` tap row
-are **identical across AGBM-01, AGBM-02 and AGBM-11** — same coordinates, same nets — so one ECO
-covers all three. Only the power test points differ: `TP21` is `VDD3` on AGBM-01/-02 but `VUSB` on
-AGBM-11, where the `VDD3` test point is `TP16` (F.Cu, 32.30, −34.20) and a lone `GND` test point
-`TP25` sits at 9.80, −12.40. None of those are near the clock corner on any variant.
+are **identical across AGBM-01, AGBM-02 and AGBM-11** — same coordinates, same nets.
 
 | CXC pin | AGBM net | Already exposed at | Coordinates |
 |---|---|---|---|
@@ -119,8 +91,8 @@ AGBM-11, where the `VDD3` test point is `TP16` (F.Cu, 32.30, −34.20) and a lon
 | `V-` | `GND` | *no GND test point at all* on AGBM-01/-02 | — |
 
 Four of six signals already have labelled front-side pads, three of them (`L`, `R`, `SEL`) grouped
-in one row at 3 mm pitch that MouseBiteLabs put there for the hotkey/touch-control mods, and V+ is
-the cart connector's `S1` pad. Only GND has nothing convenient.
+in one row at 3 mm pitch that MouseBiteLabs put there for the hotkey and touch-control mods, and
+V+ is the cart connector's `S1` pad. Only GND has nothing convenient.
 
 ![AGBM-02 front, this fork's copper in yellow](render/agbm02_front.png)
 
@@ -143,7 +115,7 @@ U1.113 (CK1) ──┬── R1 1.5M ──┬── U1.114 (CK2) ── R41 2.2
 ```
 
 Nothing else on the board touches `CK1` or `CK2` — no second consumer, no buffer, no divider.
-The whole system clock is derived inside the CPU. So substituting an external driver is a
+The whole system clock is derived inside the CPU, so substituting an external driver is a
 one-node change.
 
 **For a ClockxControl build:**
@@ -152,20 +124,17 @@ one-node change.
 - **`C3` (27 p) — do not populate.** It is the XIN load cap; with the crystal gone it is just
   27 pF hung on the module's output. Harmless if left (≈0.37 mA of extra drive current at
   4.19 MHz, more when overclocked) but there is no reason to keep it.
-- **`C4` (33 p) — do not populate.** An earlier revision of this document said C4 is "dangling
-  once the crystal is gone." **That was wrong**, and the netlist says so plainly: `X1` pad 2, `C4`
-  pad 1 and `R41` pad 2 all sit on `Net-(C4-Pad1)`, so removing `X1` leaves C4 tied to `CK2`
-  through `R41`. It is not dangling, it is 33 pF still hanging on the CPU's XOUT node through
-  2.2 kΩ. That makes the case for depopulating it stronger, not weaker.
+- **`C4` (33 p) — do not populate.** `X1` pad 2, `C4` pad 1 and `R41` pad 2 all sit on
+  `Net-(C4-Pad1)`, so removing `X1` does **not** leave C4 dangling — it leaves 33 pF hanging on
+  the CPU's XOUT node through 2.2 kΩ. That makes the case for depopulating it stronger.
 - **`R41` (2.2 k) and `R1` (1.5 M) — may stay.** `R41` is the XOUT drive-limiting resistor; with
-  `X1` and `C4` both off it ends up driving nothing. `R1` is the 1.5 M bias resistor; leaving it couples the externally
-  driven CK1 to the CPU's own (now unloaded) inverter output through 1.5 MΩ, which is nothing.
-  insideGadgets' stock-GBA instructions only say to remove the crystal, so the caps and resistors
-  staying in place is the field-proven configuration anyway.
+  `X1` and `C4` both off it drives nothing. `R1` is the 1.5 M bias resistor; leaving it couples the
+  externally driven CK1 to the CPU's own now-unloaded inverter output through 1.5 MΩ, which is
+  nothing. insideGadgets' stock-GBA instructions only say to remove the crystal, so caps and
+  resistors staying in place is the field-proven configuration anyway.
 
-**`X1`, `C3` and `C4` are marked DNP on the board** as of ECO-7, so an assembly house will leave
-them off without needing a separate build note. That was a real gap: before ECO-7 the three parts
-shipped as ordinary fitted components.
+**`X1`, `C3` and `C4` are marked DNP on the board**, so an assembly house leaves them off without
+needing a separate build note.
 
 **Keep the footprints.** Deleting X1/C3/C4 from the design would mean the board cannot boot
 without a $23 add-on installed, would diverge from upstream for every builder who does not want
@@ -216,11 +185,11 @@ three of them, and the three used sites form an L.
 
 ### Cross-check against insideGadgets' own install photo
 
-Independent confirmation, and it also resolves the mirror ambiguity (the DMG Color mounts the
-module on the *bottom*; the AGBM would mount it on the *front*). In insideGadgets' GBA install
-photo the three wires land on the middle row left, middle row right, and bottom row right — the
-same L. It matches the DMG Color's set exactly once the short axis is flipped, which is precisely
-the front-vs-back mirror. Two independent sources, same three sites.
+Independent confirmation, and it also resolves the mirror ambiguity — the DMG Color mounts the
+module on the *bottom*; the AGBM mounts it on the *front*. In insideGadgets' GBA install photo the
+three wires land on the middle row left, middle row right, and bottom row right — the same L. It
+matches the DMG Color's set exactly once the short axis is flipped, which is precisely the
+front-vs-back mirror. Two independent sources, same three sites.
 
 ### Which site is which signal
 
@@ -242,22 +211,20 @@ fix is swapping which AGBM net feeds which pad — the geometry does not change.
 
 `CLK`, `V+` and `V-` sit at the module's other end and MouseBiteLabs did **not** land them — on the
 DMG Color they are ordinary wire pads placed just outside the outline (`CLK` at 56.60, 46.55;
-`V-` at 47.61, 43.50; `V+` at 51.25, 43.50). Their positions on the module have not been
-published or measured, so this study keeps them as wire pads too. Measure a unit and all six could
-be landed.
+`V-` at 47.61, 43.50; `V+` at 51.25, 43.50). Their positions on the module have not been published
+or measured, so this design keeps them as wire pads too. Measure a unit and all six could be landed.
 
 ---
 
 ## 5. Where it goes on the AGBM
 
-The module lies flat, so it still needs a **component-free** area of 18.65 × 12 mm — floating over
-tented vias and traces is fine (the DMG Color footprint sits over a via field), but not over
-components. Two constraints narrow this hard:
+The module lies flat, so it needs a **component-free** area of 18.65 × 12 mm. Floating over tented
+vias and traces is fine — the DMG Color footprint sits over a via field — but not over components.
+Two constraints narrow this hard:
 
 - **The back is out.** MouseBiteLabs defined a rule area on `B.Cu`, `x 33.1…105.1, y −54.2…−32.2`
-  (72 × 22 mm), `pads: not_allowed, footprints: not_allowed` — the game pak sits there. That is
-  the reason the back looks empty behind the CPU. Tracks and vias *are* allowed through it, which
-  matters for routing (below).
+  (72 × 22 mm), `pads: not_allowed, footprints: not_allowed` — the game pak sits there. Tracks and
+  vias *are* allowed through it, which matters for routing.
 - **The front has no free 18.65 × 12 window as drawn** — verified by rasterising the outline,
   every front-side courtyard and every mechanical keepout, then searching all placements.
 
@@ -272,25 +239,19 @@ But it is one part away. Ranking every legal placement by how many footprints it
 
 The winner is the gap between the RAM and the cartridge connector, and the only thing in it is
 `C7` — a 0603 0.1 µF from `VDD35` to `GND`, one of three cart-rail bypass caps (`C6`, `C51`, `C7`).
-Moving it clears the window; ECO-6 puts it south of the module, closer to the cart's `VDD35` pin
-than MouseBiteLabs had it. The same window and the same single
-blocker appear on **AGBM-01, AGBM-02 and AGBM-11**. On this fork's `_GBE-plus` board the ECO-5
-fiducial `FID2` (88.5…89.5, −48.5…−47.5) also lands inside and would need nudging.
-Since [ECO-20](ECO-20_drc_defects_closed.md) `FID2` is on the front at (103.75, −58.50), nowhere
-near the window; ECO-19 put the stock `C7` land back inside it as `C7A`, DNP.
+Moving it clears the window. The same window and the same single blocker appear on **AGBM-01,
+AGBM-02 and AGBM-11**.
 
 ![Placement on AGBM-02](render/agbm02_cxc_placement.png)
 
-### As built in ECO-6
+### As built
 
 The window has ~2.5 mm of horizontal and 0.65 mm of vertical slack, and the copper inside it is
 dense (the `U2` escape fan plus `VDD2`/`GND`/`VDD5` stitching rows), so where the footprint sits
-inside the window is a trade: pad-to-copper clearance is best at the east end of the window, body
-clearance to the neighbouring parts is best at the west end. ECO-6 rev B lands in the middle at
-**centre (91.950, −44.950), rot 180** — 0.550 mm worst body clearance and 0.240 mm minimum
-pad-to-copper, both over the 0.2 mm requirement — with the button end facing west toward the nets
-it needs. Getting there costs two `VDD2` plane-stitching vias that the `R` landing now sits on;
-[ECO-6 §6.7](ECO-6_clockxcontrol_footprint.md) is the full accounting.
+inside the window is a trade: pad-to-copper clearance is best at the east end, body clearance to
+the neighbouring parts is best at the west end. It lands in the middle at **centre
+(91.950, −44.950), rot 180** — 0.550 mm worst body clearance and 0.240 mm minimum pad-to-copper,
+both over the 0.2 mm requirement — with the button end facing west toward the nets it needs.
 
 | Pad | Net | Absolute position |
 |---|---|---|
@@ -305,8 +266,8 @@ The first three are solder-through, on measured geometry from a shipping board. 
 have to be wires: **on the module, `CLK`, `V+` and `V-` are plain top-side pads with no hole**, so
 there is nothing to solder into. They sit in the clear pocket immediately south of the module body,
 left-to-right in the same order as the module's own pads so the wires do not cross. Where those
-module pads land is photo-derived to ±0.5 mm, but that now only changes wire length — nothing has
-to be re-measured before a fab run.
+module pads land is photo-derived to ±0.5 mm, but that only changes wire length — nothing has to be
+re-measured before a fab run.
 
 `JP4`, a default-open solder jumper 6.9 mm from `TP80`, gates the 73.5 mm CLK run so a board built
 with the crystal never sees that stub on its oscillator node. Bridge it only when populating the
@@ -315,22 +276,18 @@ module.
 `C7` moves to **(93.100, −37.400)**, in the band between the module and the cartridge connector,
 with a 0.4 mm stub onto the `VDD35` stitch via next to it and a stub-and-via down to the ground
 planes. That lands its `VDD35` pad **2.4 mm from `P1` pad `C1`**, the cart's `VDD35` pin — closer
-than the 6.3 mm it had on the stock board. The `FID2`/`FID5` pair ECO-13 placed at
-(106.250, −57.250) — which incidentally fixed three pre-existing shorts, see ECO-6 §6.4 — no
-longer exists as a pair: [ECO-20](ECO-20_drc_defects_closed.md) unpaired all six marks, front from
-back, and `FID2` and `FID5` are now at (103.75, −58.50) and (94.75, −66.50) respectively.
+than the 6.3 mm it had on the stock board. The stock `C7` land is kept at its original
+(91.9, −41.1) as `C7A`, DNP, so this fork is not a side-grade for mods that solder there.
 
-The layout: three solder-through landings (yellow), the module’s hole-less CLK/V+/V− pads (orange
+The layout: three solder-through landings (yellow), the module's hole-less CLK/V+/V− pads (orange
 rings) wired down to the three wire pads (cyan), `C7` in its new home, the two `VDD2` stitching
 vias that had to go, `JP4` and the routing:
 
-![ECO-6 layout](render/agbm02_cxc_diff.png)
+![Layout](render/agbm02_cxc_diff.png)
 
 And the same area as a fab preview — green rings are the solder-through landings, orange rings show
 where the module's hole-less CLK/V+/V− pads land (±0.5 mm), and the red lines are the three wires
-to the pads below. [`render/agbm02_cxc_1to1_600dpi.png`](render/agbm02_cxc_1to1_600dpi.png) is
-the same view at 1:1 for printing and
-laying a real module on:
+to the pads below:
 
 ![Fab view of the landings](render/agbm02_cxc_landings.png)
 
@@ -343,43 +300,40 @@ neighbour:
 ### What PCBWay actually ships
 
 The views above are drawn by this repository's own Python renderer, from copper. These two are
-**raytraced by KiCad** with the component bodies on, from a throwaway copy of the board whose
-zones have been re-poured first — see
-[ECO-16](ECO-16_assembled_renders.md). They show **exactly the 180 parts PCBWay's line places**,
-which is not the same thing as the board with all its parts on: `P3`, `VR2` and `SP1` come back
-as bare land patterns, and the crystal is absent because ECO-7 marks it DNP for ClockxControl
-builds.
+**raytraced by KiCad** with the component bodies on, from a throwaway copy of the board whose zones
+have been re-poured first. They show **exactly the parts PCBWay's line places**, which is not the
+same thing as the board with all its parts on: `P3`, `VR2` and `SP1` come back as bare land
+patterns, and the crystal is absent because it is DNP for ClockxControl builds.
 
 ![As PCBWay assembles it, front](render/agbm02_pcbway_top.png)
 
 The bare **gold** pads are the tell. Every one of them — the D-pad and button membrane contacts,
-`X1`'s crystal pads, `U1`'s 128-pad CPU land — carried a solder-paste aperture until
-[ECO-17](ECO-17_paste_and_the_right_ram.md) removed 254 of them. A stencil cannot read `dnp`, so
-each would have reflowed into a bump on a pad no part was coming to.
+`X1`'s crystal pads, `U1`'s 128-pad CPU land — carried a solder-paste aperture until 254 of them
+were removed. A stencil cannot read `dnp`, so each would have reflowed into a bump on a pad no part
+was coming to.
 
-110 of the 180 placements are on the back:
+Most of the placements are on the back:
 
 ![As PCBWay assembles it, back](render/agbm02_pcbway_bottom.png)
 
 And the same board once you have hand-soldered the rest — the salvaged `U1`, the cartridge
-connector `P1`, `P3`, `P4`, `SP1` and `VR2`. `MOD1`, `P1`, `P4` and `SP1` carry no 3D model at
-all, and `P3`/`VR2`'s models are MouseBiteLabs' own vendor downloads that his design-files zip
-does not ship — so they are fitted here and still invisible. The renderer names every one on
-every run rather than leaving you to wonder:
+connector `P1`, `P3`, `P4`, `SP1` and `VR2`. `MOD1`, `P1`, `P4` and `SP1` carry no 3D model at all,
+and `P3`/`VR2`'s models are MouseBiteLabs' own vendor downloads that his design-files zip does not
+ship — so they are fitted here and still invisible. The renderer names every one on every run
+rather than leaving you to wonder:
 
 ![Finished, front](render/agbm02_finished_top.png)
 ![Finished, back](render/agbm02_finished_bottom.png)
 
 ### Which way round each part goes
 
-The position file carries one rotation per part, and a line turns the part by it from *their*
-zero. [ECO-18](ECO-18_rotation_convention.md) settles what this board means by zero: every one
-of the 180 rotations is byte-identical to `kicad-cli`'s own export, and 14 of the 21 placed
-footprint families put pin 1 exactly where KiCad's **stock** library does — to 0.000 mm.
+The position file carries one rotation per part, and a line turns the part by it from *their* zero.
+Every one of the rotations is byte-identical to `kicad-cli`'s own export, and 14 of the 21 placed
+footprint families put pin 1 exactly where KiCad's **stock** library does, to 0.000 mm.
 
-These mark pin 1 on all **39 parts whose rotation changes anything**, so it can be checked part
-by part. The other 131 are symmetric 0603/0805 passives: at 0° and 180° they are the same part
-in the same place, and marking them would bury the ones that matter.
+These mark pin 1 on all **39 parts whose rotation changes anything**, so it can be checked part by
+part. The rest are symmetric 0603/0805 passives: at 0° and 180° they are the same part in the same
+place, and marking them would bury the ones that matter.
 
 ![Pin 1, front](render/agbm02_pin1_front.png)
 ![Pin 1, back](render/agbm02_pin1_back.png)
@@ -392,16 +346,15 @@ above the body is there to catch a scaled print before you measure anything agai
 **Copper from CK1 to the module must be gated.** An ungated run would hang ~5 pF and 75 mm of
 antenna on the oscillator's high-impedance XIN node for every board built the normal way with the
 crystal fitted. `JP4` (default open) disconnects it, leaving 5 mm of stub — so a crystal build is
-electrically identical to the board without this ECO. Same default-open pattern MouseBiteLabs uses for
-`JP2`.
+electrically identical to the board without this change.
 
 ### Routing the three button nets
 
 `TP2`, `TP8` and `TP9` originate around x 51…57 near the CPU, so each pad needs a 26–36 mm run.
 They are slow, already-filtered button lines (15 Ω series plus 0.01 µF on TP8/TP9), so length is
-irrelevant electrically. ECO-6 routes all three — and with the CLK, V+ and V− pads and the `C7` ties added, the board
-carries **225.5 mm of new track and 9 new vias** in total (and drops 2), with the B.Cu portions
-running through the cartridge keepout, which explicitly permits tracks and vias.
+irrelevant electrically. With the CLK, V+ and V− pads and the `C7` ties added, the board carries
+**225.5 mm of new track and 8 new vias** in total, with the B.Cu portions running through the
+cartridge keepout, which explicitly permits tracks and vias.
 
 ---
 
@@ -424,14 +377,18 @@ roughly 40 mW idle and up to ~200 mW overclocked. The AGBM's headline efficiency
 less draw than a Funnyplaying GBA — so running overclocked spends that advantage and then some.
 Battery-life figures in the AGBM READMEs do not apply to an overclocked build.
 
+**The module is powered at 3.3 V but drives a pin in a 2.5 V domain.** `CK1` is a CPU input in the
+`VDD2` domain. The module's CLK output swings to its own supply. This is the largest electrical
+open item; see [`DESIGN-DECISIONS.md`](DESIGN-DECISIONS.md).
+
 **Screens and carts** (insideGadgets' own caveats): works with the FP IPS kit; the FunnyPlaying
-laminated IPS is reported good to 1.25x and fades to black at 1.5x; the OneChip IPS is reported
-glitchy. GBA flash carts crash above 1x; genuine carts are generally fine; 1.75x is the ceiling.
+laminated IPS is reported good to 1.25× and fades to black at 1.5×; the OneChip IPS is reported
+glitchy. GBA flash carts crash above 1×; genuine carts are generally fine; 1.75× is the ceiling.
 
 **Underclocking and the AGBM's audio chain — untested, flagged.** The GBA's PWM audio carrier
 scales with the system clock, and MouseBiteLabs put real work into the AGBM's analogue
-reconstruction path (`U7` TLV9364 and friends), tuned around stock timing. At 0.5x and especially
-0.333x the carrier drops toward the audio band. Expect artefacts, possibly different from what a
+reconstruction path (`U7` TLV9364 and friends), tuned around stock timing. At 0.5× and especially
+0.333× the carrier drops toward the audio band. Expect artefacts, possibly different from what a
 stock GBA does. This is reasoning from the topology, not a measurement.
 
 **No crystal means no clock.** With `X1` unpopulated the console will not boot without the module
@@ -439,11 +396,11 @@ fitted and working. Obvious, but it makes the module a single point of failure a
 testing harder. Building the board with the crystal, testing per the wiki, then removing
 `X1`/`C3`/`C4` is the safer order.
 
-**Overclocking and the RAM — the desalvage part is the *better* one here.** At 1.75x the system
+**Overclocking and the RAM — the desalvage part is the *better* one here.** At 1.75× the system
 clock is ~29.4 MHz, so a 3-cycle 16-bit EWRAM access shortens from ~179 ns to ~102 ns. The
-the CY62157EV30LL-45Z still has better than 2x margin at that speed. A salvaged original
-GBA WRAM has less headroom. If this fork ends up carrying both mods, that is a point in the
-de-salvaged board's favour, not against it.
+CY62157EV30LL-45Z still has better than 2× margin at that speed. A salvaged original GBA WRAM has
+less headroom. If this fork ends up carrying both mods, that is a point in the de-salvaged board's
+favour, not against it.
 
 ---
 
@@ -461,40 +418,42 @@ de-salvaged board's favour, not against it.
    stock install (1.6 mm of module on top of ~1.2 mm of RAM), which is field-proven in a GBA shell
    with an FP IPS kit. That is good evidence but not a measurement — check it with a shell and
    calipers.
-5. **KiCad DRC and a re-pour** on the modified board, and symbols for `MOD1`, `JP4` and
-   `TP83`/`TP84`/`TP85` if the board is ever updated from a schematic. Full list in
-   [ECO-6 §6.8](ECO-6_clockxcontrol_footprint.md).
-6. **The two deleted `VDD2` stitching vias.** They are pure plane stitching in a lobe of pour that
-   carries no `VDD2` pads, and the lobe keeps two full-stack ties, but it is a deletion from the
-   host design — [ECO-6 §6.7](ECO-6_clockxcontrol_footprint.md) sets out why there was no
-   alternative and why it is harmless.
+5. **Re-pour before plotting gerbers.** The zone fill shipped in the board file is MouseBiteLabs'
+   own and is deliberately *not* re-poured by the generator, so check [1]'s byte-identical rebuild
+   stays meaningful. Open the board in KiCad, **Fill All Zones**, then plot.
+6. **Symbols** for `MOD1`, `JP4` and `TP83`/`TP84`/`TP85` if the board is ever updated from a
+   schematic. The edits are made on the board, not through the schematic.
+7. **The two deleted `VDD2` stitching vias.** They are pure plane stitching in a lobe of pour that
+   carries no `VDD2` pads, and the lobe keeps two full-stack ties — but it is still a deletion from
+   the host design.
 
 ---
 
 ## Files
 
 ```
-ECO-6_clockxcontrol_footprint.md              engineering record for the board edit
-board/agbm-02-clockxcontrol.zip               the modified board: AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb
-footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad 9 land pattern, DERIVED from the board's MOD1
+DESIGN-DECISIONS.md                           why the board is the way it is, and what is still open
+board/agbm-02-clockxcontrol.zip               the deliverable: KiCad 9 + KiCad 10 boards, project
+                                              file, footprint and documents
+footprint/ClockxControl_GBA_GBC.kicad_mod     KiCad land pattern, DERIVED from the board's MOD1
 render/agbm02_front.png                       F.Cu, whole board, this fork's copper in yellow
 render/agbm02_back.png                        B.Cu, mirrored so it reads as you look at it
-render/agbm02_cxc_diff.png                    copper diff: MouseBiteLabs' faded, this fork's at full value
-render/agbm02_cxc_placement.png               the window below the RAM, the C7 move, landings and wire pads
+render/agbm02_cxc_diff.png                    copper diff: MouseBiteLabs' faded, this fork's full
+render/agbm02_cxc_placement.png               the window below the RAM, the C7 move, landings
 render/agbm02_cxc_landings.png                the three landed lattice sites, close up
-render/agbm02_cxc_fit.png                     fit check: module body and courtyard, all six lattice sites
-render/agbm02_cxc_1to1_600dpi.png             1:1 print sheet - print at 100% and lay a module on it
+render/agbm02_cxc_fit.png                     fit check: module body and courtyard, all six sites
+render/agbm02_cxc_1to1_600dpi.png             1:1 print sheet - print at 100%, lay a module on it
 render/render-manifest.json                   pixel digest of each view, and the Pillow that drew it
 render/agbm02_pcbway_top.png                  RAYTRACED: front, exactly the parts PCBWay places
-render/agbm02_pcbway_bottom.png               RAYTRACED: back, 110 of the 180 placements are here
+render/agbm02_pcbway_bottom.png               RAYTRACED: back
 render/agbm02_finished_top.png                RAYTRACED: front, after you hand-solder the rest
 render/agbm02_finished_bottom.png             RAYTRACED: back, after you hand-solder the rest
-render/agbm02_pin1_front.png                  pin 1 marked on all 16 rotation-sensitive front parts
-render/agbm02_pin1_back.png                   the same for the 23 on the back
-render/assembled-manifest.json                per-view body-resolution counts, and the KiCad that drew them
-render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rendered from HIS gerbers --
-                                              a DIFFERENT board, and the one image here that is not
-                                              generated from AGBM-02
+render/agbm02_pin1_front.png                  pin 1 marked on the rotation-sensitive front parts
+render/agbm02_pin1_back.png                   the same for the back
+render/assembled-manifest.json                per-view body-resolution counts, and the KiCad used
+render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, from HIS gerbers --
+                                              a DIFFERENT board, and the one image here that is
+                                              not generated from AGBM-02
 ```
 
 ## Sources
@@ -502,15 +461,12 @@ render/dmgc_cpu_01_2-5_cxc_footprint.png      MouseBiteLabs' own footprint, rend
 - insideGadgets, [GBA/GBC/DMG ClockxControl](https://shop.insidegadgets.com/product/gba-clockxcontrol/) — install wiring, dimensions, firmware speeds, current draw, screen/cart compatibility, and the install photos referenced in §1 and §4.
 - MouseBiteLabs, [Game Boy DMG Color](https://github.com/MouseBiteLabs/Game-Boy-DMG-Color) — `DMGC-CPU-01` rev 2.5, *"Added space for adding ClockxControl by insideGadgets"*. Land pattern in §4 extracted from that board's gerbers.
 - MouseBiteLabs, [Game Boy Enhance wiki — Mod Compatibility](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/Mod-Compatibility) and [AGBM-01 (AA) Build/Test Order](https://github.com/MouseBiteLabs/Game-Boy-Enhance/wiki/AGBM-01-%28AA%29-Build-Test-Order).
-- This repository: the AGBM-01 / -02 / -11 design-file archives. The base board is AGBM-02's,
-  unmodified — see [ECO-13](ECO-13_rebase_onto_agbm02.md). ECO-5's `agbm-01-ram-desalvage.zip` was
-  culled by that rebase and survives only in git history.
+- This repository: the AGBM-01 / -02 / -11 design-file archives. The base board is AGBM-02's, unmodified.
 
 ## License & attribution
 
 Derivative analysis of the **MouseBiteLabs Game Boy Enhance (AGBM)** and **Game Boy DMG Color**,
-both licensed **CC BY-SA 4.0**. This document, the renderings in `render/` (all generated from
-the board by `scripts/render_board.py`), and the footprint in
+both licensed **CC BY-SA 4.0**. This document, the renderings in `render/` and the footprint in
 `footprint/` are released under the same licence. The ClockxControl is a product of insideGadgets;
 no part of their design is reproduced here — the land pattern is the *host-side* pattern published
 by MouseBiteLabs under CC BY-SA.

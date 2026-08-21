@@ -1,14 +1,14 @@
 {
   "pillow": "12.3.0",
   "source": {
-    "base": "9baf08be6d4c7dd2",
-    "board": "0868eb24f3cbc81c"
+    "base": "40e917af3a3f1992",
+    "board": "b6f9b61e566f3245"
   },
   "supersample": 3,
   "views": {
     "agbm02_back.png": {
       "caption": "B.Cu, 11 object(s) ringed in a foreign pour",
-      "pixels": "21bd28a302469bbb",
+      "pixels": "293d55ec0fbf7a01",
       "size": [
         1471,
         894
@@ -24,7 +24,7 @@
     },
     "agbm02_cxc_diff.png": {
       "caption": "all layers, this fork's copper at full value, 22 ringed",
-      "pixels": "710692bdfec21a2d",
+      "pixels": "d3c31244ddc761c6",
       "size": [
         1471,
         928
@@ -64,7 +64,7 @@
     },
     "agbm02_pin1_back.png": {
       "caption": "back: 23 rotation-sensitive part(s), 1 polarised",
-      "pixels": "4017bafc7a1b2794",
+      "pixels": "6ba93d330b84977b",
       "size": [
         1471,
         924

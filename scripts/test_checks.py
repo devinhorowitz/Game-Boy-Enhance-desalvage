@@ -85,17 +85,16 @@ def cc_by_ref():
 
 def main():
     good = cc.board()
-    # WHICH VALUE TO CORRUPT. It has to be the value R23 carries TODAY, at the end of the
-    # whole ECO chain -- and it has to be scoped to R23's own footprint, because the chain
-    # can land two refs on the same value (ECO-12 put R23 on 178k, which is also R21's).
-    # Reading it from cc._eco_chain_final() rather than a literal is what stops an ECO
-    # that moves R23 from silently turning these cases into no-ops; the "BLIND" guard
-    # below is what caught it the two times it happened, at ECO-10 and again at ECO-12.
-    # ECO-13 note: this used to name R23, which does not exist on the AGBM-02 base. Take
-    # whichever ref the chain actually ends on, so the case survives the next rebase too.
-    chain = cc._eco_chain_final()
+    # WHICH VALUE TO CORRUPT. It has to be a value the generator actually sets, read from
+    # the generator rather than typed here -- a literal turns this case into a no-op the
+    # moment a part changes, which happened twice before the "BLIND" guard below caught it.
+    # It comes straight from build_board's own swap tables now; it used to be scraped out of
+    # the ECO markdown, which is why those documents had to stay in lockstep with the code.
+    import build_board
+    chain = {ref: new for ref, field, _old, new in build_board.ECO8 + build_board.ECO11
+             if field == "Value"}
     if not chain:
-        print("  BLIND:  no ECO in the chain changes a Value -- cases [1] and [3] cannot run")
+        print("  BLIND:  the generator changes no Value -- case [1] cannot run")
         return 1
     VICTIM_REF = sorted(chain)[0]
     VICTIM = chain[VICTIM_REF]
@@ -130,9 +129,6 @@ def main():
         # below is what said so.
         ("[1]  a hand-edited board no longer rebuilds",
          cc.check_reproducible,
-         corrupt(VICTIM_REF, "Value", VICTIM, "12345")),
-        ("[3]  an ECO table and the board disagree",
-         cc.check_eco8_ledger,
          corrupt(VICTIM_REF, "Value", VICTIM, "12345")),
         ("[4]  a stray DNP flag",
          cc.check_dnp_ledger,

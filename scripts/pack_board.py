@@ -34,31 +34,7 @@ FIXED = (2026, 8, 18, 0, 0, 0)
 MEMBERS = [
     ("ClockxControl_GBA_GBC.kicad_mod", "footprint/ClockxControl_GBA_GBC.kicad_mod"),
     ("README.md", "README.md"),
-    ("ECO-6_clockxcontrol_footprint.md", "ECO-6_clockxcontrol_footprint.md"),
-    ("ECO-7_u2_supply_and_dnp.md", "ECO-7_u2_supply_and_dnp.md"),
-    ("ECO-8_component_swaps.md", "ECO-8_component_swaps.md"),
-    ("ECO-9_assembly_split.md", "ECO-9_assembly_split.md"),
-    ("ECO-10_precision_pass.md", "ECO-10_precision_pass.md"),
-    ("ECO-11_gate_drive_and_D1.md", "ECO-11_gate_drive_and_D1.md"),
-    ("ECO-12_wiki_audit_corrections.md", "ECO-12_wiki_audit_corrections.md"),
-    ("ECO-13_rebase_onto_agbm02.md", "ECO-13_rebase_onto_agbm02.md"),
-    ("ECO-14_clock_domain_and_audit_fixes.md", "ECO-14_clock_domain_and_audit_fixes.md"),
-    # ECO-20 ADDED THESE SIX. The list stopped at ECO-14 and nobody noticed, so the shipped
-    # package's own README linked forward to five ECOs it did not contain -- including the
-    # one that says DO NOT PLOT GERBERS FROM THIS FILE WITHOUT RE-POURING. A deliverable
-    # whose index points at documents that are not in the deliverable.
-    ("ECO-15_upstream_link_sync.md", "ECO-15_upstream_link_sync.md"),
-    ("ECO-16_assembled_renders.md", "ECO-16_assembled_renders.md"),
-    ("ECO-17_paste_and_the_right_ram.md", "ECO-17_paste_and_the_right_ram.md"),
-    ("ECO-18_rotation_convention.md", "ECO-18_rotation_convention.md"),
-    ("ECO-19_stock_c7_land_restored.md", "ECO-19_stock_c7_land_restored.md"),
-    ("ECO-20_drc_defects_closed.md", "ECO-20_drc_defects_closed.md"),
-    ("ECO-21_22uf_line_to_25v.md", "ECO-21_22uf_line_to_25v.md"),
-    ("ECO-22_the_project_file.md", "ECO-22_the_project_file.md"),
-    ("ECO-23_kicad10_companion.md", "ECO-23_kicad10_companion.md"),
-    ("ECO-24_render_freshness.md", "ECO-24_render_freshness.md"),
-    ("ECO-25_the_silkscreen_you_moved.md", "ECO-25_the_silkscreen_you_moved.md"),
-    ("ECO-26_the_third_blind_reader.md", "ECO-26_the_third_blind_reader.md"),
+    ("DESIGN-DECISIONS.md", "DESIGN-DECISIONS.md"),
 ]
 
 

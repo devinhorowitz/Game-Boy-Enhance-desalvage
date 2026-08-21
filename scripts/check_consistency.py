@@ -95,11 +95,6 @@ ZIP = os.path.join(ROOT, "clockxcontrol-integration", "board", "agbm-02-clockxco
 ZIP_ROOT = "agbm-02-clockxcontrol"
 BOARD_MEMBER = f"{ZIP_ROOT}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"
 MPNS = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
-ECO8_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-8_component_swaps.md")
-ECO10_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-10_precision_pass.md")
-ECO11_DOC = os.path.join(ROOT, "clockxcontrol-integration", "ECO-11_gate_drive_and_D1.md")
-ECO12_DOC = os.path.join(ROOT, "clockxcontrol-integration",
-                         "ECO-12_wiki_audit_corrections.md")
 
 errors, warnings, verbose = [], [], False
 
@@ -134,7 +129,12 @@ def board():
 
 def tracked():
     out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True)
-    return set(out.stdout.split("\n")) - {""}
+    names = set(out.stdout.split("\n")) - {""}
+    # A path can sit in the index and be gone from the working tree -- a deletion that
+    # has not been staged. Every caller here is asking about the tree on disk, not the
+    # index, and one of them opens what this returns: leaving the ghost in would turn a
+    # half-staged working tree into a traceback rather than a check result.
+    return {n for n in names if os.path.exists(os.path.join(ROOT, n))}
 
 
 # =====================================================================================
@@ -163,23 +163,12 @@ def check_reproducible():
 # =====================================================================================
 def check_package_parity():
     print("[2] every document in the shipped zip matches its copy in the tree")
-    pairs = {
-        f"{ZIP_ROOT}/README.md": "clockxcontrol-integration/README.md",
-        f"{ZIP_ROOT}/ECO-6_clockxcontrol_footprint.md":
-            "clockxcontrol-integration/ECO-6_clockxcontrol_footprint.md",
-        f"{ZIP_ROOT}/ECO-7_u2_supply_and_dnp.md":
-            "clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md",
-        f"{ZIP_ROOT}/ECO-8_component_swaps.md":
-            "clockxcontrol-integration/ECO-8_component_swaps.md",
-        f"{ZIP_ROOT}/ECO-9_assembly_split.md":
-            "clockxcontrol-integration/ECO-9_assembly_split.md",
-        f"{ZIP_ROOT}/ECO-10_precision_pass.md":
-            "clockxcontrol-integration/ECO-10_precision_pass.md",
-        f"{ZIP_ROOT}/ECO-11_gate_drive_and_D1.md":
-            "clockxcontrol-integration/ECO-11_gate_drive_and_D1.md",
-        f"{ZIP_ROOT}/ClockxControl_GBA_GBC.kicad_mod":
-            "clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod",
-    }
+    # Derived from pack_board's own MEMBERS rather than restated, so a document added to
+    # the package cannot be left out of this check -- that divergence is exactly what this
+    # check exists to catch, and a hand-maintained second list is where it would hide.
+    import pack_board
+    pairs = {f"{ZIP_ROOT}/{member}": f"clockxcontrol-integration/{rel}"
+             for member, rel in pack_board.MEMBERS}
     try:
         z = zipfile.ZipFile(ZIP)
         names = set(z.namelist())
@@ -216,74 +205,7 @@ def check_package_parity():
 # =====================================================================================
 # [3] ECO-8's own table is the ledger for the swaps
 # =====================================================================================
-def check_eco8_ledger():
-    """Every ECO whose table names a Value change is held to the generator and the board."""
-    # ECO-10 and ECO-12 changed only Values that the LTC3527 or the stale AGBM-01
-    # annotation carried, and neither exists on the AGBM-02 base -- their generator lists
-    # are empty and their documents no longer hold a swap table. ECO-13 section 13.4 is
-    # the record of why. They are asserted empty here so that adding a row to either
-    # without re-listing it below fails loudly instead of going unchecked.
-    for label, gen in (("ECO-10", build_board.ECO10), ("ECO-12", build_board.ECO12)):
-        if gen:
-            err(f"{label} has Value swaps again but is not in check [3]'s list -- add it")
-    for label, doc_path, gen in (("ECO-8", ECO8_DOC, build_board.ECO8),
-                                 ("ECO-11", ECO11_DOC, build_board.ECO11)):
-        _check_one_eco(label, doc_path, gen)
 
-
-# An ECO document records the change IT made and is not wrong when a later ECO moves the
-# same part again -- ECO-8 took R23 to 1.69M and ECO-10 then took that to 169k, and both
-# statements are true. So each ECO's table is checked against its own generator list, and
-# the BOARD is checked only against where the whole chain ends up.
-def _eco_chain_final():
-    out = {}
-    for lst in (build_board.ECO8, build_board.ECO10, build_board.ECO11,
-                build_board.ECO12):  # 10 and 12 are empty on the AGBM-02 base
-        for ref, field, _o, n in lst:
-            if field == "Value":
-                out[ref] = n
-    return out
-
-
-def _check_one_eco(label, doc_path, gen):
-    print(f"[3] {label}'s swap table matches the generator and the board")
-    final = _eco_chain_final()
-    try:
-        doc = open(doc_path, encoding="utf-8").read()
-    except OSError as e:
-        err(f"cannot read {label}: {e}")
-        return
-    # | `U7` | `TLV9364` | **`TLV9064IPWR`** | correctness | ... |
-    row = re.compile(r"^\|\s*`(\w+)`\s*\|\s*\**`([^`]+)`\**\s*\|\s*\**`([^`]+)`\**\s*\|",
-                     re.M)
-    doc_rows = {ref: (was, now) for ref, was, now in row.findall(doc)}
-    gen_rows = {ref: (o, n) for ref, field, o, n in gen if field == "Value"}
-    if not doc_rows:
-        err(f"{label} has no parseable swap table -- check [3] cannot gate anything")
-        return
-    fps = kisexp.by_ref(board())
-    bad = []
-    for ref, (o, n) in gen_rows.items():
-        if ref not in doc_rows:
-            bad.append(f"{ref}: in the generator, absent from {label}'s table")
-            continue
-        d_old, d_new = doc_rows[ref]
-        if (d_old, d_new) != (o, n):
-            bad.append(f"{ref}: {label} says {d_old!r}->{d_new!r}, generator says "
-                       f"{o!r}->{n!r}")
-        if ref not in fps:
-            bad.append(f"{ref}: not on the board")
-        elif fps[ref].value != final.get(ref, n):
-            bad.append(f"{ref}: board Value is {fps[ref].value!r}, the ECO chain ends at "
-                       f"{final.get(ref, n)!r}")
-        note(f"{ref}: {o} -> {n}"
-             + (f" (later superseded to {final[ref]})" if final.get(ref) != n else ""))
-    for ref in set(doc_rows) - set(gen_rows):
-        bad.append(f"{ref}: in {label}'s table, not in the generator")
-    if bad:
-        err("ECO-8, the generator and the board disagree: " + "; ".join(sorted(bad)))
-    else:
-        ok(f"{len(gen_rows)} Value swaps agree across ECO-8, the generator and the board")
 
 
 # =====================================================================================
@@ -340,7 +262,7 @@ def check_library_footprint():
 
 
 def check_dnp_ledger():
-    print("[4] the DNP set is the ECO-5 base's, plus exactly what ECO-7 adds")
+    print("[4] the DNP set is MouseBiteLabs' own, plus exactly what a ClockxControl build adds")
     try:
         base = kisexp.load(os.path.join(ROOT, BASE_ZIP_REF.split("::")[0])
                            + "::" + BASE_ZIP_REF.split("::")[1])
@@ -358,8 +280,8 @@ def check_dnp_ledger():
     if missing:
         err("expected DNP and the board disagrees: " + ", ".join(missing))
     if not extra and not missing:
-        ok(f"{len(inherited)} inherited from the ECO-5 base + "
-           f"{len(DNP_ADDED)} from ECO-7 ({', '.join(sorted(DNP_ADDED))})")
+        ok(f"{len(inherited)} inherited from MouseBiteLabs' own board + "
+           f"{len(DNP_ADDED)} this fork adds ({', '.join(sorted(DNP_ADDED))})")
 
 
 # =====================================================================================
@@ -757,7 +679,7 @@ WINDOW_DNP_LANDS = {
 
 
 def check_module_window():
-    print("[9] the ECO-6 module window is still component-free, and its parts have not moved")
+    print("[9] the module window is still component-free, and its parts have not moved")
     fps = kisexp.by_ref(board())
     if "MOD1" not in fps or fps["MOD1"].at is None:
         err("MOD1 is not on the board -- the whole ECO-6 window claim is unverifiable")
@@ -795,16 +717,16 @@ def check_module_window():
             note(f"{ref} at ({x}, {y})")
     if tolerated:
         ok(f"window clear of bodies; {', '.join(sorted(tolerated))} present as DNP land(s) "
-           f"by design (ECO-19)")
+           f"by design -- the stock C7 land, kept")
     if intruders:
         err(f"footprint origin(s) inside the {2 * WINDOW_HALF_X} x {2 * WINDOW_HALF_Y} mm "
             f"module window -- the module physically cannot go on: " + ", ".join(intruders))
     if moved:
-        err("ECO-6 placement has drifted from the snapshot -- a deliberate move updates "
+        err("a placement has drifted from the snapshot -- a deliberate move updates "
             "PLACED in this file in the same commit, and re-runs the clearance analysis "
-            "in ECO-6 section 6.7: " + "; ".join(moved))
+            "check [13] performs: " + "; ".join(moved))
     if not intruders and not moved:
-        ok(f"window clear, all {len(PLACED)} ECO-6 placements on their snapshotted spot")
+        ok(f"window clear, all {len(PLACED)} placement(s) on their snapshotted spot")
 
 
 # =====================================================================================
@@ -842,7 +764,7 @@ BLOCKER_DOCS = ("clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md",
 # re-introduces them: a future ECO that starts deleting vias around U2 to make room for
 # something will trip it, which is exactly how they arose the first time.
 def check_blockers():
-    print("[10] both former ECO-7 blockers are CLOSED (RED means one came back)")
+    print("[10] both former U2 / Net-(Q5B-G) blockers are CLOSED (RED means one came back)")
     b = board()
     nets = kisexp.net_table(b)
     vdd2 = next((n for n, nm in nets.items() if nm == "VDD2"), None)
@@ -1458,8 +1380,8 @@ def check_upstream_links():
         e = over.get(ref)
         if not L or not e or not e.get("mpn") or e["mpn"] == L["mpn"]:
             continue
-        # An ECO that CHANGES THE VALUE makes the link's part the wrong part by definition;
-        # check [3] already ledgers every one of those, so this is not a sourcing decision.
+        # A change to the VALUE makes the link's part the wrong part by definition -- the
+        # board is asking for a different component, not the same one from someone else.
         if L.get("expect") and ref in vals and vals[ref] not in L["expect"].split("/"):
             revalued += 1
             continue
@@ -1479,7 +1401,8 @@ def check_upstream_links():
             f"scripts/mpn_overrides.json: " + "; ".join(silent))
     else:
         ok(f"{stated} deliberate divergence(s) from MouseBiteLabs' links, each naming the "
-           f"part it departs from; {revalued} more are value changes check [3] owns")
+           f"part it departs from; {revalued} more buy a different value than the link, "
+           f"because the board asks for one")
 
 
 # =====================================================================================
@@ -1903,7 +1826,6 @@ def main():
     ap.add_argument("-v", "--verbose", action="store_true")
     verbose = ap.parse_args().verbose
     for fn in (check_reproducible, check_package_parity, check_library_footprint,
-               check_eco8_ledger,
                check_dnp_ledger, check_bom_vs_board, check_supplier_pns,
                check_cited_paths, check_doc_imagery, check_module_window,
                check_blockers, check_structure, check_assembly_split,
