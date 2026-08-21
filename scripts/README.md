@@ -74,9 +74,15 @@ not missing ones.
 | [17] | paste is only where a machine will place a part, and `U2` has exactly one of its two nested lands pasted | a stencil deposits solder on a pad no part is coming to |
 | [18] | every CPL rotation is `kicad-cli`'s own, and pin 1 is where the stock library puts it | a polarised part goes in backwards |
 | [19] | the KiCad 10 companion carries the same copper, pads, nets, text and graphics as the KiCad 9 board | the two formats diverge |
+| [20] | every power figure the documents state is in `POWER_LEDGER` with a reason, and every ledger line is still stated somewhere | a modelled number drifts between the documents that repeat it, or arrives unjustified |
 
 Check [19] compares **track coverage**, not segments: KiCad 10 merges collinear tracks, and a naive
 diff calls that hundreds of deleted traces.
+
+Check [20] is the odd one out: it has no artifact to re-derive from. The power figures are
+modelled from MouseBiteLabs' published measurements rather than measured on a board of this
+fork, so the ledger IS the source of truth and the check only keeps the documents honest
+against it — in both directions.
 
 ## Where the history went
 
