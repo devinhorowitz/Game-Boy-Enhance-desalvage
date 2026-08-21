@@ -165,7 +165,7 @@ def check_reproducible():
         return
     err(f"the shipped board is NOT what scripts/build_board.py produces "
         f"({len(want)} chars shipped vs {len(built)} rebuilt). Either the board was "
-        f"hand-edited -- in which case the ECOs no longer describe it -- or the "
+        f"hand-edited -- in which case no document describes it -- or the "
         f"generator changed without repacking. Run build_board.py then pack_board.py.")
 
 
@@ -214,34 +214,31 @@ def check_package_parity():
 
 
 # =====================================================================================
-# [3] ECO-8's own table is the ledger for the swaps
-# =====================================================================================
-
-
 
 # =====================================================================================
-# [4] the DNP set is exactly what ECO-7 says it is
+# [4] the DNP set is exactly what a ClockxControl build needs
 # =====================================================================================
-# The ECO-5 base board already ships 49 DNP footprints -- MouseBiteLabs marks every test
+# The base board already ships 49 DNP footprints -- MouseBiteLabs marks every test
 # point, the battery contacts, the trigger switches, the logos and the alternate-build
 # resistors "do not place". So the truth to compare against is the BASE BOARD, not a
 # hand-typed list: this fork's DNP set must be exactly the inherited set plus the three
-# parts ECO-7 adds. That way a stray flag on either side goes red, and the check needs no
+# parts this fork adds. That way a stray flag on either side goes red, and the check needs no
 # maintenance when upstream changes its mind.
 #
-# Only ECO-7's own additions need a reason here, and each carries one.
+# Only this fork's own additions need a reason here, and each carries one.
 DNP_ADDED = {
-    "C7A": "ECO-19: the STOCK C7 land, restored at (91.9, -41.1) and left unpopulated so "
+    "C7A": "the STOCK C7 land, restored at (91.9, -41.1) and left unpopulated so "
            "this fork stops being a side-grade for anyone whose other mods solder to C7 "
            "where MouseBiteLabs has kept it across both AGBM-01 and AGBM-02. It is DNP "
            "rather than absent because the land is what those mods need; populating it "
            "fouls a ClockxControl lying on the board, which is why exactly one of C7 / C7A "
            "is ever fitted.",
-    "X1": "ECO-7: the ClockxControl drives CK1 directly, so the 4.194304 MHz crystal "
+    "X1": "the ClockxControl drives CK1 directly, so the 4.194304 MHz crystal "
           "must be absent on a module build",
-    "C3": "ECO-7: 27p load cap, sits straight on CK1",
-    "C4": "ECO-7: 33p -- NOT dangling with X1 gone. It stays tied to CK2 through R41 "
-          "2.2k, so it loads the CPU's XOUT node. ECO-6 said 'dangling' and was wrong; "
+    "C3": "27p load cap, sits straight on CK1",
+    "C4": "33p -- NOT dangling with X1 gone. It stays tied to CK2 through R41 "
+          "2.2k, so it loads the CPU's XOUT node. An earlier note said 'dangling' and was "
+          "wrong; "
           "the real reason is stronger",
 }
 BASE_ZIP_REF = ("AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip"
@@ -265,7 +262,7 @@ def check_library_footprint():
     if have == want:
         ok(f"library footprint matches the board ({len(have)} chars, derived)")
         return
-    err("the shipped .kicad_mod is NOT what the board's MOD1 derives to. Before ECO-14 "
+    err("the shipped .kicad_mod is NOT what the board's MOD1 derives to. It was once "
         "these drifted unnoticed -- the library labelled the landings 1/2/3 where the "
         "board says SEL/L/R, its centre text was 1.2 against 1.05, and its reference read "
         "MOD. Anyone re-importing the library got a different part from the one this fork "
@@ -278,14 +275,14 @@ def check_dnp_ledger():
         base = kisexp.load(os.path.join(ROOT, BASE_ZIP_REF.split("::")[0])
                            + "::" + BASE_ZIP_REF.split("::")[1])
     except (OSError, KeyError, ValueError) as e:
-        err(f"cannot read the ECO-5 base: {type(e).__name__}: {e}")
+        err(f"cannot read the AGBM-01 base: {type(e).__name__}: {e}")
         return
     inherited = {fp.ref for fp in kisexp.footprints(base) if fp.dnp}
     got = {fp.ref for fp in kisexp.footprints(board()) if fp.dnp}
     want = inherited | set(DNP_ADDED)
     extra, missing = sorted(got - want), sorted(want - got)
     if extra:
-        err("footprint(s) marked DNP that neither the ECO-5 base nor ECO-7 accounts for "
+        err("footprint(s) marked DNP that neither the base board nor this fork accounts for "
             "-- add a reasoned line to DNP_ADDED in the same commit, or un-flag them: "
             + ", ".join(extra))
     if missing:
@@ -349,15 +346,15 @@ VALUE_IS_NOT_MPN = {
     r"^\d+\.\d+MHz$": "bare frequency",
     r"^FFC CONNECTOR$": "generic description in the Value field",
     r"^AGB-(SRAM|CPU)$": "the AGB-CPU is salvaged and has no orderable number; the "
-                         "AGB-SRAM land takes either a donor chip or, since ECO-13, a "
+                         "AGB-SRAM land takes either a donor chip or, since the rebase, a "
                          "CY62157EV30LL that the MPN names",
-    # ECO-13: AGBM-02 states the CHOICE in the Value field rather than picking for you.
+    # AGBM-02 states the CHOICE in the Value field rather than picking for you.
     # Z57/Z58 read "100p or 0 ohm" because the hotkey pair is configurable -- capacitors
     # make L+R+Start+A/B fake a screen kit's touch input, resistors or jumpers make them
     # act as button inputs for an external mod. MouseBiteLabs' Feature Configurations page
     # is the instruction; this fork does not get to decide it for the builder, so the BOM
     # buys the capacitor and pcbway-assembly/README.md carries it as a build decision.
-    r"^100p or 0 ohm$": "configurable hotkey part -- see ECO-13 and Feature Configurations",
+    r"^100p or 0 ohm$": "configurable hotkey part -- see his Feature Configurations page",
 }
 
 # Pairs where the Value and the MPN deliberately differ AND the difference is a KNOWN,
@@ -377,7 +374,7 @@ VALUE_IS_NOT_MPN = {
 # The fork claimed to have found these ("the power review predicted this one and nobody had
 # flagged it"). Nobody had to: they were flagged in the schematic. What the fork had actually
 # done was fail to read 30 of the 57 links in MouseBiteLabs' AGBM-02 schematic -- see check
-# [16] and ECO-15 -- so it could not see that its "discoveries" were already his answers.
+# [16] -- so it could not see that its "discoveries" were already his answers.
 #
 # They stay listed because a Value that does not name an orderable part is still worth a
 # reader knowing about, and because check [6] would otherwise report the Value/MPN mismatch
@@ -448,7 +445,7 @@ def check_supplier_pns():
     # --- can the thing actually be BOUGHT? ------------------------------------------
     # A WARNING, not an error: stock is somebody else's inventory on a particular day, not
     # an invariant of this repository, and a gate that fails on market conditions is a gate
-    # people learn to ignore. But it must be SAID. Until ECO-15 the shipped BOM carried no
+    # people learn to ignore. But it must be SAID. The shipped BOM once carried no
     # Digi-Key stock figure at all -- that half of the last run never completed -- and
     # three lines had quietly gone to zero underneath, one of them because this fork had
     # substituted a part MouseBiteLabs never chose.
@@ -489,19 +486,19 @@ def check_supplier_pns():
 # carries a reason below.
 EXPECTED_ABSENT = {
     "scripts/render.py":
-        "ANOTHER REPOSITORY'S file. devinhorowitz/solar-business-card ships it; ECO-16 "
+        "ANOTHER REPOSITORY'S file. devinhorowitz/solar-business-card ships it; this repo "
         "borrowed its three disciplines and cites it as the source. This fork's equivalent "
         "is scripts/render_assembled.py, which does exist here",
-    "render.py": "same -- Solar-Glow's, cited by basename in ECO-16",
+    "render.py": "same -- Solar-Glow's, cited by basename",
     "AGBM-01_AA_1-2.kicad_sch":
         "the upstream schematic -- inside 'AGBM-01 (AA Batteries)/AGBM-01_Design Files.zip', "
-        "not loose in the tree. ECO-8 section 8.5 cites it as the file to edit, which is "
+        "not loose in the tree. it was cited as the file to edit, which is "
         "correct: you unzip it, edit it, and the fork keeps shipping a .kicad_pcb",
     "Audio.kicad_sch": "same archive -- the audio sheet the U7 and VR2 sourcing came from",
     "AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb":
         "the deliverable board -- inside clockxcontrol-integration/board/"
         "agbm-02-clockxcontrol.zip, and rebuildable with scripts/build_board.py. Cited by "
-        "basename throughout the ECOs because that is its name inside the package",
+        "basename throughout because that is its name inside the package",
     "AGBM-01_AA_1-2.kicad_pcb":
         "MouseBiteLabs' AGBM-01 board -- inside 'AGBM-01 (AA Batteries)/AGBM-01_Design "
         "Files.zip'. Cited by basename when comparing save dates and layouts across his "
@@ -511,32 +508,32 @@ EXPECTED_ABSENT = {
         "Files.zip'. Same reason",
     "IMG_6317.jpg":
         "insideGadgets' own GBA installation photo, at shop.insidegadgets.com/wp-content/"
-        "uploads/2019/11/IMG_6317.jpg. ECO-14 section 14.1 cites it as the evidence that "
+        "uploads/2019/11/IMG_6317.jpg. it is the evidence that "
         "'GBA SI' in their wiring list is a typo for the pad silkscreened S1 -- the red V+ "
         "wire is soldered to it. NOT vendored into this repository: it is their "
         "copyrighted image, so it is cited by URL and left where it lives",
     "AGBM-02_AA_1-1.kicad_pcb":
         "the base board -- inside 'AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip', "
-        "MouseBiteLabs' own file, unmodified since ECO-13",
-    # ECO-13 culled these. They are cited only to say what was removed, which is a
+        "MouseBiteLabs' own file, unmodified",
+    # The rebase culled these. They are cited only to say what was removed, which is a
     # sentence the history rule already allows -- but they are named in TABLES, where
     # there is no prose to carry the explanation, so they are ledgered here instead.
     "AGBM-01_AA_1-2_GBE-plus-CXC.kicad_pcb":
-        "the PREVIOUS deliverable board, on the AGBM-01 base. Culled by ECO-13; in git "
-        "history only. Named in ECO-13's was/now table",
+        "the PREVIOUS deliverable board, on the AGBM-01 base. Culled by the rebase; in git "
+        "history only",
     "AGBM-01_AA_1-2_GBE-plus.kicad_pcb":
-        "the ECO-5 base board. Culled by ECO-13 -- ECO-5 was our own footprint work, "
+        "the AGBM-01 base board. Culled by the rebase -- it was our own footprint work, "
         "superseded by MouseBiteLabs' AGBM-02. Git history only",
     "agbm-01-ram-desalvage.zip":
-        "ECO-5's package. Culled by ECO-13; git history only",
+        "the AGBM-01 base's package. Culled by the rebase; git history only",
     "agbm-01-clockxcontrol.zip":
-        "the PREVIOUS output package, on the AGBM-01 base. Culled by ECO-13; git history "
+        "the PREVIOUS output package, on the AGBM-01 base. Culled by the rebase; git history "
         "only",
     "Files.zip":
         "a false positive -- the bare-path regex clips "
         "'AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip' at its last space. The real "
         "archive is in the tree; only this fragment is not",
-    "patch5.py": "the pre-ECO-8 generator, superseded by scripts/build_board.py",
+    "patch5.py": "the original generator, superseded by scripts/build_board.py",
     # power-review/completeness-critic.md cites the session's own working captures as
     # PROVENANCE -- "read from the local capture at /tmp/.../cxc.txt". Naming a scratch
     # path in a committed document is a citation nobody can follow, but deleting the
@@ -638,9 +635,9 @@ def check_doc_imagery():
 
 
 # =====================================================================================
-# [9] the window ECO-6 exists to create is still empty
+# [9] the window the module needs is still empty
 # =====================================================================================
-# ECO-6's entire feasibility claim is that relocating ONE 0603 opens an 18.65 x 12.00 mm
+# The entire feasibility claim is that relocating ONE 0603 opens an 18.65 x 12.00 mm
 # component-free window on the front side below the RAM. Nothing else in this repo would
 # notice a part being dropped back into it, and DRC would not either -- a footprint whose
 # courtyard clears its neighbours can still sit exactly where the module has to go.
@@ -648,17 +645,17 @@ def check_doc_imagery():
 # The module body is the fp_rect at +/-9.325 x +/-6.000 about MOD1's origin.
 WINDOW_HALF_X, WINDOW_HALF_Y = 9.325, 6.0
 WINDOW_OCCUPANTS = {"MOD1"}          # the module itself, and nothing else
-# The parts ECO-6 moved, and where it put them. A deliberate move updates this table in
-# the same commit -- the exclusion-ledger shape.
+# The parts this fork moved, and where it put them. A deliberate move updates this table
+# in the same commit -- the exclusion-ledger shape.
 PLACED = {
     "C7":   (93.1, -37.4, "moved out of the window; pad 1 (VDD35) now lands on the left"),
-    # ECO-20 replaced all six. ECO-14's spots were chosen against HARD COPPER alone and
-    # KiCad's DRC threw four violations at them: two marks inside 1.2 mm shell holes, two
-    # inside keepout zones, one merged with the battery terminal's mask aperture. ECO-14
-    # also kept them as three coincident front/back PAIRS, which is not a requirement --
-    # front and back register separately -- and that assumption was costing every mark
-    # margin. Fiducials are OURS: neither of MouseBiteLabs' boards carries one, because he
-    # hand-builds. Full margins live in FIDUCIAL_SITES, which check [13] recomputes.
+    # A later pass replaced all six. The first spots were chosen against HARD COPPER
+    # alone and KiCad's DRC threw four violations at them: two marks inside 1.2 mm shell holes,
+    # two inside keepout zones, one merged with the battery terminal's mask aperture. the clock
+    # audit also kept them as three coincident front/back PAIRS, which is not a requirement --
+    # front and back register separately -- and that assumption was costing every mark margin.
+    # Fiducials are OURS: neither of MouseBiteLabs' boards carries one, because he hand-builds.
+    # Full margins live in FIDUCIAL_SITES, which check [13] recomputes.
     "FID1": (100.5, -3.5, "fiducial, FRONT triangle, top right"),
     "FID2": (103.75, -58.5, "fiducial, FRONT triangle, bottom right"),
     "FID3": (24.25, -55.75, "fiducial, FRONT triangle, bottom left -- the tightest of the "
@@ -667,7 +664,7 @@ PLACED = {
     "FID5": (94.75, -66.5, "fiducial, BACK triangle, bottom"),
     "FID6": (11.5, -16.0, "fiducial, BACK triangle, left"),
     "MOD1": (91.95, -44.95, "module centre, rev B -- shifted west out of the R3/TP114 "
-                            "cluster; ECO-6 section 6.7 is what that cost"),
+                            "cluster; two VDD2 stitching vias are what that cost"),
     "TP83": (97.9, -37.95, "CLK wire pad. y is -37.95 and not -38.6: KiCad's y grows "
                            "DOWNWARD, and at -38.6 the 1.2 mm pad overlaps the module "
                            "body by 0.25 mm at its radius"),
@@ -682,7 +679,7 @@ PLACED = {
 # body; a part is. Membership here is the ONLY way a footprint in the window passes, and it
 # still has to be dnp.
 WINDOW_DNP_LANDS = {
-    "C7A": "ECO-19. The stock C7 land, back at (91.9, -41.1) where MouseBiteLabs has kept "
+    "C7A": "the stock C7 land, back at (91.9, -41.1) where MouseBiteLabs has kept "
            "it across both AGBM-01 and AGBM-02, so mods that solder to C7 there still have "
            "their landmark. DNP: populate C7 for a ClockxControl build, C7A for a stock "
            "one, never both.",
@@ -693,7 +690,7 @@ def check_module_window():
     print("[9] the module window is still component-free, and its parts have not moved")
     fps = kisexp.by_ref(board())
     if "MOD1" not in fps or fps["MOD1"].at is None:
-        err("MOD1 is not on the board -- the whole ECO-6 window claim is unverifiable")
+        err("MOD1 is not on the board -- the whole module-window claim is unverifiable")
         return
     mx, my, _ = fps["MOD1"].at
     intruders, tolerated = [], []
@@ -705,12 +702,12 @@ def check_module_window():
             continue
         am = re.search(r"\(attr ([^)]*)\)", fp.body)
         is_dnp = bool(am and "dnp" in am.group(1).split())
-        # THE WINDOW EXISTS SO A MODULE CAN LIE FLAT, and what stops that is a BODY, not a
-        # land. ECO-19 puts the stock C7 land back inside the window, DNP, so this fork stops
-        # being a side-grade for anyone whose other mods solder to C7 where it has always
-        # been. Bare, it is copper and mask. The rule stays strict where it matters: a
-        # footprint in the window that is NOT dnp still fails, and a dnp one has to be
-        # named here, so nobody can quietly park a real part in the window by flagging it.
+        # THE WINDOW EXISTS SO A MODULE CAN LIE FLAT, and what stops that is a BODY, not a land.
+        # The stock C7 land is back inside the window, DNP, so this fork stops
+        # being a side-grade for anyone whose other mods solder to C7 where it has always been.
+        # Bare, it is copper and mask. The rule stays strict where it matters: a footprint in
+        # the window that is NOT dnp still fails, and a dnp one has to be named here, so nobody
+        # can quietly park a real part in the window by flagging it.
         if is_dnp and fp.ref in WINDOW_DNP_LANDS:
             tolerated.append(fp.ref)
         else:
@@ -741,38 +738,38 @@ def check_module_window():
 
 
 # =====================================================================================
-# [10] the ECO-7 blockers are still blockers
+# [10] the two former blockers
 # =====================================================================================
 # THIS CHECK GOES RED WHEN THE BUGS ARE FIXED. That is deliberate, and it is the point.
 #
-# ECO-7 and both READMEs carry a prominent "the board is not fabricable" section resting
-# on two facts about copper. When somebody opens KiCad and routes them, the board becomes
-# fabricable and every one of those paragraphs becomes a lie -- with nothing to notice.
-# So the facts are asserted here: fix the board, this check fails, and the failure names
-# the documents that have to be corrected in the same commit.
+# Several documents once carried a prominent "the board is not fabricable" section
+# resting on two facts about copper. When somebody opens KiCad and routes them, the board
+# becomes fabricable and every one of those paragraphs becomes a lie -- with nothing to notice.
+# So the facts are asserted here: fix the board, this check fails, and the failure names the
+# documents that have to be corrected in the same commit.
 VDD2_NET = 8            # from the board's own net table; asserted below
-VDD2_EAST_LIMIT = 93.0  # ECO-7: "there is no VDD2 via anywhere with x > 93"
+VDD2_EAST_LIMIT = 93.0  # once true: "there is no VDD2 via anywhere with x > 93"
 BROKEN_NET = "Net-(Q5B-G)"
-# The two islands ECO-5 left behind, and the via site that used to join them. Both come
-# from the STOCK MouseBiteLabs board, which routes this net whole -- so unlike the VDD2
+# The two islands the AGBM-01 base left behind, and the via site that used to join them. Both
+# come from the STOCK MouseBiteLabs board, which routes this net whole -- so unlike the VDD2
 # blocker there is a known-good reference to diff against, and this check does.
 BROKEN_ISLANDS = [["U17.1"], ["Q5.3", "R66.2"]]
 MISSING_VIA = (100.8, -62.15)
-BLOCKER_DOCS = ("clockxcontrol-integration/ECO-7_u2_supply_and_dnp.md",
-                "clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md")
+BLOCKER_DOCS = ("clockxcontrol-integration/DESIGN-DECISIONS.md",
+                "pcbway-assembly/README.md")
 
 
 # =====================================================================================
-# [10] BOTH ECO-7 BLOCKERS ARE CLOSED. RED MEANS ONE CAME BACK.
+# [10] BOTH FORMER BLOCKERS ARE CLOSED. RED MEANS ONE CAME BACK.
 # =====================================================================================
 # This check used to assert the OPPOSITE: that both blockers were still open, and it went
 # red if either got fixed, so that four documents claiming "not fabricable" could not
 # quietly become wrong. On 2026-08-19 it fired, on both, for the best possible reason --
-# ECO-13 rebased the fork onto MouseBiteLabs' AGBM-02 and BOTH BLOCKERS WERE ECO-5's OWN
-# DAMAGE. ECO-5 is gone, so they are gone.
+# The rebase onto MouseBiteLabs' AGBM-02 closed both, because BOTH WERE THE AGBM-01 BASE'S
+# OWN DAMAGE. That base is gone, so they are gone.
 #
 # The check is kept, inverted, rather than deleted. What it guards now is that nothing
-# re-introduces them: a future ECO that starts deleting vias around U2 to make room for
+# re-introduces them: a future change that starts deleting vias around U2 to make room for
 # something will trip it, which is exactly how they arose the first time.
 def check_blockers():
     print("[10] both former U2 / Net-(Q5B-G) blockers are CLOSED (RED means one came back)")
@@ -784,7 +781,7 @@ def check_blockers():
         return
 
     # --- former blocker 1: U2 pin 37's VDD2 supply --------------------------------
-    # On the ECO-5 base there was NO VDD2 via anywhere east of x=93, because ECO-5 had
+    # On the AGBM-01 base there was NO VDD2 via anywhere east of x=93, because that base had
     # deleted two of them to clear its third pad column. On AGBM-02 pin 37 lands on the
     # x=10.97 column -- a stock column the OEM RAM uses too -- and the vias are present.
     east = [(x, y) for x, y, n in kisexp.vias(b) if n == vdd2 and x > VDD2_EAST_LIMIT]
@@ -793,13 +790,14 @@ def check_blockers():
            f"x={VDD2_EAST_LIMIT} ({', '.join(f'({x},{y})' for x, y in east[:4])})")
     else:
         err(f"U2 PIN 37 HAS LOST ITS SUPPLY AGAIN -- no VDD2 via east of "
-            f"x={VDD2_EAST_LIMIT}. This was ECO-5's defect and the rebase closed it; if an "
-            f"ECO has re-opened it, say so in: " + ", ".join(BLOCKER_DOCS))
+            f"x={VDD2_EAST_LIMIT}. This was the AGBM-01 base's defect and the rebase closed "
+            f"it; if an "
+            f"something has re-opened it, say so in: " + ", ".join(BLOCKER_DOCS))
 
     # --- former blocker 2: Net-(Q5B-G) whole --------------------------------------
     num = next((n for n, nm in nets.items() if nm == BROKEN_NET), None)
     if num is None:
-        err(f"{BROKEN_NET} is not in the board's net table any more -- ECO-7 describes it")
+        err(f"{BROKEN_NET} is not in the board's net table any more -- this check describes it")
         return
     islands = kisexp.net_islands(b, num)
     if len(islands) == 1:
@@ -807,12 +805,12 @@ def check_blockers():
            f"reaches Q5B's gate and the low-battery LED works")
     else:
         err(f"{BROKEN_NET} IS BROKEN INTO {len(islands)} ISLANDS AGAIN "
-            f"({' | '.join(', '.join(sorted(i)) for i in islands)}). On the ECO-5 base this "
+            f"({' | '.join(', '.join(sorted(i)) for i in islands)}). On the AGBM-01 base this "
             f"was caused by a deleted via at {MISSING_VIA}; the low-battery LED is dead "
             f"while it holds. Record it in: " + ", ".join(BLOCKER_DOCS))
 
-    # The base this fork sits on. Diffing against it is what proved the break was ECO-5's
-    # and not MouseBiteLabs', so the check keeps comparing rather than trusting a memory.
+    # The base this fork sits on. Diffing against it is what proved the break was the AGBM-01
+    # base's and not MouseBiteLabs', so the check keeps comparing rather than trusting a memory.
     try:
         base = kisexp.load(os.path.join(ROOT, BASE_ZIP_REF.split("::")[0])
                            + "::" + BASE_ZIP_REF.split("::")[1])
@@ -833,7 +831,7 @@ def check_blockers():
 # [13] REAL GEOMETRY -- clearance of the copper this fork ADDS, and fiducial readability
 # =====================================================================================
 # The twelve checks above are all topological: what exists, what it is called, what it
-# connects to. None of them could measure a distance, and that is exactly how ECO-6 shipped
+# connects to. None could measure a distance, and that is exactly how this fork shipped
 # a via 0.1632 mm from C13's pad -- against the project's own 0.200 mm netclass rule -- and
 # six fiducials whose 2 mm mask windows were full of foreign copper. Twelve green checks and
 # both defects invisible. A 44-agent audit found them; this check is so the next one does
@@ -848,15 +846,15 @@ CLEARANCE_RULE = 0.20     # the AGBM-02 project's single "Default" netclass
 FIDUCIAL_WINDOW = 1.00    # 0.5 mm pad + 0.5 mm solder_mask_margin
 FIDUCIAL_PAD_CLEARANCE = "(clearance 0.55)"
 
-# EVERY MARGIN IN build_board.FIDUCIALS' COMMENT, RECOMPUTED. ECO-14 measured one of the
-# five things that decide whether a fiducial works -- distance to hard copper -- wrote the
-# answers into a comment as though they were the whole story, and shipped four DRC
-# violations: FID2/FID5 inside a 1.2 mm shell hole, FID3/FID6 on the rim of another,
-# FID1/FID2 inside keepout zones, FID1's mask window merged with the battery terminal's.
-# Twelve green checks, and the only thing that caught any of it was KiCad's own DRC.
+# EVERY MARGIN IN build_board.FIDUCIALS' COMMENT, RECOMPUTED. An earlier pass measured one of
+# the five things that decide whether a fiducial works -- distance to hard copper -- wrote the
+# answers into a comment as though they were the whole story, and shipped four DRC violations:
+# FID2/FID5 inside a 1.2 mm shell hole, FID3/FID6 on the rim of another, FID1/FID2 inside
+# keepout zones, FID1's mask window merged with the battery terminal's. Twelve green checks, and
+# the only thing that caught any of it was KiCad's own DRC.
 #
 # So the numbers stop being prose. geom.site_margins() measures all five from the board;
-# this ledger is what they were when ECO-20 chose the spots, and any drift over 5 um fails.
+# this ledger is what they were when the spots were chosen, and any drift over 5 um fails.
 # 9.000 is the reported ceiling for "nothing of that kind anywhere near" -- see geom.FAR.
 #
 #                edge  keepout  copper   mask   crtyd
@@ -873,22 +871,22 @@ FIDUCIAL_SITES = (
 FIDUCIAL_FLOOR = {"edge": 2.0, "keepout": 1.0, "copper": 1.1, "mask": 1.5, "crtyd": 1.0}
 
 
-# MOD1's mechanical neighbourhood, snapshotted with a reason per line. Nothing measured
-# this before: every gate was about copper, and whether the module physically FITS rested on
-# a table in ECO-6 §6.6 taken off a render that turned out to be pre-rebase. The figures did
-# survive the rebase -- all four of ECO-6's courtyard rows reproduce to three decimals -- but
-# nothing was holding them there.
+# MOD1's mechanical neighbourhood, snapshotted with a reason per line. Nothing measured this
+# before: every gate was about copper, and whether the module physically FITS rested on a table
+# taken off a render that turned out to be pre-rebase. The figures did survive the rebase -- all
+# four courtyard rows reproduce to three decimals -- but nothing was
+# holding them there.
 #
 # Same-side only. A sweep that ignores which side a part is on puts C12 at 0.055 mm, which
 # reads like a collision; C12 is on B.Cu, 1.6 mm of FR4 away.
 MODULE_GAPS = (
-    # This fork's own wire pads, placed deliberately just clear of the body so the three
-    # wires stay short (3.8 / 5.9 / 4.7 mm per ECO-6 §6.5). Tightest on the board, on purpose.
-    # ECO-19's alternate C7 land, INSIDE the module body by 1.420 mm and negative for that
-    # reason. This is the design, not a collision: the land is bare copper and mask, and it
-    # is DNP -- populate C7 (the moved one) for a ClockxControl build or C7A for a stock one,
-    # never both. A NEGATIVE number here can only ever be a part that is inside the module's
-    # own body, so the floor rule below skips DNP parts and fails on anything else.
+    # This fork's own wire pads, placed deliberately just clear of the body so the three wires
+    # stay short (3.8 / 5.9 / 4.7 mm). Tightest on the board, on purpose. C7A's
+    # alternate C7 land, INSIDE the module body by 1.420 mm and negative for that reason. This
+    # is the design, not a collision: the land is bare copper and mask, and it is DNP --
+    # populate C7 (the moved one) for a ClockxControl build or C7A for a stock one, never both.
+    # A NEGATIVE number here can only ever be a part that is inside the module's own body, so
+    # the floor rule below skips DNP parts and fails on anything else.
     ("C7A",  "crtyd", -1.420),
     ("TP83", "pad",   0.400),
     ("TP84", "pad",   0.400),
@@ -897,7 +895,7 @@ MODULE_GAPS = (
     # hand-soldered joint, which is why 0.55 mm is acceptable here and would not be on a
     # part someone has to get an iron onto.
     ("U2",   "crtyd", 0.550),
-    # C7 is the 0603 ECO-6 MOVES to open the window. This is the gap AFTER the move.
+    # C7 is the 0603 this fork MOVES to open the window. This is the gap AFTER the move.
     ("C7",   "crtyd", 0.820),
     ("TP18", "pad",   0.925),
     ("P1",   "pad",   2.050),
@@ -918,7 +916,7 @@ def check_geometry():
     segs, vias, pads = geom.collect(base)
     ALL = ["F.Cu", "In1.Cu", "In2.Cu", "B.Cu"]
 
-    # --- every via ECO-6 adds, against everything MouseBiteLabs already routed ----------
+    # --- every via this fork adds, against everything MouseBiteLabs already routed ---------
     base_via = {(round(x, 4), round(y, 4)) for x, y, _n in kisexp.vias(base)}
     added = [(x, y, n) for x, y, n in
              [(vx, vy, kisexp.net_table(b).get(vn, str(vn))) for vx, vy, vn in kisexp.vias(b)]
@@ -942,9 +940,9 @@ def check_geometry():
         note(f"tight but legal: {t}")
 
     # --- is every part PCBWay would place actually ON the board? -----------------------
-    # Found by the first assembled render (ECO-16): MouseBiteLabs' AGBM-02 parks an
+    # Found by the first assembled render: MouseBiteLabs' AGBM-02 parks an
     # unannotated HC49 crystal footprint -- ref "REF**", zero pads, a leftover reference for
-    # the crystal option ECO-7 marks DNP -- at (8.89, -81.888), NINE MILLIMETRES above the
+    # the crystal the board marks DNP -- at (8.89, -81.888), NINE MILLIMETRES above the
     # top edge. It carries a 3D model, so it rendered as a crystal floating in space.
     #
     # The render was cosmetic. The latent fault is not: bom_split.classify() returns
@@ -991,7 +989,7 @@ def check_geometry():
     if len(gaps) != len(MODULE_GAPS) or drift:
         err(f"MOD1's mechanical neighbourhood has MOVED: " + "; ".join(drift or
             [f"{len(gaps)} neighbour(s) found, ledger has {len(MODULE_GAPS)}"])
-            + ". Update MODULE_GAPS and ECO-6 §6.6's clearance table in the same commit.")
+            + ". Update MODULE_GAPS and the clearance table in DESIGN-DECISIONS.md together.")
     else:
         # The floor applies to parts that will actually BE there. A DNP land is copper and
         # mask; the module sits over it the way it already sits over 25 of MouseBiteLabs'
@@ -1018,7 +1016,7 @@ def check_geometry():
     fps = kisexp.by_ref(b)
     fids = sorted(r for r in fps if r.startswith("FID"))
     if not fids:
-        err("no fiducials on the board -- ECO-6 adds six; a pick-and-place needs them")
+        err("no fiducials on the board -- this fork adds six; a pick-and-place needs them")
         return
     if len(fids) != len(FIDUCIAL_SITES) or fids != [s[0] for s in FIDUCIAL_SITES]:
         err(f"the board carries {', '.join(fids)}; the ledger describes "
@@ -1051,7 +1049,7 @@ def check_geometry():
         err("fiducial(s) a vision system cannot read or a fab cannot build: "
             + "; ".join(problems)
             + ". scripts/place_fiducials.py finds replacements; update FIDUCIAL_SITES, "
-              "build_board.FIDUCIALS and ECO-20's table in the same commit.")
+              "build_board.FIDUCIALS and the table in DESIGN-DECISIONS.md together.")
     else:
         ok(f"all {len(fids)} fiducials clear on every axis a fab cares about -- edge, "
            f"keepout, copper, mask and courtyard -- and their pours are held back")
@@ -1070,23 +1068,23 @@ def check_geometry():
 # so it cannot read as theoretical. It goes RED when somebody finally re-pours -- the same
 # shape as check [10] -- because at that moment the "stale fill" paragraphs in those
 # documents become wrong and need rewriting in the same commit.
-FILL_DOCS = ("clockxcontrol-integration/ECO-6_clockxcontrol_footprint.md",
-             "clockxcontrol-integration/ECO-14_clock_domain_and_audit_fixes.md",
+FILL_DOCS = ("clockxcontrol-integration/DESIGN-DECISIONS.md",
+             "clockxcontrol-integration/README.md",
              "pcbway-assembly/README.md")
 
 # The hazard set, snapshotted with a reason per line. Measured AT EACH PAD, on the layers
 # that pad occupies, against that pad's own net -- see geom.swallowed(). Every entry here
 # is a real net-to-net overlap in the shipped file that a re-pour removes.
 FILL_HAZARD = (
-    # C7 is MouseBiteLabs' part, not this fork's. ECO-6 MOVES it out of the module window,
-    # and the spot it moves to puts its GND pad inside the VDD35 pour. A rule keyed on
+    # C7 is MouseBiteLabs' part, not this fork's. It MOVES out of the module
+    # window, and the spot it moves to puts its GND pad inside the VDD35 pour. A rule keyed on
     # "is this refdes new?" cannot see this line; that is why the key is geometry.
     ("C7.2",   "GND",       "VDD35"),
     # ALL SIX fiducials sit on a pour, and they are meant to: a fiducial wants an even
     # background, and every large uninterrupted area on this board is poured copper. The
-    # (clearance 0.55) override from ECO-14 SS14.3 holds that copper 1.05 mm back from each
-    # centre so the 1.0 mm mask window still reads as bare substrate. ECO-20's spots put
-    # FID1/FID4 on the analogue ground rather than the digital one; same story, different
+    # (clearance 0.55) override holds that copper 1.05 mm back from
+    # each centre so the 1.0 mm mask window still reads as bare substrate. The chosen spots
+    # put FID1/FID4 on the analogue ground rather than the digital one; same story, different
     # net name. Listed because they are still overlaps, and this ledger is about overlaps.
     ("FID1.1", "<netless>", "AGND"),
     ("FID2.1", "<netless>", "GND"),
@@ -1105,7 +1103,7 @@ FILL_HAZARD = (
     # Two of the three wire test pads. TP85 is GND, so its GND pour is not foreign.
     ("TP83.1", "CXC_CLK",   "GND"),
     ("TP84.1", "VDD3",      "GND"),
-    # Every via ECO-6 adds. Eight since ECO-22 deleted the ninth -- the VDD3 via at
+    # Every via this fork adds. Eight since the ninth was deleted -- the VDD3 via at
     # (97.1, -34.1), whose DRILL sat 0.4680 mm from P1 pad S1's, against MouseBiteLabs'
     # 0.5 mm min_hole_to_hole. P1.S1 is thru_hole on *.Cu, so the B.Cu run lands on it
     # directly and the layer change was never needed.
@@ -1142,11 +1140,11 @@ def check_zone_fill():
     # How big is the hazard? Every object THIS FORK put inside a foreign pour, LEDGERED --
     # so the set cannot change without someone updating this table in the same commit.
     #
-    # The first version of this counted footprints whose REFDES was new, tested at the
-    # footprint ORIGIN, on fp.layer, against the net of pad 1. Three approximations, and a
-    # blind spot underneath them: a part MouseBiteLabs already had, which ECO-6 MOVED, has
-    # an old refdes and new copper, so the rule skipped it. C7 is exactly that part, and at
-    # the spot ECO-6 moved it to, C7.2 lands in the VDD35 pour. It reported 15; the truth
+    # The first version of this counted footprints whose REFDES was new, tested at the footprint
+    # ORIGIN, on fp.layer, against the net of pad 1. Three approximations, and a blind spot
+    # underneath them: a part MouseBiteLabs already had, which this fork MOVED, has an
+    # old refdes and new copper, so the rule skipped it. C7 is exactly that part, and at the
+    # spot it moved to, C7.2 lands in the VDD35 pour. It reported 15; the truth
     # is 19. geom.swallowed() is now the one implementation, shared with the renderer.
     have = geom.swallowed(b, base)
     if set(have) != set(FILL_HAZARD):
@@ -1156,7 +1154,7 @@ def check_zone_fill():
             + (f"no longer swallowed: {gone}. " if gone else "")
             + (f"newly swallowed: {new_}. " if new_ else "")
             + "If copper moved, update FILL_HAZARD in the same commit and say why in the "
-              "ECO. If the fill was re-poured, so should these documents be: "
+              "change. If the fill was re-poured, so should these documents be: "
             + ", ".join(FILL_DOCS))
         return
     pads = sum(1 for lab, _n, _p in have if not lab.startswith("via "))
@@ -1171,11 +1169,11 @@ def check_zone_fill():
 # =====================================================================================
 # [15] the pictures are a function of the board, not a memory of one
 # =====================================================================================
-# ECO-6 §6.6 said the views in render/ came from "a renderer built against the board file
+# The views in render/ were once described as coming from "a renderer built against the file
 # directly". That renderer was never committed, so what shipped was a set of PNGs with no
-# generator. When ECO-13 rebased the fork from AGBM-01 onto AGBM-02, every render went on
+# generator. When the fork rebased from AGBM-01 onto AGBM-02, every render went on
 # describing a board this repository no longer contains -- and nothing noticed, because
-# their git blob SHAs were identical before and after. ECO-14 §14.5 caught it by hand.
+# their git blob SHAs were identical before and after. It was caught by hand.
 #
 # scripts/render_board.py is the missing generator. This re-runs it and compares the RAW
 # PIXEL BUFFER of every view against the PNG in the tree, so a picture cannot outlive the
@@ -1200,7 +1198,7 @@ def _render_source_digest():
             "base": hashlib.sha256(base.encode("utf-8")).hexdigest()[:16]}
 
 
-# ECO-24. THIS HALF RUNS EVERYWHERE, and it exists because the other half does not.
+# THIS HALF RUNS EVERYWHERE, and it exists because the other half does not.
 # Re-rendering needs Pillow, this project's CI installs nothing on purpose, so check [15]
 # reported "did not run" on every build and a stale picture could ride a green pipeline all
 # the way to a fab. The renderers now stamp each manifest with the SHA of the board and the
@@ -1323,7 +1321,7 @@ def check_renders():
     if orphan:
         err(f"render(s) in the tree that the generator does not produce: "
             + ", ".join(orphan) + " -- either add a view for them or delete them; an "
-            + "ungenerated PNG is how the pre-rebase AGBM-01 images survived four ECOs")
+            + "ungenerated PNG is how the pre-rebase AGBM-01 images survived so long")
 
 
 # =====================================================================================
@@ -1334,7 +1332,7 @@ def check_renders():
 # value like "22u" -- the Value field is a symbol name, not an orderable code. scripts/
 # link_mpn.json resolves those links.
 #
-# It was built from AGBM-01 and survived the ECO-13 rebase untouched: 30 of AGBM-02's 57
+# It was built from AGBM-01 and survived the rebase untouched: 30 of AGBM-02's 57
 # links had never been read, including the ones for SW1, P3 and D1/D2 -- the three parts
 # pcbway-assembly/README.md called "BOM defects we found". They were not defects. Nick had
 # specified CSS-1310TB and SJ-3524-SMT-TR in his own Source property all along.
@@ -1422,7 +1420,7 @@ def check_upstream_links():
 # A stencil is cut from F.Paste/B.Paste and knows nothing about `dnp` or
 # `exclude_from_pos_files`. Paste goes down on every aperture and reflows whether a part
 # lands on it or not, so an aperture on a part nobody places is a solder bump on a bare pad.
-# ECO-17 strips 254 of them. This is the gate that keeps them off.
+# 254 of them are stripped. This is the gate that keeps them off.
 #
 # Two rules, and the second is the one that would ruin a board rather than annoy someone:
 #
@@ -1534,7 +1532,7 @@ def check_paste():
 # A position file carries one number per part -- `rot` -- and the line turns the part by it
 # from THEIR zero reference. Nothing in a netlist, a BOM or a DRC can tell you whether that
 # reference is the same as the board's; get it wrong and every polarised and every multi-pin
-# part goes in rotated. pcbway-assembly/README.md carried this as an open item for four ECOs.
+# part goes in rotated. pcbway-assembly/README.md carried this as an open item for a longs.
 #
 # It is answerable, and this is the answer: `rot` is exactly what kicad-cli's own position
 # exporter emits (verified part-by-part, 180 of 180), and MouseBiteLabs' footprints put pin 1
@@ -1572,7 +1570,7 @@ STOCK_FP_TOLERANCE = {
 }
 # The families with no stock equivalent, and why each is nonetheless unambiguous.
 NO_STOCK_EQUIVALENT = {
-    "AGB-SRAM_2": "MouseBiteLabs' dual land -- ECO-17 measured its outer pattern as a "
+    "AGB-SRAM_2": "MouseBiteLabs' dual land -- its outer pattern measures as a "
                   "TSOP-I-48 18.4x12mm to three decimals, and pin 1 is at its NW corner",
     "AGB-FFC-Connector": "his own 40-pin FFC land; pin 1 is silkscreened on the board",
     "AGB-Switch_CSS-1X10B_Uncentered": "his own, and the part is a slide switch whose only "
@@ -1721,7 +1719,8 @@ def check_structure():
 # SOLAR-GLOW check [15], ported. It was written there after a pre-order sweep found ten
 # reference designators excluded from the BOM but NOT from the position file -- a CPL that
 # named ten parts the assembler had never been sold. The same defect was live here: before
-# ECO-9 the board asked a machine to buy and place the SALVAGED CPU, and `MOD1` sat in the
+# Before the split, the board asked a machine to buy and place the SALVAGED CPU, and `MOD1`
+# sat in the
 # position file with no BOM line at all. The splitter found the second one; this check is
 # what stops either coming back.
 #
@@ -1787,7 +1786,7 @@ def check_assembly_split():
 # =====================================================================================
 # [19] the KiCad 10 companion is the same board, not a second board
 # =====================================================================================
-# ECO-23. The KiCad 9 file stays the source of truth -- it is what check [1] rebuilds
+# The KiCad 9 file stays the source of truth -- it is what check [1] rebuilds
 # byte-for-byte from MouseBiteLabs' committed zip -- and the KiCad 10 file beside it is a
 # DERIVED ARTIFACT, like the renders. A derived artifact that nothing re-derives is a
 # second board, and two boards in one repository is how a fab ends up with the wrong one.

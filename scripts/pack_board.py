@@ -28,7 +28,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CXC = os.path.join(ROOT, "clockxcontrol-integration")
 ZIP = os.path.join(CXC, "board", "agbm-02-clockxcontrol.zip")
 STEM = "agbm-02-clockxcontrol"
-# A fixed DOS timestamp. Anything constant does; this is the ECO-6 landing date.
+# A fixed DOS timestamp. Anything constant does; this is the land-pattern landing date.
 FIXED = (2026, 8, 18, 0, 0, 0)
 
 MEMBERS = [
@@ -49,25 +49,25 @@ def contents():
             out[f"{STEM}/render/{name}"] = open(os.path.join(rdir, name), "rb").read()
     board, _st = build_board.build()
     out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"] = board.encode("utf-8")
-    # ECO-22: THE PROJECT FILE SHIPS WITH THE BOARD, because KiCad keeps the design rules
-    # in the project and not in the .kicad_pcb. Open this board without it and KiCad falls
-    # back to its own defaults -- which report ~710 violations on a board that has 204
-    # against the rules it is actually designed to, because MouseBiteLabs sets silk_overlap,
+    # THE PROJECT FILE SHIPS WITH THE BOARD, because KiCad keeps the
+    # design rules in the project and not in the .kicad_pcb. Open this board without it and
+    # KiCad falls back to its own defaults -- which report several times as many violations
+    # as the rules it is actually designed to, because MouseBiteLabs sets silk_overlap,
     # silk_over_copper, text_height, lib_footprint_issues, lib_footprint_mismatch and
-    # silk_edge_clearance to `ignore` and runs min_hole_to_hole at 0.5 rather than 0.25.
-    # It is HIS file, taken from the base zip unmodified, so it cannot drift from the rules
+    # silk_edge_clearance to `ignore` and runs min_hole_to_hole at 0.5 rather than 0.25. It is
+    # HIS file, taken from the base zip unmodified, so it cannot drift from the rules
     # check_drc.py gates against: both read the same bytes from the same place.
     import check_drc
     out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pro"] = check_drc.project_file().encode("utf-8")
-    # ECO-23: the KiCad 10 companion ships beside the KiCad 9 board. KiCad 9 cannot open a
-    # version-20260206 file at all ("Failed to load board"), and KiCad 10 opening the 9 file
-    # would silently rewrite it on save -- so whichever KiCad the recipient has, one of these
-    # two opens clean and untouched. Check [19] proves they are the same copper.
+    # The KiCad 10 companion ships beside the KiCad 9 board. KiCad 9 cannot
+    # open a version-20260206 file at all ("Failed to load board"), and KiCad 10 opening the 9
+    # file would silently rewrite it on save -- so whichever KiCad the recipient has, one of
+    # these two opens clean and untouched. Check [19] proves they are the same copper.
     import kicad10
     out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC_kicad10.kicad_pcb"] = \
         open(kicad10.BOARD10, "rb").read()
     # ...with his rules under ITS stem too, or KiCad looks for a project that is not there
-    # and falls back to defaults -- which is the whole failure ECO-22 was about.
+    # and falls back to defaults -- which is the whole failure that discovery was about.
     out[f"{STEM}/AGBM-02_AA_1-1_GBE-plus-CXC_kicad10.kicad_pro"] = \
         check_drc.project_file().encode("utf-8")
     return out

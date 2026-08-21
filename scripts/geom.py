@@ -1,7 +1,7 @@
 """geom.py -- copper-clearance arithmetic, shared by the checks that need real geometry.
 
 WHY THIS EXISTS. kisexp.py answers "what is on this board" -- refs, nets, islands. It does
-not answer "how far apart is this copper", and until ECO-14 nothing in this repository did.
+not answer "how far apart is this copper", and until this module nothing here did.
 That is how a 0.1632 mm clearance violation and six unreadable fiducials shipped past twelve
 green checks. This module is the missing half: pads as rounded rectangles, tracks as
 inflated segments, vias as circles, plus the board outline -- all in board coordinates.
@@ -13,7 +13,8 @@ recede. Where that matters (the fiducials) the generator sets that clearance exp
 
 ROTATION SIGN. Pads are placed with radians(-rot), matching kisexp.pad_positions(). KiCad
 stores rotation counter-clockwise in a y-DOWN system; the other sign silently swaps pad 1
-and pad 2 on every 90-degree part. See ECO-14 section 14.4.
+and pad 2 on every 90-degree part. kisexp and this module must agree on the sign;
+check [18] gates the result against kicad-cli's own position export.
 """
 import os
 import sys, re, math, zipfile
@@ -139,10 +140,11 @@ def _arc_pts(p0, pm, p1, n=24):
 def edge_segments(board):
     """Every Edge.Cuts primitive, flattened to straight chords.
 
-    gr_circle WAS MISSING, AND IT COST FOUR DRC VIOLATIONS AND A WRONG SENTENCE IN ECO-14.
+    gr_circle WAS MISSING. IT COST FOUR DRC VIOLATIONS AND A WRONG SENTENCE ABOUT
+    FIDUCIAL CLEARANCE.
     This board's outline is not one ring: 13 of its Edge.Cuts items are gr_circle -- the
     shell's screw and standoff holes -- and until 2026-08-20 this function read gr_line,
-    gr_arc, gr_rect and gr_poly only. ECO-14 therefore placed two fiducial pairs with the
+    gr_arc, gr_rect and gr_poly only, so the fiducial search placed two pairs with the
     written claim "each is >= 3.0 mm from the board edge" while FID2/FID5 sat INSIDE a
     1.2 mm hole and FID3/FID6 straddled the rim of another. A hole in the board IS board
     edge. Anything measuring distance to the outline has to see all five primitives, and
@@ -176,7 +178,7 @@ def edge_segments(board):
             chain(pts)
     # AND THE FOOTPRINTS. SW1 and VR2 each carry one Edge.Cuts circle -- routed holes for
     # the switch shaft and the volume wheel -- and a top-level-only scan misses both. The
-    # one at (12.727, -12.215) is 0.2145 mm from where ECO-20's first attempt at FID1 put
+    # one at (12.727, -12.215) is 0.2145 mm from where the first attempt at FID1 put
     # a fiducial, which is how it was found: by KiCad, after this function said 2.80 mm.
     for fp in kisexp.footprints(board):
         if fp.at:
@@ -191,7 +193,7 @@ def edge_dist(px,py,esegs):
     return best
 
 # ---------------------------------------------------------------------- zone fills
-# ECO-14. kisexp has no zone reader and this module said so; that limit is exactly what
+# kisexp has no zone reader and this module said so; that limit is exactly what
 # let "the fill is stale" stay a sentence in a document instead of a number in a gate.
 # These read the STORED fill -- the polygons KiCad last computed -- not a re-computation.
 # Nothing here fills a zone; it only measures the fill that is in the file.
@@ -266,7 +268,7 @@ def added(board, base):
 
     KEYED ON GEOMETRY, NOT ON REFDES. That distinction is the whole point: a part
     MouseBiteLabs already had, which this fork MOVED, is new copper at its new
-    coordinates. ECO-6 moves `C7`, and a refdes-keyed rule cannot see where it landed.
+    coordinates. This fork moves `C7`, and a refdes-keyed rule cannot see where it went.
     """
     bs, bv, bp = collect(base)
     ms, mv, mp = collect(board)
@@ -299,10 +301,10 @@ def swallowed(board, base):
         if hit:
             out.append((f"via ({x},{y})", net, "+".join(sorted(hit))))
     for pad in A_pad:
-        # collect() returns NINE fields since ECO-18 added the pad's own rotation; slice
-        # rather than unpack, the way worst() does. This line read eight and crashed the
-        # instant an added pad first landed in a foreign pour, which was ECO-20 moving the
-        # fiducials -- three years of green runs on a path nothing had ever taken.
+        # collect() returns NINE fields since the pad's own rotation was added to it;
+        # slice rather than unpack, the way worst() does. This line read eight and crashed the
+        # instant an added pad first landed in a foreign pour, which was the fiducial move
+        # -- a long run of green on a path nothing had ever taken.
         ref, x, y, _hw, _hh, _cr, plays, net = pad[:8]
         hit = set()
         for lay in CU_LAYERS:
@@ -315,7 +317,7 @@ def swallowed(board, base):
 
 # ---------------------------------------------------------------- mechanical fit
 # Every gate before this one measured COPPER. The module is a physical object that sits on
-# the board, and nothing checked whether it fits -- ECO-6 carried a table of neighbour
+# the board, and nothing checked whether it fits -- there was a table of neighbour
 # clearances measured off a render, and when that render turned out to be pre-rebase there
 # was no way to tell whether the numbers still held. These recompute them from the board.
 
@@ -378,7 +380,8 @@ def neighbour_gaps(board, ref="MOD1", limit=8):
     side as `ref` can foul it.
 
     `basis` is the honest part: a neighbour with a courtyard is measured courtyard-to-body
-    ("crtyd"); a bare test pad has none, so it is measured pad-copper-to-body ("pad"). ECO-6
+    ("crtyd"); a bare test pad has none, so it is measured pad-copper-to-body ("pad"). The
+    land-pattern work
     mixed the two under one "courtyard gaps" heading, which is how a reader would compare
     0.93 against 0.55 and not know they are different measurements.
     """
@@ -398,13 +401,13 @@ def neighbour_gaps(board, ref="MOD1", limit=8):
             continue
         if not fp.layer.startswith(side):
             continue
-        # A DISTANCE TO THE BODY'S EDGE IS NOT A CLEARANCE IF THE PART IS INSIDE IT.
-        # BODY is four line segments, so a footprint sitting wholly within the rectangle
-        # reports a comfortable positive gap -- it is measuring how far it is from the wall,
-        # not that it is in the room. ECO-19's C7A is the live case: its land is 2.15 mm
-        # inside MOD1's body on purpose, and this read 1.420 mm as though it were clear.
-        # Containment is reported as a NEGATIVE distance, which sorts to the front and
-        # cannot be mistaken for headroom.
+        # A DISTANCE TO THE BODY'S EDGE IS NOT A CLEARANCE IF THE PART IS INSIDE IT. BODY is
+        # four line segments, so a footprint sitting wholly within the rectangle reports a
+        # comfortable positive gap -- it is measuring how far it is from the wall, not that it
+        # is in the room. C7A is the live case: its land is 2.15 mm inside
+        # MOD1's body on purpose, and this read 1.420 mm as though it were clear. Containment is
+        # reported as a NEGATIVE distance, which sorts to the front and cannot be mistaken for
+        # headroom.
         inside_body = (x0 <= fp.at[0] <= x1 and y0 <= fp.at[1] <= y1)
         cy = outline(fp, f"{side}.CrtYd")
         if cy:
@@ -420,7 +423,7 @@ def neighbour_gaps(board, ref="MOD1", limit=8):
 
 # ------------------------------------------------------------------- keepout zones
 # CHECK [13] KNEW NOTHING ABOUT THESE AND SAID SO. This board carries 64 keepout zones --
-# the GBA shell's ribs, screw bosses and LCD bezel -- and two of ECO-14's fiducials landed
+# the GBA shell's ribs, screw bosses and LCD bezel -- and two earlier fiducials landed
 # inside two of them. A keepout is not copper, so no amount of copper arithmetic finds it.
 _KEEP_RULES = ("tracks", "vias", "pads", "copperpour", "footprints")
 
@@ -503,9 +506,9 @@ def poly_dist(px, py, poly):
 
 
 # =====================================================================================
-# CAN A FIDUCIAL LIVE HERE? -- the five questions ECO-14's search never asked
+# CAN A FIDUCIAL LIVE HERE? -- the five questions the first search never asked
 # =====================================================================================
-# ECO-14 placed six fiducials by maximising distance to HARD COPPER and nothing else, wrote
+# An earlier pass placed six fiducials by maximising distance to HARD COPPER alone, wrote
 # the resulting margins into a comment, and shipped four DRC violations: two marks inside
 # shell holes, two inside keepout zones, one merged with the battery terminal's mask.
 # Everything below exists so the placement TOOL and the GATE cannot disagree about what a

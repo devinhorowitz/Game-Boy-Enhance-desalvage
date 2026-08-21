@@ -78,18 +78,17 @@ not missing ones.
 Check [19] compares **track coverage**, not segments: KiCad 10 merges collinear tracks, and a naive
 diff calls that hundreds of deleted traces.
 
-## A note on the `ECO-N` tags in the comments
+## Where the history went
 
-Rationale comments through these files still carry tags like `ECO-14:` or `ECO-6 §6.7`. Those
-were numbered engineering records, and they are gone — collapsed into
+These files used to carry tags like `ECO-14:` on their rationale comments, pointing at
+numbered engineering records. Those records are gone — collapsed into
 [`../clockxcontrol-integration/DESIGN-DECISIONS.md`](../clockxcontrol-integration/DESIGN-DECISIONS.md),
 which keeps every decision that constrains a future change and drops everything that was only
-a record of how the work went.
+a record of how the work went — and the tags are gone with them. A comment now says what it
+means without a label to look up.
 
-The tags are left in place on purpose. Each one sits on the paragraph that explains a
-particular piece of code, and that explanation is worth more than the tidiness of deleting a
-label from it. They stay resolvable: the commit that made each change still carries its number,
-so `git log --grep=ECO-14` finds the reasoning, the diff and the document as it stood.
+The numbering survives in git: `git log --grep=ECO-14` still finds the commit, the diff, and
+the document as it stood.
 
 ## Where this came from
 
