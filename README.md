@@ -27,6 +27,51 @@ on the back is the FFC display connector whose lands MouseBiteLabs narrowed in h
 > left untouched so future syncs never conflict; this fork's own ignore patterns live in
 > scoped `.gitignore` files beside what they cover.
 >
+> ### What else changed, besides the module
+>
+> **Six fiducials, three per side.** MouseBiteLabs ships none — he hand-builds, and a hand
+> builder does not need optical registration. A pick-and-place does, and the whole point of
+> the assembly split is that a machine builds most of this board. They are deliberately
+> **not paired** front-to-back, and each triangle is scalene so a machine cannot register the
+> panel 180° out. Every site clears five things at once — the board outline *including its 13
+> shell holes and the routed openings inside `SW1` and `VR2`*, the 64 keepout zones, other
+> soldermask apertures as filled regions, hard copper on the mark's own layer, and courtyards
+> — and check [13] re-measures all six on every run, failing if a margin moves by 5 µm.
+>
+> **Eleven value changes and two corrected descriptions, to buy back some of what the module
+> costs.** The ClockxControl draws
+> ~12 mA of its own whether or not you overclock, so fitting it costs about **45 mW at the
+> battery before it speeds anything up**. The swaps are the other side of that ledger — an
+> op-amp off a rail it was never specified for, an LED and its ballast, a PPTC off a hold
+> current it sat under, and six resistors in the quiescent network:
+>
+> | | idle | in use, stock speed | in use, 1.75× |
+> |---|---|---|---|
+> | What the swaps hand back | **21.8 mW** | **25.9 mW** | **29.0 mW** |
+> | …as a fraction of the whole | 12.8 % | 3.3 % | 3.0 % |
+>
+> `U7` alone (TLV9364 → TLV9064IPWR) is 12.0 mW of that. Separately, the post-brownout
+> latched-off drain falls **6.90 mW → 0.98 mW**, a 7.1× cut in what a flat pack loses while
+> the console sits switched on but latched off.
+>
+> **So how visible is the fork?** It depends entirely on where you measure:
+>
+> * **Playing, at stock speed** — the module costs ~45 mW and the swaps hand back ~26 mW.
+>   Net **≈ +19 mW on a 792 mW operating point: about 2 %.** Effectively invisible.
+> * **Idle** — the same 12 mA is now 26 % of a 170 mW idle figure, and the swaps only reach
+>   21.8 mW of it. Net **≈ +22 mW on 170 mW: about 13 %.** Visible.
+> * **Overclocked at 1.75×** — the module and the overclock together are **+159 mW**, and the
+>   swaps recover 29 mW. The overclock costs about 79 minutes of runtime on a 6.26 Wh pack;
+>   this hands back about 12 of them. **The energy cannot be won back**, and nothing here
+>   pretends otherwise — the swaps make the *stock* build free and take the edge off the
+>   overclocked one.
+>
+> Every figure above is **modelled**, referred to the battery, and anchored on MouseBiteLabs'
+> own published measurements (170 mW idle, 792 mW representative use, 951 mW with the module
+> at 1.75×, 2.4 V pack). **Nothing here was measured on a built board of this fork** — no such
+> board exists yet. The per-part derivation is in
+> [`DESIGN-DECISIONS.md`](clockxcontrol-integration/DESIGN-DECISIONS.md) §7.
+>
 > **Against MouseBiteLabs' own DRC rules this fork adds exactly one violation** — a
 > deliberate courtyard overlap where the stock `C7` land is kept, DNP, inside the module
 > window — and **zero unconnected pads**. `scripts/check_consistency.py` holds every document

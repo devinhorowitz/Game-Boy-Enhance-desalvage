@@ -146,8 +146,51 @@ of MouseBiteLabs' 16 V `GRT21BR61C226ME13K`. That recovers DC-bias headroom at t
 AEC-Q200 and soft termination, which **no 25 V part in this body offers** — every 25 V option
 gives those up, and the two Murata soft-termination 25 V parts read zero stock.
 
-These live in `build_board.ECO8` and `build_board.ECO11`, which are the authoritative copies.
-The table above is prose; the generator is the source.
+These live in `build_board.VALUE_SWAPS` and `build_board.FET_SWAPS`, which are the
+authoritative copies. The table above is prose; the generator is the source.
+
+### What they buy back
+
+The ClockxControl draws ~12 mA whether or not you overclock, so fitting it costs about
+**45 mW at the battery before it speeds anything up**. These swaps are the other side of that
+ledger. Battery-side, at three labelled operating points:
+
+| Change | idle | in use, stock | in use, 1.75× |
+|---|---|---|---|
+| `U7` TLV9364 → TLV9064IPWR | 12.0 mW | 12.0 | 12.0 |
+| `DL1` + `R25` | 4.6 | 4.6 | 4.6 |
+| `PTC1` | 0.1 | 2.2 | 3.2 |
+| `R15` + `R16` | 0.74 | 0.74 | 0.73 |
+| `R65` | 0.25 | 0.25 | 0.25 |
+| `R11` + `R24` | 0.05 | 0.05 | 0.05 |
+| **Total** | **21.8 mW** | **25.9 mW** | **29.0 mW** |
+| **As a fraction** | **12.8 %** | **3.3 %** | **3.0 %** |
+
+`U7` is more than half of it: the TLV9364's four amplifiers idle at 1.354 mA each against the
+TLV9064's 0.528 mA, and that 3.30 mA on `VAUD` is passed 1:1 by `U4` to `VOUT3`. It is also
+the one swap that is not really about energy — the part MouseBiteLabs specified is rated 4.5 V
+to 40 V and sits on the 2.5 V `VAUD` rail, below its own minimum.
+
+Separately, and not a running saving: the post-brownout latched-off drain falls **6.90 mW →
+0.98 mW**, a 7.1× cut in what a flat pack loses while the console sits switched on but latched
+off, waiting for someone to notice and cycle `SW1`.
+
+**Where that leaves the fork.** Playing at stock speed the module costs ~45 mW and the swaps
+hand back ~26 mW, so the net is **≈ +19 mW on a 792 mW operating point, about 2 %** — inside
+the model's own error bar. At idle the same 12 mA is 26 % of a 170 mW figure and the swaps
+only reach 21.8 mW of it, so the net is **≈ +22 mW, about 13 %** — visible. Overclocked at
+1.75× the module and the overclock together are **+159 mW** against 29 mW recovered: the
+overclock costs about 79 minutes on a 6.26 Wh pack and this hands back about 12. **The energy
+an overclock spends cannot be won back**, and none of this claims otherwise.
+
+**Provenance, and the honest limits.** Every figure is *modelled*, referred to the battery,
+and anchored on MouseBiteLabs' own published measurements — 170 mW idle, 792 mW representative
+use (Funnyplaying ITA at max brightness, OEM cart), 951 mW with the module at 1.75×, 2.4 V
+pack. **Nothing was measured on a built board of this fork**, because no such board exists.
+The 792 mW in-use budget closes partly by back-solving the `VOUT5` line, which bounds its
+error at roughly ±5 % of total and is why "about 2 %" is stated as indistinguishable from zero
+rather than as a win. Two lines want a current probe on `TP13` and `TP16` before anyone
+treats them as measured.
 
 ## 8. Fiducials
 
