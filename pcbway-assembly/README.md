@@ -26,19 +26,26 @@ so they cannot go stale here.
 
 The board is double-sided either way, but the split is favourable:
 
-- **The back carries all the fine-pitch work** — `U5` (QFN-16), `U6` (MSOP-10), `U7` (TSSOP-14),
-  six SOT-23/TSOT-23 parts, both inductors, both common-mode chokes. That is the part a human least
-  wants to do, and it is exactly what a pick-and-place is for.
-- **The front carries the consigned parts** — the salvaged `U1` CPU and `U2` SRAM, the cartridge
-  slot, the link port, the battery contacts, the speaker, and the ClockxControl window.
+- **The back carries most of the fine-pitch work** — `U5` and `U13` (VSON-10, 0.5 mm), `U6`
+  (VSSOP-10, 0.5 mm), `U7` (TSSOP-14), `P2` (the 40-pin FFC connector), twelve SOT-23/TSOT-23
+  parts, both inductors, `EM1`/`EM2`. That is the part a human least wants to do, and it is
+  exactly what a pick-and-place is for. **110 of the 180 placements are on the back.**
+- **The front carries the consigned parts** — the salvaged `U1` CPU, the cartridge slot, the link
+  port, the battery contacts, the speaker, and the ClockxControl window — **and two fine-pitch
+  parts that are not consigned**: `U2` (TSOP-48, 0.5 mm) and `U16` (TSSOP-14). `U2` is an ordinary
+  orderable Infineon part; it is on the assembly BOM and the line places it.
 
-Only **8 parts have any through-hole pad**: `BT1`, `P1` (36 pins), `P3`, `P4`, `SP1`, `SW2`, `SW3`,
-`VR2`.
+**Nothing in the assembly scope is through-hole.** All 180 placements are SMD, and there is no BGA
+and no QFP among them. The board's 29 through-hole footprints — 8 real parts (`BT1`, `P1` at 36
+pins, `P3`, `P4`, `SP1`, `SW2`, `SW3`, `VR2`) and 21 test points — are all on the do-not-populate
+list, so the order needs no selective solder and no wave. The only quad flat pack on the board is
+`U1`, the QFP-128 AGB CPU, and it is excluded from both the BOM and the position file because it
+comes off a donor.
 
-**MouseBiteLabs already marks 49 footprints DNP** in stock AGBM, and the set is telling: `BT1`,
-`SW2`–`SW6`, every test point, the logos, `JP1`, `NT1`, `Z57`/`Z58`, `C70`/`C71`, `R70`/`R71`. The
-mechanical and consigned parts are already flagged "do not place." This fork adds `X1`, `C3` and
-`C4` for ClockxControl builds.
+**MouseBiteLabs already marks 40 footprints DNP** in stock AGBM-02: 24 of the 39 test points, plus
+`BT1`, `P1`, `P4`, `SW2`–`SW6`, `JP1`–`JP3`, `R70`/`R71` and the three logos. The mechanical and
+consigned parts are already flagged "do not place." This fork adds four more — `X1`, `C3`, `C4`
+and `C7A` — for ClockxControl builds.
 
 ### Why each part is on the hand list
 
@@ -305,7 +312,8 @@ gerbers/    F.Cu In1.Cu In2.Cu B.Cu, both masks, both silks, both pastes, Edge.C
             RS-274X, 6-digit, Protel extensions (.GTL/.G1/.G2/.GBL/...) plus the .gbrjob
 drill/      Excellon, millimetres, PTH and NPTH in SEPARATE files, plus drill maps
 assembly/   the position file, the assembly BOM, and the do-not-populate list
-ORDER.txt   stackup, thickness, layer count, and the things a human has to tell them
+ORDER.txt   stackup, thickness, layer count, the assembly-quote counts, and the things
+            a human has to tell them
 ```
 
 **It is not plotted from the committed board.** The committed fill is MouseBiteLabs' own,
@@ -331,7 +339,11 @@ timestamp and generator version normalised out so two runs of the same board com
 | Layers | **4** |
 | Finished thickness | **1.0 mm** — not the 1.6 mm default, and **not** the 1.2 mm the KiCad stackup states. See below |
 | Surface finish | **ENIG.** MouseBiteLabs allows HASL *only* with tactile switches fitted; this board keeps its membrane contacts, so ENIG is required |
-| Assembly | **both sides.** The fine-pitch work is on the back |
+| Assembly | **both sides.** Most of the fine-pitch work is on the back; `U2` and `U16` are on the front |
+| Unique parts | **67** distinct MPNs across 68 BOM lines. `C0603C101J5GACTU` is on two lines (`100p` and `100p or 0 ohm`) because the schematic value strings differ — one feeder, not two |
+| SMD parts | **180** — every placement |
+| Through-hole parts | **0.** The board's 29 through-hole footprints are all do-not-populate |
+| BGA / QFP parts | **0.** No BGA anywhere; the only QFP is the salvaged `U1`, which is off the BOM and off the position file |
 
 **On the thickness, because the two sources disagree.** The KiCad file carries
 `(general (thickness 1.2))` and a stackup whose layers sum to 1.2 mm. MouseBiteLabs' own
