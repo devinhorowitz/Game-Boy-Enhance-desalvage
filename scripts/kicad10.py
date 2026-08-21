@@ -172,6 +172,62 @@ def runs(board):
     return out
 
 
+_GRAPH_LAYERS = ("SilkS", "Fab", "CrtYd", "Mask", "Paste", "Adhes", "Dwgs", "Cmts", "Eco")
+
+
+def graphics(board):
+    """Everything that is NOT copper: silkscreen, fab, courtyard, mask, and the placement
+    of every Reference and Value.
+
+    ECO-25 ADDED THIS, AFTER SHIPPING A GATE THAT COULD NOT SEE A SILKSCREEN MOVE. The
+    original compare() checked footprints, pads, vias and track coverage, and was described
+    as proving "the same board". It proved the same COPPER. A user moved two refdes labels
+    and hid three more in KiCad, and every comparison in this repository -- including the
+    one written to catch exactly this -- reported the boards identical.
+
+    Silkscreen is not cosmetic on a board somebody has to hand-assemble: it is how the
+    builder knows which of C7 and C7A they are looking at, and those two are the same land
+    in two places. Footprint graphics stay in LOCAL coordinates, so a footprint that moved
+    is caught by the footprint comparison rather than reported twice here.
+    """
+    out = {"props": {}, "fp": {}, "top": []}
+    for fp in kisexp.footprints(board):
+        if not fp.at:
+            continue
+        for m in re.finditer(
+                r'\(property "(Reference|Value)" "([^"]*)"\s*\n\s*\(at ([-\d.]+) ([-\d.]+)'
+                r'(?: ([-\d.]+))?\)([\s\S]{0,300}?)\n\t\t\)', fp.body):
+            tail = m.group(6)
+            lay = re.search(r'\(layer "([^"]+)"\)', tail)
+            out["props"][(fp.ref, m.group(1))] = (
+                m.group(2), round(float(m.group(3)), Q), round(float(m.group(4)), Q),
+                round(float(m.group(5) or 0), Q), lay.group(1) if lay else "",
+                "(hide yes)" in tail)
+        items = []
+        for m in re.finditer(r'\(fp_(line|rect|poly|circle|arc|text)\b([\s\S]{0,4000}?)\n\t\t\)',
+                             fp.body):
+            lay = re.search(r'\(layer "([^"]+)"\)', m.group(2))
+            if not lay or not any(k in lay.group(1) for k in _GRAPH_LAYERS):
+                continue
+            items.append((m.group(1), lay.group(1),
+                          tuple((round(float(a), Q), round(float(b), Q)) for a, b in
+                                re.findall(r'\((?:xy|start|mid|end|center|at) ([-\d.]+) ([-\d.]+)\)',
+                                           m.group(2)))))
+        if items:
+            out["fp"][fp.ref] = tuple(sorted(items))
+    for m in re.finditer(r'\n\t\(gr_(line|rect|poly|circle|arc|text)\b([\s\S]{0,40000}?)\n\t\)',
+                         board):
+        lay = re.search(r'\(layer "([^"]+)"\)', m.group(2))
+        if not lay or not any(k in lay.group(1) for k in _GRAPH_LAYERS):
+            continue
+        out["top"].append((m.group(1), lay.group(1),
+                           tuple((round(float(a), Q), round(float(b), Q)) for a, b in
+                                 re.findall(r'\((?:xy|start|mid|end|center|at) ([-\d.]+) ([-\d.]+)\)',
+                                            m.group(2)))))
+    out["top"] = sorted(out["top"])
+    return out
+
+
 def compare(b9, b10):
     """[] if the two boards carry the same copper, else a list of human-readable diffs."""
     bad = []
@@ -200,6 +256,20 @@ def compare(b9, b10):
             lay, net, ux, uy, off, w = k
             bad.append(f"track coverage differs on {lay} {net} w={w}: "
                        f"{r9.get(k)} -> {r10.get(k)}")
+    g9, g10 = graphics(b9), graphics(b10)
+    for k in sorted(set(g9["props"]) | set(g10["props"]), key=str):
+        if g9["props"].get(k) != g10["props"].get(k):
+            bad.append(f"{k[0]} {k[1]} text placement differs: "
+                       f"{g9['props'].get(k)} -> {g10['props'].get(k)}")
+    for ref in sorted(set(g9["fp"]) | set(g10["fp"])):
+        if g9["fp"].get(ref) != g10["fp"].get(ref):
+            a, b = set(g9["fp"].get(ref, ())), set(g10["fp"].get(ref, ()))
+            bad.append(f"{ref}: non-copper graphics differ "
+                       f"({len(a - b)} only in KiCad 9, {len(b - a)} only in KiCad 10)")
+    if g9["top"] != g10["top"]:
+        a, b = set(g9["top"]), set(g10["top"])
+        bad.append(f"top-level non-copper graphics differ "
+                   f"({len(a - b)} only in KiCad 9, {len(b - a)} only in KiCad 10)")
     return bad
 
 
@@ -250,8 +320,11 @@ def main():
         for d in bad[:25]:
             print("  " + d, file=sys.stderr)
         return 1
-    print(f"ok: identical copper -- {len(runs(b9))} collinear track run(s), every "
-          f"footprint, pad, via and net the same")
+    g = graphics(b9)
+    print(f"ok: identical -- {len(runs(b9))} collinear track run(s), every footprint, pad, "
+          f"via and net the same, and {len(g['props'])} text placement(s) + "
+          f"{sum(len(v) for v in g['fp'].values()) + len(g['top'])} non-copper graphic(s) "
+          f"match too")
     return 0
 
 

@@ -117,8 +117,19 @@ version and the format change. Silence is never zero.
 
 ## 22.4 What the upload actually changed
 
-Compared format-neutrally, the uploaded board is **functionally identical to the committed
-one**. Every difference is a KiCad 10 artifact:
+> ### ⚠ This section was WRONG, and [ECO-25](ECO-25_the_silkscreen_you_moved.md) is the correction
+>
+> The comparison behind it covered footprints, pads, vias and track coverage — **copper**.
+> It never looked at silkscreen. The upload carried **five deliberate silkscreen edits**:
+> `C7` and `C7A`'s reference designators moved apart, and `C7A`'s Value plus `MOD1`'s
+> Reference and Value hidden. Saying "no footprint, value, net or route was altered" was
+> true clause by clause and false as a summary, and because of it those five edits were
+> never merged. Every render produced afterwards was drawn from a board that did not have
+> them.
+
+Compared format-neutrally, the uploaded board carries **the same copper** as the committed
+one. Every difference below is a KiCad 10 artifact; the silkscreen differences it does not
+mention are in ECO-25:
 
 | | |
 |---|---|
@@ -127,7 +138,8 @@ one**. Every difference is a KiCad 10 artifact:
 | 152 → 204 fill polygons | the zones were **re-poured**, which is what ECO-14 §14.6 has been asking for |
 | one `GND` via at (88.000, −44.300) → (87.987, −44.356) | 66 µm |
 
-No footprint, value, net or route was altered.
+No footprint, value, net or route was altered — **but five silkscreen items were, and this
+comparison could not see them.**
 
 ## 22.5 The package now ships the rules
 

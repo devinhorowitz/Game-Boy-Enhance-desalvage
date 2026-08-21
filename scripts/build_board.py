@@ -113,6 +113,15 @@ C7_FROM, C7_TO = "(at 91.9 -41.1 180)", "(at 93.1 -37.4 180)"
 # both. Bare, the land is copper and mask, flush with everything else the module already
 # sits over: 25 of MouseBiteLabs' own vias are under that body already.
 C7A_REF = "C7A"
+# ECO-25. Silkscreen placements the user made in KiCad and uploaded, adopted verbatim.
+# C7 and C7A are the SAME LAND IN TWO PLACES -- ECO-19 restored the stock one -- so both
+# inherited MouseBiteLabs' identical refdes offset of (0, -1.8) and printed on top of each
+# other. These move them apart. MOD1's own Reference and Value are hidden for the same
+# reason: they sat across the module body, which is the one part of this board where a
+# builder needs to see the landing pattern rather than a label.
+C7_REF_FROM = "(at 0 -1.8 0)"
+C7_REF_TO = "(at -1.7944 1.5128 0)"          # C7, the MOVED cap: label goes down-left
+C7A_REF_TO = "(at 3.1524 -0.6124 0)"         # C7A, the stock land: label goes right
 DROP_VIAS = [(84.4, -45.9), (85.4, -45.9)]          # both on VDD2
 # FIDUCIALS ARE OURS, NOT MOUSEBITELABS'. Neither AGBM-01 nor AGBM-02 carries a single
 # one -- he hand-builds, and a hand builder does not need optical registration. A
@@ -535,6 +544,7 @@ def build():
     # Take the block BEFORE the move: that copy is the stock land, in its stock place.
     _s7, _e7, c7_stock = fp_span("C7")
     replace_in("C7", C7_FROM, C7_TO, "C7 relocation")
+    replace_in("C7", C7_REF_FROM, C7_REF_TO, "ECO-25: C7 refdes moved clear of C7A's")
 
     # ---------- ECO-19  and put the stock land back, unpopulated --------------------
     c7a = c7_stock
@@ -547,6 +557,17 @@ def build():
     c7a = c7a.replace('(property "Reference" "C7"', f'(property "Reference" "{C7A_REF}"', 1)
     c7a = c7a.replace('(property "Value" "0.1u"',
                       '(property "Value" "0.1u DNP-alt"', 1)
+    # ECO-25, the other half of the pair. C7A's refdes moves the opposite way from C7's,
+    # and its Value is hidden: a DNP alternate does not need its capacitance on the
+    # silkscreen -- what a builder needs to read there is WHICH land this is.
+    if c7a.count(C7_REF_FROM) != 1:
+        raise AssertionError(f"C7A: expected exactly one {C7_REF_FROM}, "
+                             f"found {c7a.count(C7_REF_FROM)}")
+    c7a = c7a.replace(C7_REF_FROM, C7A_REF_TO, 1)
+    _val = '(property "Value" "0.1u DNP-alt"\n\t\t\t(at 0 1.43 0)\n\t\t\t(layer "F.Fab")'
+    if _val not in c7a:
+        raise AssertionError("C7A's Value block is not where ECO-25 expects it")
+    c7a = c7a.replace(_val, _val + '\n\t\t\t(hide yes)', 1)
     if "\n\t\t(attr smd)" not in c7a:
         raise AssertionError("C7's (attr smd) line is not where ECO-19 expects it")
     c7a = c7a.replace("\n\t\t(attr smd)",
@@ -723,6 +744,7 @@ def build():
 \t\t(property "Reference" "MOD1"
 \t\t\t(at 0 -7.4 180)
 \t\t\t(layer "F.SilkS")
+\t\t\t(hide yes)
 \t\t\t(uuid "{uid('modref')}")
 \t\t\t(effects
 \t\t\t\t(font
@@ -734,6 +756,7 @@ def build():
 \t\t(property "Value" "ClockxControl"
 \t\t\t(at 0 7.4 180)
 \t\t\t(layer "F.Fab")
+\t\t\t(hide yes)
 \t\t\t(uuid "{uid('modval')}")
 \t\t\t(effects
 \t\t\t\t(font

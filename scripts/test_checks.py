@@ -255,6 +255,14 @@ def main():
     # [19] ECO-23. The KiCad 10 companion is a DERIVED artifact; if the KiCad 9 board moves
     # and it does not, the repository is carrying two different boards. Moving one track
     # endpoint in the source is exactly that.
+    # ECO-25. THE CASE ABOVE MOVES COPPER; THIS ONE MOVES ONLY SILKSCREEN. check [19]
+    # shipped comparing footprints, pads, vias and track coverage, and was described as
+    # proving "the same board" -- it proved the same COPPER, and a user's five silkscreen
+    # edits passed straight through it. A gate is only as wide as the thing it measures.
+    cases.append(("[19] only the SILKSCREEN moves and the KiCad 10 copy does not",
+                  cc.check_kicad10,
+                  good.replace("(at -1.7944 1.5128 0)", "(at 0 -1.8 0)", 1),
+                  "text placement differs"))
     cases.append(("[19] the KiCad 9 board moves and the KiCad 10 copy does not",
                   cc.check_kicad10,
                   good.replace("(start 38.725 -47.775)", "(start 38.725 -47.875)", 1),
