@@ -17,11 +17,17 @@ python3 scripts/check_consistency.py       # everything else
 python3 scripts/test_checks.py             # ...and the checks can still fail
 python3 scripts/check_drc.py               # KiCad's own DRC, against HIS project rules
 python3 scripts/fab_package.py             # the zip you upload to PCBWay
+python3 scripts/bare.py scripts/test_checks.py    # ...as CI will run it, with nothing installed
 ```
 
 `check_stock.py` without `--offline` also queries the distributors, and needs
 `DIGIKEY_CLIENT_ID`, `DIGIKEY_CLIENT_SECRET` and `MOUSER_PART_API_KEY` in the environment.
 CI runs only the offline half, because CI has no credentials and should not have any.
+
+**CI also installs no Pillow, no pcbnew and no kicad-cli**, so several checks decline to run
+there and say why. `scripts/bare.py` reproduces that on a machine that has all three —
+worth running before pushing anything that touches a gate, because a module-level import of
+something CI lacks fails the whole suite two seconds in, and no local run will show it.
 
 The suite runs in CI on every push that touches anything it reads
 ([`.github/workflows/consistency.yml`](../.github/workflows/consistency.yml)).
@@ -47,6 +53,7 @@ The suite runs in CI on every push that touches anything it reads
 | `render_assembled.py` | the raytraced views, drawn by KiCad from a throwaway re-poured copy. Names every body it could not resolve on every run. |
 | `check_drc.py` | KiCad's DRC on both boards, **under MouseBiteLabs' own `.kicad_pro` rules**, and a diff: only violations at positions his board does not have are this fork's. |
 | `fab_package.py` | board → the PCBWay upload: gerbers, drill, CPL and BOM. Re-pours a throwaway copy first, because the committed fill would plot a shorted board, and **refuses to plot at all** if the re-poured copy does not pass DRC. |
+| `bare.py` | runs any of the above with Pillow, pcbnew and kicad-cli blocked, which is what CI has. A gate can pass here and fail there; this is how you find out before pushing. |
 | `check_consistency.py` | the numbered checks. |
 | `test_checks.py` | mutates the board in memory and asserts each check **fails**. A check that has never gone red is not known to work, and a check that *declined to run* is not the same as one that passed. |
 

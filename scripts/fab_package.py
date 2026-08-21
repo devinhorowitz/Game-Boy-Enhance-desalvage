@@ -53,9 +53,13 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import geom                                                      # noqa: E402
-import render_assembled as R                                     # noqa: E402
-import render_board as _rb                                       # noqa: E402
 import kisexp                                                    # noqa: E402
+
+# render_assembled and render_board are imported INSIDE the functions that need them, not
+# here. render_board pulls in Pillow at module scope, and CI deliberately installs neither
+# Pillow nor KiCad -- so a module-level import would make merely IMPORTING this file fail on
+# the runner. Check [21] imports it for order_spec(), which needs nothing but a regex and
+# MouseBiteLabs' README, and that has to keep working on a bare machine.
 
 ROOT = Path(__file__).resolve().parent.parent
 BOARD = ROOT / "clockxcontrol-integration" / "board" / "AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb"
@@ -158,6 +162,7 @@ def build(workdir: Path, verbose: bool = True) -> dict:
     (workdir / f"{pcb.stem}.kicad_pro").write_text(_project(), encoding="utf-8", newline="")
 
     say = (lambda m: print("  " + m)) if verbose else (lambda m: None)
+    import render_assembled as R
     say(R.refill_zones(pcb))
 
     # ---- the gate that has to pass before a single aperture is plotted ----------------
@@ -330,6 +335,11 @@ def write_zip(members: dict, path: Path) -> None:
             z.writestr(zi, members[k])
 
 
+def _source_digest() -> dict:
+    import render_board as _rb
+    return _rb.source_digest(kisexp.load(str(BOARD)), geom.base())
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
@@ -369,7 +379,7 @@ def main() -> int:
     MANIFEST.write_text(json.dumps(
         {"content": d,
          "members": sorted(members),
-         "source": _rb.source_digest(kisexp.load(str(BOARD)), geom.base()),
+         "source": _source_digest(),
          "kicad": subprocess.run(["kicad-cli", "version"], capture_output=True,
                                  text=True).stdout.strip()},
         indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="")
