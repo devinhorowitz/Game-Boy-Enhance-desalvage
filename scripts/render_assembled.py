@@ -124,16 +124,25 @@ TARGETS = {
                      "top", "front, after you have hand-soldered the rest too", None),
     "finished-bottom": ("agbm02_finished_bottom.png", {"assembly", "hand", "+hand-fitted"},
                         "bottom", "back, after you have hand-soldered the rest too", None),
-    # The one view here that is for looking at rather than checking: a perspective
-    # three-quarter with the floor shadow on, wide enough to sit at the top of a README.
-    # It carries the same parts as finished-top and comes off the same re-poured copy,
-    # so it cannot show a board this repository does not ship -- it is just angled.
-    "hero": ("agbm02_hero.png", {"assembly", "hand", "+hand-fitted"}, "top",
-             "the banner view: three-quarter perspective, front, everything fitted",
-             {"size": (2400, 1040),
-              "flags": ["--perspective", "--floor",
-                        "--rotate", "-23,0,-7", "--zoom", "1.38",
-                        "--light-camera", "0.18", "--light-side-elevation", "38"]}),
+    # The two views here that are for looking at rather than checking: perspective
+    # three-quarters with the floor shadow on, wide enough to sit at the top of a README.
+    # They carry the same parts as the finished pair and come off the same re-poured
+    # copy, so they cannot show a board this repository does not ship -- just angled.
+    # The Z rotation is mirrored between them so the pair reads as one board turned over
+    # rather than two boards tilted the same way.
+    "hero-top": ("agbm02_hero_top.png", {"assembly", "hand", "+hand-fitted"}, "top",
+                 "the banner view: three-quarter perspective, front, everything fitted",
+                 {"size": (2400, 1040),
+                  "flags": ["--perspective", "--floor",
+                            "--rotate", "-23,0,-7", "--zoom", "1.38",
+                            "--light-camera", "0.18", "--light-side-elevation", "38"]}),
+    "hero-bottom": ("agbm02_hero_bottom.png", {"assembly", "hand", "+hand-fitted"},
+                    "bottom",
+                    "the banner view: three-quarter perspective, back, everything fitted",
+                    {"size": (2400, 1040),
+                     "flags": ["--perspective", "--floor",
+                               "--rotate", "-23,0,7", "--zoom", "1.38",
+                               "--light-camera", "0.18", "--light-side-elevation", "38"]}),
 }
 
 
