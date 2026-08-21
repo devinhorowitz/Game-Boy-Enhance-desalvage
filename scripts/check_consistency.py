@@ -7,17 +7,18 @@
 Cross-checks the documents against the board they describe, so a change to one that is
 not mirrored in the other fails loudly instead of rotting.
 
+Numbering is STABLE, so a document can cite "check [12]" and stay right. A gap is a
+retired check, not a missing one.
+
   [1]  REPRODUCIBLE   -- scripts/build_board.py rebuilds the shipped board byte-for-byte
-                         from MouseBiteLabs' committed AGBM-02.                     [ERROR]
+                         from MouseBiteLabs' committed AGBM-02.             [ERROR]
   [2]  PACKAGE PARITY -- every document inside the shipped zip is byte-identical to its
                          copy in the tree.                                  [ERROR]
   [2b] LIB FOOTPRINT  -- the shipped ClockxControl_GBA_GBC.kicad_mod is what the board's
                          own MOD1 block derives to -- not a hand-kept second copy of it.
                                                                             [ERROR]
-  [3]  ECO-8 LEDGER   -- the swap table in ECO-8 names the same eleven refs, the same old
-                         values and the same new values as the generator and the board.
-                                                                            [ERROR]
-  [4]  DNP LEDGER     -- exactly the parts ECO-7 says are DNP are DNP.      [ERROR]
+  [4]  DNP LEDGER     -- exactly the parts a ClockxControl build leaves off are DNP, on
+                         top of the set MouseBiteLabs already marks.        [ERROR]
   [5]  BOM vs BOARD   -- every ref in resolved-mpns.json exists on the board and carries
                          the Value that file claims for it.                 [ERROR]
   [6]  SUPPLIER P/N   -- every MPN in resolved-mpns.json is one a distributor number
@@ -25,33 +26,43 @@ not mirrored in the other fails loudly instead of rotting.
   [7]  CITED PATHS    -- every path any .md cites exists, is marked historical in its own
                          sentence, or carries a reason in EXPECTED_ABSENT.  [ERROR]
   [8]  DOC IMAGERY    -- every image any .md displays exists in the tree.   [ERROR]
-  [9]  MODULE WINDOW  -- the component-free window ECO-6 exists to create is still
-                         component-free, and the parts it moved are where it put them.
+  [9]  MODULE WINDOW  -- the component-free window the module needs is still component-
+                         free, and the parts that moved to make it are where they were put.
                                                                             [ERROR]
-  [10] BLOCKER LEDGER -- both former ECO-7 blockers are CLOSED by the ECO-13 rebase.
+  [10] BLOCKER LEDGER -- U2 pin 37's supply and Net-(Q5B-G) are whole, on this fork AND on
+                         MouseBiteLabs' own board.
                          GOES RED IF EITHER COMES BACK -- see the check.    [ERROR]
   [11] STRUCTURE      -- the board parses, parens balance, no duplicate refdes. [ERROR]
   [12] ASSEMBLY SPLIT -- nothing reaches the pick-and-place without a BOM line to buy it,
                          nothing is on both buy documents, and the generated buy documents
                          are what a fresh run produces.                     [ERROR]
   [13] REAL GEOMETRY  -- the copper this fork ADDS clears MouseBiteLabs' by the project's
-                         own netclass rule, the fiducials are readable, and the module
-                         physically FITS its same-side neighbours.           [ERROR]
+                         own netclass rule, every footprint is inside the outline, the
+                         fiducials are readable, and the module physically FITS its
+                         same-side neighbours.                              [ERROR]
   [14] ZONE FILL      -- the fill is still MouseBiteLabs' stock fill, so gerbers plotted
-                         from this file would short, and the LEDGERED set of 19 objects the
+                         from this file would short, and the LEDGERED set of objects the
                          stale fill swallows is still exactly that set.
-                         GOES RED WHEN RE-POURED.                            [ERROR]
-  [15] RENDERS        -- every 2D PNG in render/ re-renders, pixel for pixel, from the
-                         board committed beside it; the assembled raytraces are present and
-                         their bodies resolved.                              [ERROR]
+                         GOES RED WHEN RE-POURED.                           [ERROR]
+  [15] RENDERS        -- every render carries the digest of the board and base it was drawn
+                         from, and every 2D PNG re-renders pixel for pixel where Pillow is
+                         installed.                                         [ERROR]
   [16] UPSTREAM LINKS -- every Digi-Key link in MouseBiteLabs' schematic is resolved, and
-                         every buy line that departs from one says why.      [ERROR]
+                         every buy line that departs from one says why.     [ERROR]
   [17] PASTE vs PLACE -- solder paste exists only on pads a machine will put a part on, and
                          U2's dual land is pasted on exactly the pattern the RAM this fork
-                         buys actually uses.                                 [ERROR]
+                         buys actually uses.                                [ERROR]
+  [18] ROTATION       -- every CPL rotation is kicad-cli's own, and pin 1 sits where the
+                         stock KiCad library puts it.                       [ERROR]
+  [19] KICAD 10       -- the derived KiCad 10 companion carries the same copper, pads,
+                         nets, text and non-copper graphics as the KiCad 9 board. Tracks
+                         compare by COVERAGE, because KiCad 10 merges collinear runs and a
+                         naive diff reads that as hundreds of deleted traces. [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
+Checks [15] and [18] do more when Pillow and kicad-cli are present, and say so when they
+cannot: a check that DECLINED TO RUN is not a check that passed.
 
 WHERE THIS CAME FROM
 
@@ -63,14 +74,14 @@ snapshot in the same commit; an undeliberate one stops being invisible. Checks [
 and [10] are that shape.
 
 Checks [10] and [14] are the sharper version of it, also borrowed: A CHECK THAT GOES RED
-WHEN THE STATE IT DESCRIBES CHANGES. [10] guarded two blockers as open; the ECO-13 rebase
-closed both and [10] fired, forcing four documents to be corrected in the same commit --
-then it was inverted, and now guards them as closed. [14] does the same for the stale zone
-fill: three documents say "re-pour before fab", and the day someone does, those paragraphs
-become wrong. A blocker that gets quietly fixed and leaves its scary paragraph behind is how
-a repository starts lying about itself.
+WHEN THE STATE IT DESCRIBES CHANGES. [10] once guarded two blockers as OPEN; the rebase
+onto AGBM-02 closed both and [10] fired, forcing four documents to be corrected in the same
+commit -- then it was inverted, and now guards them as closed. [14] does the same for the
+stale zone fill: several documents say "re-pour before fab", and the day someone does,
+those paragraphs become wrong. A blocker that gets quietly fixed and leaves its scary
+paragraph behind is how a repository starts lying about itself.
 
-Checks [13] and [14] also close a gap the first twelve shared: they were all TOPOLOGICAL --
+Checks [13] and [14] also close a gap the earlier ones shared: they were all TOPOLOGICAL --
 what exists, what it is called, what it connects to -- and none could measure a distance or
 read a pour. That is how a 0.1632 mm clearance violation and six unreadable fiducials
 shipped past all of them. scripts/geom.py is the arithmetic they were missing.

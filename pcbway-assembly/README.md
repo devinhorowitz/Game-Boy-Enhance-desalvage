@@ -46,7 +46,7 @@ mechanical and consigned parts are already flagged "do not place." This fork add
 
 | Refs | Part | Why |
 |---|---|---|
-| `U1`, `U2` | schematic `Source` reads literally **"Salvage"** | donor CPU and SRAM |
+| `U1` | schematic `Source` reads literally **"Salvage"** | donor CPU — the only chip a build takes off a donor console |
 | `P1` | cartridge slot | aftermarket, 36 through-hole pins |
 | `P4` | link port | aftermarket |
 | `SP1` | speaker | aftermarket |
@@ -57,6 +57,18 @@ mechanical and consigned parts are already flagged "do not place." This fork add
 
 `MOD1` was `exclude_from_bom` but **still in the position file** — a part the assembler had never
 been sold, queued for a nozzle. The splitter found that; a hand-maintained table could not have.
+
+**`U2` is not on this list, and that is the point of the fork.** On MouseBiteLabs' older AGBM-01
+the SRAM was a second salvaged chip. AGBM-02 carries his own dual land, so `U2` is an ordinary
+orderable part — Infineon `CY62157EV30LL-45ZXIT` — that the machine buys and places. **A build
+needs exactly one chip off a donor console: the CPU.** His own Required Parts page says so: *"For
+the AGBM-02 and AGBM-12, you only need the CPU."*
+
+**`P1` and `P4` are on no buy list at all.** The cartridge slot and the link port are DNP on his
+board — that is how he marks the aftermarket parts a builder sources — so they are excluded from
+the assembly BOM *and* from the hand-buy list, and appear only in
+[`generated/agbm-02-cxc-not-populated.csv`](generated/agbm-02-cxc-not-populated.csv). **Read that
+file before ordering.** It is not all jumpers and test pads.
 
 ## 2. BOM resolution
 

@@ -312,7 +312,7 @@ The bare **gold** pads are the tell. Every one of them — the D-pad and button 
 were removed. A stencil cannot read `dnp`, so each would have reflowed into a bump on a pad no part
 was coming to.
 
-Most of the placements are on the back:
+110 of the 180 placements are on the back:
 
 ![As PCBWay assembles it, back](render/agbm02_pcbway_bottom.png)
 
@@ -353,8 +353,9 @@ electrically identical to the board without this change.
 `TP2`, `TP8` and `TP9` originate around x 51…57 near the CPU, so each pad needs a 26–36 mm run.
 They are slow, already-filtered button lines (15 Ω series plus 0.01 µF on TP8/TP9), so length is
 irrelevant electrically. With the CLK, V+ and V− pads and the `C7` ties added, the board carries
-**225.5 mm of new track and 8 new vias** in total, with the B.Cu portions running through the
-cartridge keepout, which explicitly permits tracks and vias.
+**275 new track segments — 227.2 mm of copper — and 8 vias**, with the B.Cu portions running
+through the cartridge keepout, which explicitly permits tracks and vias. The generator prints
+the segment and via counts on every run, and check [1] rebuilds them byte for byte.
 
 ---
 
