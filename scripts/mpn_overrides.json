@@ -1,5 +1,5 @@
 {
- "_comment": "HAND-MAINTAINED decisions about which part a reference designator buys, and why. The exclusion-ledger shape: every entry that is not a plain lookup carries a reason. scripts/check_stock.py joins this with scripts/link_mpn.json (the upstream schematic's own Digi-Key links, resolved once) and with live Digi-Key/Mouser data, and writes pcbway-assembly/resolved-mpns.json. THAT FILE IS GENERATED -- edit this one instead. An override beats a schematic link, which is how an ECO's part swap survives the fact that the upstream schematic still points at the part it replaced.",
+ "_comment": "HAND-MAINTAINED decisions about which part a reference designator buys, and why. The exclusion-ledger shape: every entry that is not a plain lookup carries a reason. scripts/check_stock.py joins this with scripts/link_mpn.json (the upstream schematic's own Digi-Key links, resolved once) and with live Digi-Key/Mouser data, and writes pcbway-assembly/resolved-mpns.json. THAT FILE IS GENERATED -- edit this one instead. An override beats a schematic link, which is how this fork's part swaps survive the fact that the upstream schematic still points at the parts they replaced.",
  "entries": [
   {
    "refs": [
@@ -7,7 +7,7 @@
    ],
    "mpn": "F0805B2R00FSTR",
    "mfr": "KYOCERA AVX",
-   "eco": "ECO-8: PCB Value corrected from the stale \"0467001.NR\" (a Littelfuse 467-series 0603 1 A fuse) to match the schematic. No electrical change."
+   "eco": "PCB Value corrected from the stale \"0467001.NR\" (a Littelfuse 467-series 0603 1 A fuse) to match the schematic. No electrical change."
   },
   {
    "refs": [
@@ -15,7 +15,7 @@
    ],
    "mpn": "0805L110SLYR",
    "mfr": "Littelfuse",
-   "eco": "ECO-8: replaces 0805L075SLYR. Fitted part derates to 0.55 A hold at 40 C and 0.40 A at 60 C, below the realistic worst-case 585 mA input current.",
+   "eco": "Replaces 0805L075SLYR. Fitted part derates to 0.55 A hold at 40 C and 0.40 A at 60 C, below the realistic worst-case 585 mA input current.",
    "alternate": "0805L150SLYR if nuisance trips are seen at 1.75x and max brightness - saves ~3x more but raises Itrip to 3.00 A, above F1's useful band",
    "upstream": "0805L075SLYR"
   },
@@ -25,7 +25,7 @@
    ],
    "mpn": "TLV9064IPWR",
    "mfr": "Texas Instruments",
-   "eco": "ECO-8: replaces TLV9364QPWRQ1, which is specified 4.5 V to 40 V and was fitted on the 2.5 V VAUD rail with its inputs 0.75 V above the common-mode ceiling. Pin-for-pin identical on the 14-pin TSSOP land. Cheaper than the part it replaces.",
+   "eco": "Replaces TLV9364QPWRQ1, which is specified 4.5 V to 40 V and was fitted on the 2.5 V VAUD rail with its inputs 0.75 V above the common-mode ceiling. Pin-for-pin identical on the 14-pin TSSOP land. Cheaper than the part it replaces.",
    "upstream": "TLV9364QPWRQ1"
   },
   {
@@ -36,7 +36,7 @@
    "mpn": "CIGT201610EHR47MNE",
    "mfr": "Samsung Electro-Mechanics",
    "note": "4.7 uH, DCR 144 mohm max, Isat 1.02 A, Irms 1.04 A",
-   "eco": "ECO-13. The TPS63802 inductors, named outright in the AGBM-02 README's own Description column rather than left to a generic value. 470 nH shielded thin film, 4.8 A, 22 mOhm max, 0806. $0.21, 672,450 in stock, verified 2026-08-19."
+   "eco": "The TPS63802 inductors, named outright in the AGBM-02 README's own Description column rather than left to a generic value. 470 nH shielded thin film, 4.8 A, 22 mOhm max, 0806. $0.21, 672,450 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -48,7 +48,7 @@
    "mfr": "KYOCERA AVX",
    "flag": "POLARIZED part on a footprint named C_1210_3225Metric with no polarity marking; land is 4.10 x 2.70 mm. Placement-orientation risk for machine assembly.",
    "note": "100 uF 10 V molded TANTALUM, POLARIZED, ESR 400 mohm at 100 kHz, +/-20%.",
-   "eco": "ECO-15. WAS TPSB107K010R0400 (+/-10%). That part had FIVE units in stock at Digi-Key and none at Mouser (2026-08-20) and this board needs three. Nothing recorded why the tighter tolerance was chosen, and nothing needs +/-10% on a 100 uF audio-rail bulk tantalum. MouseBiteLabs' own Source link buys the +/-20% part, which has 31,360 in stock. Reverted to his choice."
+   "eco": "WAS TPSB107K010R0400 (+/-10%). That part had FIVE units in stock at Digi-Key and none at Mouser (2026-08-20) and this board needs three. Nothing recorded why the tighter tolerance was chosen, and nothing needs +/-10% on a 100 uF audio-rail bulk tantalum. MouseBiteLabs' own Source link buys the +/-20% part, which has 31,360 in stock. Reverted to his choice."
   },
   {
    "refs": [
@@ -60,7 +60,7 @@
    "mfr": "YAGEO",
    "note": "22 uF +/-20% 25 V X5R 0805, YAGEO CC series.",
    "alternate": "GRT21BR61E226ME13L is the part to come BACK to. It is the incumbent's own family at 25 V -- same GRT soft-termination, same AEC-Q200, same X5R, same 1.45 mm -- so it would make this swap cost nothing at all. It is at 0 / 0 with a 21-week lead (2026-08-20). Re-check it before every order; if it has restocked, take it.\nThe rest of the 25 V field on 2026-08-20, all 0805 / 1.45 mm / 22 uF, ranked by stock: C0805X5R226M250NPH (EYang, X5R, 400,000, $0.17, 0-week lead) -- cheapest and deepest, but a budget maker on a board that is otherwise Murata / KEMET / YAGEO. GMC21X5R226M25NT (Cal-Chip, X5R, 46,919, $0.94). GRM21BC81E226ME44K (Murata, 2,589, $0.38) -- keeps the manufacturer and runs to +105 C, but it is X6S, a DIFFERENT dielectric formulation, and its DC-bias curve could not be verified: Murata publishes that only through SimSurfing, which returns HTTP 500/503 from here, and the product PDFs do not carry the curve. Since DC bias is the entire reason for going to 25 V, an unverifiable bias curve is the wrong thing to accept. CL21A226MAYNNWE (Samsung, X5R, 2,000, $0.32, 39-week lead). KGM21AR51E226MU (Kyocera AVX, X5R, 233 + 7 at Mouser, $1.06, 28-week lead) -- a genuine second source, too thin for anything past a prototype run.\nREJECTED: ZRA21CR61E226ME01L reads as 25 V X5R with stock, but Digi-Key gives its package as 'Nonstandard SMD' at 1.65 mm, not 0805 / 1.45 mm. It is not a drop-in. The 16 V incumbent GRT21BR61C226ME13K remains buildable at 8,218 and is what to fall back to if every 25 V line above dries up; it is MouseBiteLabs' own choice and costs only the DC-bias headroom this ECO went after.",
-   "eco": "ECO-21. 16 V -> 25 V for DC-bias headroom, at the user's direction. C21 and C58 sit on VOUT5, C42 on VOUT3, C1 on /VFILT, and a 16 V X5R gives up more of its 22 uF to DC bias at those rails than a 25 V one does -- which is what ECO-15 accepted when it reverted this line to MouseBiteLabs' 16 V part.\nNO 25 V PART PRESERVES EVERYTHING, and this is the cost. Every 22 uF / 25 V / 0805 part with stock at either distributor on 2026-08-20 gives up BOTH of the incumbent's extras: AEC-Q200 qualification and Murata's GRT soft-termination, which exists to stop flex cracking on a board that gets handled. The only 25 V GRT parts -- GRT21BR61E226ME13K and -13L -- read ZERO at Digi-Key AND Mouser (verified 2026-08-20), the same wall ECO-15 hit. So the trade taken here is deliberate and narrow: keep the X5R dielectric so the ONLY electrical change is the voltage rating, and give up the automotive qualification and the flex-crack termination rather than also changing dielectric formulation.\nVERIFIED PARAMETER BY PARAMETER against the incumbent GRT21BR61C226ME13K on the Digi-Key API, 2026-08-20. Identical: 22 uF, +/-20%, X5R, -55 to +85 C, 0805 (2012 metric), 1.45 mm max thickness, 2.00 x 1.25 mm. Different: 25 V against 16 V; no AEC-Q200; $0.60 against $0.42; 24-week against 19-week lead; 130,753 at Digi-Key against 8,218 (verified 2026-08-20). Mouser reads 0 for both, so Digi-Key is the source for this line.",
+   "eco": "16 V -> 25 V for DC-bias headroom, at the user's direction. C21 and C58 sit on VOUT5, C42 on VOUT3, C1 on /VFILT, and a 16 V X5R gives up more of its 22 uF to DC bias at those rails than a 25 V one does -- which is what an earlier revert of this line to MouseBiteLabs' 16 V part accepted.\nNO 25 V PART PRESERVES EVERYTHING, and this is the cost. Every 22 uF / 25 V / 0805 part with stock at either distributor on 2026-08-20 gives up BOTH of the incumbent's extras: AEC-Q200 qualification and Murata's GRT soft-termination, which exists to stop flex cracking on a board that gets handled. The only 25 V GRT parts -- GRT21BR61E226ME13K and -13L -- read ZERO at Digi-Key AND Mouser (verified 2026-08-20), the same wall that earlier revert hit. So the trade taken here is deliberate and narrow: keep the X5R dielectric so the ONLY electrical change is the voltage rating, and give up the automotive qualification and the flex-crack termination rather than also changing dielectric formulation.\nVERIFIED PARAMETER BY PARAMETER against the incumbent GRT21BR61C226ME13K on the Digi-Key API, 2026-08-20. Identical: 22 uF, +/-20%, X5R, -55 to +85 C, 0805 (2012 metric), 1.45 mm max thickness, 2.00 x 1.25 mm. Different: 25 V against 16 V; no AEC-Q200; $0.60 against $0.42; 24-week against 19-week lead; 130,753 at Digi-Key against 8,218 (verified 2026-08-20). Mouser reads 0 for both, so Digi-Key is the source for this line.",
    "upstream": "GRT21BR61C226ME13K"
   },
   {
@@ -75,7 +75,7 @@
    ],
    "mpn": "GRT188R61E106ME13D",
    "mfr": "Murata Electronics",
-   "note": "SWAPPED 2026-08-19 from GRM188R61E106KA73J, which was at ZERO stock at both distributors with a 17-week lead (verified 2026-08-19). BOM-only: the board Value stays `10u` and no board file changes, so unlike ECO-8's Value edits this one cannot be reverted by a PCB-from-schematic sync -- but the SCHEMATIC's own Source link for these seven still points at the GRM, so update it there too before anyone regenerates a BOM from the schematic. Verified parameter-by-parameter against the incumbent on the Digi-Key API: capacitance 10 uF, rated voltage 25 V, dielectric X5R, package 0603 (1608), max thickness 1.00 mm and operating range -55 to +85 C are ALL IDENTICAL. Two differences, both neutral-or-better here: tolerance loosens from +/-10% to +/-20%, which is immaterial on bulk decoupling and is dwarfed by MLCC DC-bias derating anyway; and the GRT is Murata's soft-termination series and is AEC-Q200 automotive-qualified, which the GRM is not. WHY THE VOLTAGE MATTERED MORE THAN THE TOLERANCE: the seven placements sit on VOUT3 (3.228 V), VCC (<=3.2 V), VAUD (2.5 V), VDD2 (2.5 V), U17-VDD and /D1A, and the power review flagged DC-bias derating as the thing to protect. Rated voltage drives derating far harder than the tolerance band does, so holding 25 V and giving up the tolerance grade is the right way round.",
+   "note": "SWAPPED 2026-08-19 from GRM188R61E106KA73J, which was at ZERO stock at both distributors with a 17-week lead (verified 2026-08-19). BOM-only: the board Value stays `10u` and no board file changes, so unlike this fork's Value edits it cannot be reverted by a PCB-from-schematic sync -- but the SCHEMATIC's own Source link for these seven still points at the GRM, so update it there too before anyone regenerates a BOM from the schematic. Verified parameter-by-parameter against the incumbent on the Digi-Key API: capacitance 10 uF, rated voltage 25 V, dielectric X5R, package 0603 (1608), max thickness 1.00 mm and operating range -55 to +85 C are ALL IDENTICAL. Two differences, both neutral-or-better here: tolerance loosens from +/-10% to +/-20%, which is immaterial on bulk decoupling and is dwarfed by MLCC DC-bias derating anyway; and the GRT is Murata's soft-termination series and is AEC-Q200 automotive-qualified, which the GRM is not. WHY THE VOLTAGE MATTERED MORE THAN THE TOLERANCE: the seven placements sit on VOUT3 (3.228 V), VCC (<=3.2 V), VAUD (2.5 V), VDD2 (2.5 V), U17-VDD and /D1A, and the power review flagged DC-bias derating as the thing to protect. Rated voltage drives derating far harder than the tolerance band does, so holding 25 V and giving up the tolerance grade is the right way round.",
    "alternate": "GRT188R61C106KE13D if you want DEPTH and a SECOND SOURCE more than you want the 25 V rating: 10 uF +/-10% 16 V X5R 0603, Digi-Key 764,592 and Mouser 456,339 (verified 2026-08-19), versus the fitted GRT part's 192,299 at Digi-Key and ZERO at Mouser. It also restores the incumbent's +/-10% tolerance. The cost is the one thing this swap was chosen to protect: 16 V instead of 25 V in the same 0603 case means noticeably more capacitance lost to DC bias. Breakdown is not the issue -- the highest of these seven rails is 3.23 V, so 16 V is still 5x headroom."
   },
   {
@@ -109,7 +109,7 @@
    "mpn": "TPS63802DLAR",
    "mfr": "Texas Instruments",
    "note": "Dual synchronous boost, 400 mA and 800 mA switches, VIN 0.88-5 V, 1.2/2.2 MHz",
-   "eco": "ECO-13. AGBM-02's main converters -- twin buck-boost, replacing the AGBM-01's single LTC3527. MouseBiteLabs' own measured idle is 141 mW against AGBM-01's 170 mW. U13 makes VOUT3 (R72/R73 on Net-(U13-FB)), U5 makes VOUT5 (R59/R60 on Net-(U5-FB)), both read off the netlist rather than assumed. $2.83 each, 12,217 in stock, verified 2026-08-19."
+   "eco": "AGBM-02's main converters -- twin buck-boost, replacing the AGBM-01's single LTC3527. MouseBiteLabs' own measured idle is 141 mW against AGBM-01's 170 mW. U13 makes VOUT3 (R72/R73 on Net-(U13-FB)), U5 makes VOUT5 (R59/R60 on Net-(U5-FB)), both read off the netlist rather than assumed. $2.83 each, 12,217 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -136,7 +136,7 @@
    "mfr": "Microchip",
    "flag": "Confirms this is an oscillator, not a power switch -- the MIC1553 is an IttyBitty RC 555-type astable. It drives the low-battery LED blink.",
    "note": "555-type timer/oscillator, 500 kHz",
-   "alternate": "0 at BOTH distributors with a 24-week lead, the longest on the board (re-verified live 2026-08-20). No packaging alternative exists: MIC1553YM5 without the -TR reel suffix is not an orderable part at either distributor. The family siblings ARE in stock -- MIC1555YM5-TR (Digi-Key 17,066 / Mouser 21,650 at $0.47) and MIC1557YM5-TR (87,464 / 23,471 at $0.47, 4-week lead) -- but both are 5 MHz PROGRAMMABLE timers against this part's fixed 500 kHz, so they are reported here and NOT proposed: swapping one in is an engineering decision against the datasheet, not a reel change. CORRECTION, 2026-08-20: this note used to end 'it drives the low-battery LED blink, which is already dead for another reason (ECO-7's Net-(Q5B-G) blocker), so it is not on the critical path for a first build.' That has been false since ECO-13. The rebase onto AGBM-02 closed that blocker -- check [10] asserts Net-(Q5B-G) is whole on this fork AND on MouseBiteLabs' own board -- so the LED works and U14 IS on the critical path. It is the one line that can hold up a build."
+   "alternate": "0 at BOTH distributors with a 24-week lead, the longest on the board (re-verified live 2026-08-20). No packaging alternative exists: MIC1553YM5 without the -TR reel suffix is not an orderable part at either distributor. The family siblings ARE in stock -- MIC1555YM5-TR (Digi-Key 17,066 / Mouser 21,650 at $0.47) and MIC1557YM5-TR (87,464 / 23,471 at $0.47, 4-week lead) -- but both are 5 MHz PROGRAMMABLE timers against this part's fixed 500 kHz, so they are reported here and NOT proposed: swapping one in is an engineering decision against the datasheet, not a reel change. CORRECTION, 2026-08-20: this note used to end 'it drives the low-battery LED blink, which is already dead for another reason (the Net-(Q5B-G) blocker), so it is not on the critical path for a first build.' That has been false since the rebase onto AGBM-02, which closed that blocker -- check [10] asserts Net-(Q5B-G) is whole on this fork AND on MouseBiteLabs' own board -- so the LED works and U14 IS on the critical path. It is the one line that can hold up a build."
   },
   {
    "refs": [
@@ -168,7 +168,7 @@
    ],
    "mpn": "NDC7002N",
    "mfr": "onsemi",
-   "flag": "VGS(th) max 2.5 V with no RDS(on) spec below VGS = 4.5 V. Fine for Q2/Q5/Q7, whose gates are driven to 3.23-5.0 V. Q9 and Q10 moved to the FDC6301N by ECO-11 because their gate drive is BELOW this threshold -- see that document.",
+   "flag": "VGS(th) max 2.5 V with no RDS(on) spec below VGS = 4.5 V. Fine for Q2/Q5/Q7, whose gates are driven to 3.23-5.0 V. Q9 and Q10 moved to the FDC6301N because their gate drive is BELOW this threshold -- see that document.",
    "note": "Dual N-channel MOSFET, 50 V, 510 mA, RDS(on) 2 ohm at 10 V, VGS(th) up to 2.5 V"
   },
   {
@@ -196,7 +196,7 @@
    ],
    "mpn": "ABLS-4.194304MHZ-B4-T",
    "mfr": "Abracon",
-   "flag": "marked DNP by ECO-7 for ClockxControl builds",
+   "flag": "marked DNP for ClockxControl builds -- the mod requires the crystal removed",
    "note": "4.194304 MHz crystal, 18 pF load"
   },
   {
@@ -213,7 +213,7 @@
    ],
    "mpn": "150060GS75000",
    "mfr": "Wurth Elektronik",
-   "eco": "ECO-8: replaces 150060VS75000 (AlInGaP, 570 nm, 12-40 mcd). Identical body and identical recommended land pattern 0.8/0.8/2.4 mm, same polarity (pin 1 = K). With R25 = 22k it runs at 0.124 mA and is brighter than the incumbent is today at 0.93 mA.",
+   "eco": "Replaces 150060VS75000 (AlInGaP, 570 nm, 12-40 mcd). Identical body and identical recommended land pattern 0.8/0.8/2.4 mm, same polarity (pin 1 = K). With R25 = 22k it runs at 0.124 mA and is brighter than the incumbent is today at 0.93 mA.",
    "upstream": "150060VS75000"
   },
   {
@@ -230,7 +230,7 @@
    ],
    "mpn": "RC0603FR-0722KL",
    "mfr": "YAGEO",
-   "eco": "ECO-8: replaces 3.3k. Pairs with the DL1 swap.",
+   "eco": "Replaces 3.3k. Pairs with the DL1 swap.",
    "upstream": "RC0603FR-103K3L"
   },
   {
@@ -240,7 +240,7 @@
    ],
    "mpn": "RC0603FR-07100KL",
    "mfr": "YAGEO",
-   "eco": "ECO-8: replaces 10k on both. Cuts the statically-biased brownout-latch current from 389 uA to 81 uA off VBATT. Forced beta stays at 2.4 against hFE minima of 60 (2N3906) and 40 (2N3904). Same part as R12/R17/R64, already on the BOM.",
+   "eco": "Replaces 10k on both. Cuts the statically-biased brownout-latch current from 389 uA to 81 uA off VBATT. Forced beta stays at 2.4 against hFE minima of 60 (2N3906) and 40 (2N3904). Same part as R12/R17/R64, already on the BOM.",
    "upstream": "RC0603FR-0710KL"
   },
   {
@@ -249,7 +249,7 @@
    ],
    "mpn": "RC0603FR-0710KL",
    "mfr": "YAGEO",
-   "eco": "ECO-8: replaces 1k. Cuts the post-brownout latched-off drain from 2.40 mA to 240 uA. Must be paired with R24 = 1M, otherwise /EN falls from 0.990 x SW to 0.909 x SW and Q10B's already-marginal gate drive gets worse.",
+   "eco": "Replaces 1k. Cuts the post-brownout latched-off drain from 2.40 mA to 240 uA. Must be paired with R24 = 1M, otherwise /EN falls from 0.990 x SW to 0.909 x SW and Q10B's already-marginal gate drive gets worse.",
    "upstream": "RC0603FR-071KL"
   },
   {
@@ -258,7 +258,7 @@
    ],
    "mpn": "RC0603FR-071ML",
    "mfr": "YAGEO",
-   "eco": "ECO-8: replaces 100k. Restores the /EN divider ratio alongside R11 = 10k. Verified against the LTC3527 SHDN input current (1 uA typ / 2 uA max): /EN = 2.356 V at SW = 2.4 V and 1.762 V at SW = 1.8 V, both far above the 0.88 V VIH.",
+   "eco": "Replaces 100k. Restores the /EN divider ratio alongside R11 = 10k. Verified against the LTC3527 SHDN input current (1 uA typ / 2 uA max): /EN = 2.356 V at SW = 2.4 V and 1.762 V at SW = 1.8 V, both far above the 0.88 V VIH.",
    "upstream": "RC0603FR-07100KL"
   },
   {
@@ -267,7 +267,7 @@
    ],
    "mpn": "RC0603FR-07470KL",
    "mfr": "YAGEO",
-   "eco": "ECO-8: replaces 100k on the MIC1553 CS pull-up. 470k not the 1M the review proposed: the MIC1553 datasheet gives no numeric CS leakage spec and warns that a floating CS is unpredictable, and the worst-case CS-high threshold is 0.72 x VS = 3.61 V, not the nominal 2/3.",
+   "eco": "Replaces 100k on the MIC1553 CS pull-up. 470k not the 1M the review proposed: the MIC1553 datasheet gives no numeric CS leakage spec and warns that a floating CS is unpredictable, and the worst-case CS-high threshold is 0.72 x VS = 3.61 V, not the nominal 2/3.",
    "upstream": "RC0603FR-07100KL"
   },
   {
@@ -277,7 +277,7 @@
    ],
    "mpn": "C0603C102J5GACTU",
    "mfr": "KEMET",
-   "eco": "ECO-10 (proposed in the power review, deferred by ECO-8, applied here). X7R -> C0G. These are the Sallen-Key FEEDBACK caps -- the ones that set Q -- and their partners C26/C31 are already C0G. X7R drifts +/-15% over its range while C0G drifts +/-30ppm/degC, so a handheld warming in the hand detunes half of each filter section and no tolerance grade fixes it.",
+   "eco": "(proposed in the power review, deferred once, applied here). X7R -> C0G. These are the Sallen-Key FEEDBACK caps -- the ones that set Q -- and their partners C26/C31 are already C0G. X7R drifts +/-15% over its range while C0G drifts +/-30ppm/degC, so a handheld warming in the hand detunes half of each filter section and no tolerance grade fixes it.",
    "upstream": "C0603C102K5RACTU"
   },
   {
@@ -287,7 +287,7 @@
    ],
    "mpn": "C0603C332J5GACTU",
    "mfr": "KEMET",
-   "eco": "ECO-10. Same as C24/C32: the other feedback pair, X7R -> C0G.",
+   "eco": "Same as C24/C32: the other feedback pair, X7R -> C0G.",
    "upstream": "C0603C332K5RACTU"
   },
   {
@@ -296,7 +296,7 @@
    ],
    "mpn": "SJ-3524-SMT-TR",
    "mfr": "CUI Devices",
-   "note": "3.5 mm stereo jack. BOM DEFECT FIXED HERE: the board Value reads `SJ-3524-SMT`, which is the base part and NOT an orderable code -- the Digi-Key API returns no exact match for it. The orderable part is SJ-3524-SMT-TR (98,898 in stock, $0.89, verified 2026-08-19). Same defect class as SW1's CSS-1310B/CSS-1310TB. Hand-solder per ECO-9 -- 4 SMD + 4 through-hole pins."
+   "note": "3.5 mm stereo jack. BOM DEFECT FIXED HERE: the board Value reads `SJ-3524-SMT`, which is the base part and NOT an orderable code -- the Digi-Key API returns no exact match for it. The orderable part is SJ-3524-SMT-TR (98,898 in stock, $0.89, verified 2026-08-19). Same defect class as SW1's CSS-1310B/CSS-1310TB. Hand-soldered because of its through-hole pads -- 4 SMD + 4 through-hole pins."
   },
   {
    "refs": [
@@ -304,7 +304,7 @@
    ],
    "mpn": "RK10J12R0A0B",
    "mfr": "Alps Alpine",
-   "note": "10k dual-gang volume pot. The board Value IS the ordering code. Hand-solder per ECO-9 -- 7 SMD pads plus 2 through-hole anchors."
+   "note": "10k dual-gang volume pot. The board Value IS the ordering code. Hand-soldered because of its through-hole pads -- 7 SMD pads plus 2 through-hole anchors."
   },
   {
    "refs": [
@@ -320,8 +320,8 @@
    ],
    "mpn": "CY62157EV30LL-45ZXIT",
    "mfr": "Infineon Technologies",
-   "note": "NO DISTRIBUTOR PART. AGB SRAM, same donor. If you fit ECO-5's CY62157EV30LL instead it IS orderable and this entry is replaced -- but see ECO-7, pin 37 has no supply either way.",
-   "eco": "ECO-13, and the reason this repository exists. On the AGBM-01 base U2 was a salvaged AGB-SRAM off a donor console, and ECO-5 was OUR unverified attempt to let a new part stand in for it. AGBM-02 carries MouseBiteLabs' own dual land, so this is simply an ORDERABLE PART: the machine buys it and places it, and a build needs exactly one chip off a donor -- the CPU. His Required Parts page: \"For the AGBM-02 and AGBM-12, you *only* need the CPU.\" Tape-and-reel suffix chosen over the tube part for machine placement. 8 Mbit 512K x 16 async SRAM, 45 ns, 48-TSOP I. TWO HAND STEPS COME WITH IT and no assembly line does either: bridge JP2 (U2 pin 17 MA17 to GND) and JP3 (pin 47 /BYTE to VDD2 for x16 word mode). Leave BOTH open if you fit a salvaged OEM AGB-SRAM instead -- the land still accepts it, and then this line comes off the BOM. $10.85, 1,695 in stock, verified 2026-08-19."
+   "note": "ORDERABLE, and on the assembly BOM -- a machine buys and places it. This line used to read 'no distributor part, same donor', which was true only of the older AGBM-01 base; AGBM-02 carries MouseBiteLabs' own dual land and pin 37's VDD2 supply, which check [10] asserts on every run. Fit a salvaged OEM AGB-SRAM instead and this line comes off the BOM.",
+   "eco": "The rebase onto MouseBiteLabs' AGBM-02 is the reason this repository exists. On the older AGBM-01 base U2 was a salvaged AGB-SRAM off a donor console, and this fork's own unverified edit was what let a new part stand in for it. AGBM-02 carries MouseBiteLabs' own dual land, so this is simply an ORDERABLE PART: the machine buys it and places it, and a build needs exactly one chip off a donor -- the CPU. His Required Parts page: \"For the AGBM-02 and AGBM-12, you *only* need the CPU.\" Tape-and-reel suffix chosen over the tube part for machine placement. 8 Mbit 512K x 16 async SRAM, 45 ns, 48-TSOP I. TWO HAND STEPS COME WITH IT and no assembly line does either: bridge JP2 (U2 pin 17 MA17 to GND) and JP3 (pin 47 /BYTE to VDD2 for x16 word mode). Leave BOTH open if you fit a salvaged OEM AGB-SRAM instead -- the land still accepts it, and then this line comes off the BOM. $10.85, 1,695 in stock, verified 2026-08-19."
   },
   {
    "refs": [
@@ -329,7 +329,7 @@
    ],
    "mpn": "",
    "mfr": "",
-   "note": "NO DISTRIBUTOR PART. AGB cartridge slot, aftermarket -- retro parts shops, not Digi-Key or Mouser. 36 through-hole pins, hand-soldered per ECO-9."
+   "note": "NO DISTRIBUTOR PART. AGB cartridge slot, aftermarket -- retro parts shops, not Digi-Key or Mouser. 36 through-hole pins, hand-soldered."
   },
   {
    "refs": [
@@ -353,7 +353,7 @@
    ],
    "mpn": "",
    "mfr": "insideGadgets",
-   "note": "NO DISTRIBUTOR PART. GBA ClockxControl, bought direct from insideGadgets (shop.insidegadgets.com). A mezzanine, not a placeable component -- see ECO-9."
+   "note": "NO DISTRIBUTOR PART. GBA ClockxControl, bought direct from insideGadgets (shop.insidegadgets.com). A mezzanine, not a placeable component: its plated holes are filled with solder from above onto the pads below, which no pick-and-place does."
   },
   {
    "refs": [
@@ -361,7 +361,7 @@
    ],
    "mpn": "RG1608P-512-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-12, the wiki audit. The schematic-vs-PCB conflict is SETTLED: the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R3 is U10's top leg. Value corrected 1k -> 5.1k, and it now takes the SAME part as R58 -- U17's top leg -- so both AA supervisor dividers run on one film system. Susumu RG1608: 0.1%, +/-25 ppm, anti-sulfur, AEC-Q200. Anti-sulfur matters here specifically: this divider hangs off SW, inches from two AA cells, and sulfur creep is how a thick-film chip resistor goes open. $0.10, 141,038 in stock, verified 2026-08-19.",
+   "eco": "From the wiki audit: the schematic-vs-PCB conflict is SETTLED -- the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R3 is U10's top leg. Value corrected 1k -> 5.1k, and it now takes the SAME part as R58 -- U17's top leg -- so both AA supervisor dividers run on one film system. Susumu RG1608: 0.1%, +/-25 ppm, anti-sulfur, AEC-Q200. Anti-sulfur matters here specifically: this divider hangs off SW, inches from two AA cells, and sulfur creep is how a thick-film chip resistor goes open. $0.10, 141,038 in stock, verified 2026-08-19.",
    "upstream": "RC0603FR-075K1L"
   },
   {
@@ -370,7 +370,7 @@
    ],
    "mpn": "RG1608P-333-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-12, the wiki audit. The schematic-vs-PCB conflict is SETTLED: the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R4 is U10's bottom leg. Value corrected 10k -> 33k. Same Susumu RG1608 film as R3 so the RATIO -- which is the whole quantity that sets the trip point -- tracks instead of drifting on two independent films. 0.1% +/-25 ppm against the previous 1% +/-100 ppm takes the trip-point spread from about +/-21 mV to +/-2 mV, which on Nick's own battery curves is the difference between a few minutes of the 20-60 minute low-battery warning and none of it. $0.10, 18,495 in stock, verified 2026-08-19.",
+   "eco": "From the wiki audit: the schematic-vs-PCB conflict is SETTLED -- the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R4 is U10's bottom leg. Value corrected 10k -> 33k. Same Susumu RG1608 film as R3 so the RATIO -- which is the whole quantity that sets the trip point -- tracks instead of drifting on two independent films. 0.1% +/-25 ppm against the previous 1% +/-100 ppm takes the trip-point spread from about +/-21 mV to +/-2 mV, which on Nick's own battery curves is the difference between a few minutes of the 20-60 minute low-battery warning and none of it. $0.10, 18,495 in stock, verified 2026-08-19.",
    "upstream": "RC0603FR-1033KL"
   },
   {
@@ -379,7 +379,7 @@
    ],
    "mpn": "RC0603FR-07200KL",
    "mfr": "YAGEO",
-   "eco": "ECO-12, the wiki audit. The schematic-vs-PCB conflict is SETTLED: the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R64 is not a divider leg -- it is the 555's timing resistor, and with C44 = 1 uF it sets the critical-battery blink rate: 200k gives 3.6 Hz, the 100k annotation gives 7.2 Hz. Value corrected 100k -> 200k, buying exactly the part the upstream schematic's own Digi-Key link buys. DELIBERATELY LEFT AT 1%: a blink rate does not need 0.1%, and buying precision where it buys nothing is waste -- the same rule that deferred all three of these in ECO-10.",
+   "eco": "From the wiki audit: the schematic-vs-PCB conflict is SETTLED -- the PCB annotation was stale. MouseBiteLabs' AGBM-02 -- the same AA design one revision later, identical supervisor circuit -- carries 5.1k/33k/200k in its own PCB file, and so do the AGBM-01 schematic, the AGBM-01 README BOM and the AGBM-02 README BOM. The wiki then states the resulting thresholds outright (\"The low battery LED turns on when the voltage passes 2.3V ... begins blinking when the voltage passes 2.1V\") and the AGBM-01 build guide's Test 4 sweeps 2 V to 3 V expecting the green-to-red change at 2.3 V. 5.1k/33k puts it at 2.309 V; 1k/10k puts it at 2.200 V. R64 is not a divider leg -- it is the 555's timing resistor, and with C44 = 1 uF it sets the critical-battery blink rate: 200k gives 3.6 Hz, the 100k annotation gives 7.2 Hz. Value corrected 100k -> 200k, buying exactly the part the upstream schematic's own Digi-Key link buys. DELIBERATELY LEFT AT 1%: a blink rate does not need 0.1%, and buying precision where it buys nothing is waste -- the same rule that deferred all three of these in the earlier precision pass.",
    "flag": "Only 5,187 in stock at Digi-Key (2026-08-20) against MouseBiteLabs' RC0603FR-13200KL at 82,572. Ours is the moisture-resistant grade and his is not; 5,187 covers any realistic build of this board, so ours is kept -- but check it before a batch order.",
    "upstream": "RC0603FR-13200KL"
   },
@@ -390,7 +390,7 @@
    "mpn": "RC0603FR-1033KL",
    "mfr": "YAGEO",
    "alternate": "Second-source it: Digi-Key is at zero with a 17-week lead, MOUSER HAS 95,136 (verified 2026-08-19). Same YAGEO part, no decision required.",
-   "eco": "ECO-15. WAS RC0603FR-0733KL, the moisture-resistant variant, at ZERO stock (2026-08-20). MouseBiteLabs' link buys RC0603FR-1033KL, 25,665 in stock. Electrically identical 33k 1% 0.1W 0603; the -07/-10/-13 field is Yageo's internal spec code, and only -07 and -13 are the moisture-resistant grade. Nothing on this board needs 85/85 grade on R26, so his part is taken."
+   "eco": "WAS RC0603FR-0733KL, the moisture-resistant variant, at ZERO stock (2026-08-20). MouseBiteLabs' link buys RC0603FR-1033KL, 25,665 in stock. Electrically identical 33k 1% 0.1W 0603; the -07/-10/-13 field is Yageo's internal spec code, and only -07 and -13 are the moisture-resistant grade. Nothing on this board needs 85/85 grade on R26, so his part is taken."
   },
   {
    "refs": [
@@ -399,7 +399,7 @@
    ],
    "mpn": "RG1608P-752-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part.",
+   "eco": "Audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part.",
    "upstream": "RC0603FR-077K5L"
   },
   {
@@ -409,7 +409,7 @@
    ],
    "mpn": "RG1608P-203-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part.",
+   "eco": "Audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part.",
    "upstream": "RC0603FR-0720KL"
   },
   {
@@ -419,7 +419,7 @@
    ],
    "mpn": "RG1608P-183-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part.",
+   "eco": "Audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part.",
    "upstream": "RC0603FR-1018KL"
   },
   {
@@ -430,7 +430,7 @@
    ],
    "mpn": "RG1608P-512-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-10, audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part. R58 is not in the filter -- it is the U17 supervisor's upper divider leg, and it gets the same part for the same reason: a trip point should not move with temperature.",
+   "eco": "Audio precision. These set f0 and Q of the 4th-order Butterworth reconstruction filter (15.84 kHz per channel). 1% +/-100ppm thick film -> 0.1% +/-25ppm thin film. Susumu RG1608 covers every value in the filter, so the whole network is ONE film system and the ratios that set Q track each other instead of drifting independently. ~$0.11 a part. R58 is not in the filter -- it is the U17 supervisor's upper divider leg, and it gets the same part for the same reason: a trip point should not move with temperature.",
    "upstream": "RC0603FR-075K1L"
   },
   {
@@ -439,7 +439,7 @@
    ],
    "mpn": "RG1608P-104-B-T5",
    "mfr": "Susumu",
-   "eco": "ECO-12. U17's lower divider leg. ECO-10 upgraded it to 0.1% but left it on YAGEO RT0603 while its partner R58 went to Susumu RG1608 -- a divider split across two film systems, which is the one thing ECO-10's own reasoning says not to do, since only the RATIO sets the trip point. Now both legs are Susumu RG1608 (0.1%, +/-25 ppm, anti-sulfur, AEC-Q200), matching what R3/R4 do for U10. $0.11, 488,743 in stock, verified 2026-08-19. R55 keeps RT0603BRD07100KL: it is the VOUT3 bottom leg and belongs to the all-YAGEO LTC3527 pair.",
+   "eco": "U17's lower divider leg. An earlier precision pass upgraded it to 0.1% but left it on YAGEO RT0603 while its partner R58 went to Susumu RG1608 -- a divider split across two film systems, which is the one thing that pass's own reasoning says not to do, since only the RATIO sets the trip point. Now both legs are Susumu RG1608 (0.1%, +/-25 ppm, anti-sulfur, AEC-Q200), matching what R3/R4 do for U10. $0.11, 488,743 in stock, verified 2026-08-19. R55 keeps RT0603BRD07100KL: it is the VOUT3 bottom leg and belongs to the all-YAGEO LTC3527 pair.",
    "upstream": "RC0603FR-07100KL"
   },
   {
@@ -449,7 +449,7 @@
    ],
    "mpn": "GCM1885C2A681FA16D",
    "mfr": "Murata Electronics",
-   "eco": "ECO-10. Already C0G; tolerance +/-5% -> +/-1%, and AEC-Q200. Q goes as sqrt(Cfb/Cgnd), so tightening the shunt legs tightens the alignment directly.",
+   "eco": "Already C0G; tolerance +/-5% -> +/-1%, and AEC-Q200. Q goes as sqrt(Cfb/Cgnd), so tightening the shunt legs tightens the alignment directly.",
    "upstream": "C0603C681J5GACTU"
   },
   {
@@ -459,7 +459,7 @@
    ],
    "mpn": "GCM1885C2A331FA16D",
    "mfr": "Murata Electronics",
-   "eco": "ECO-10. Same as C26/C31: C0G +/-5% -> +/-1%, AEC-Q200.",
+   "eco": "Same as C26/C31: C0G +/-5% -> +/-1%, AEC-Q200.",
    "upstream": "C0603C331J5GACTU"
   },
   {
@@ -468,7 +468,7 @@
    ],
    "mpn": "CGA3E1X7R1E105K080AC",
    "mfr": "TDK",
-   "eco": "ECO-10, longevity. The fitted KEMET C0603C105K4RACTU is X7R but only 16 V; TDK's CGA is the AUTOMOTIVE (AEC-Q200) grade of the C-series at 25 V in the same 0603 x 0.90 mm body. Higher rated voltage means less capacitance lost to DC bias on every rail these sit on, and the automotive grade is screened harder. 1,435,431 in stock, $0.17 (verified 2026-08-19). NOT CHANGED, and worth saying why: the 0.1 uF line is already KEMET C0603C104K5RACTU, X7R at 50 V -- that is already the right part and churning it would buy nothing.",
+   "eco": "Longevity. The fitted KEMET C0603C105K4RACTU is X7R but only 16 V; TDK's CGA is the AUTOMOTIVE (AEC-Q200) grade of the C-series at 25 V in the same 0603 x 0.90 mm body. Higher rated voltage means less capacitance lost to DC bias on every rail these sit on, and the automotive grade is screened harder. 1,435,431 in stock, $0.17 (verified 2026-08-19). NOT CHANGED, and worth saying why: the 0.1 uF line is already KEMET C0603C104K5RACTU, X7R at 50 V -- that is already the right part and churning it would buy nothing.",
    "upstream": "C0603C105K4RACTU"
   },
   {
@@ -478,7 +478,7 @@
    ],
    "mpn": "FDC6301N",
    "mfr": "onsemi",
-   "eco": "ECO-11. NDC7002N VGS(th) is 1.0/1.9/2.5 V max and Q10A must sink ~14 uA through the TPS3840's 100 kOhm internal MR pull-up at VGS ~= 2.0 V, Q10B runs at 0.990 x SW, and Q9B opens the low-battery LED at /D1A ~= 3.0 V. A worst-case part is at or below threshold in all three, so the brownout latch may never arm and the low-battery LED may never light -- invisibly, since the console works normally until the protection was meant to act. FDC6301N is 0.65/0.85/1.5 V max on the identical SUPERSOT-6 land with the same pin assignment, giving >=0.5 V of worst-case overdrive everywhere. Its asymmetric -0.5 V gate rating is covered by its own integrated gate-source Zener ('>6 kV HBM'), whose clamp current at Q10A's power-up excursion is set by R16 -- which ECO-8 had already raised from 10k to 100k, making it 25 uA. Headroom: 25 V / 0.22 A against 5.0 V and <=165 uA.",
+   "eco": "NDC7002N VGS(th) is 1.0/1.9/2.5 V max and Q10A must sink ~14 uA through the TPS3840's 100 kOhm internal MR pull-up at VGS ~= 2.0 V, Q10B runs at 0.990 x SW, and Q9B opens the low-battery LED at /D1A ~= 3.0 V. A worst-case part is at or below threshold in all three, so the brownout latch may never arm and the low-battery LED may never light -- invisibly, since the console works normally until the protection was meant to act. FDC6301N is 0.65/0.85/1.5 V max on the identical SUPERSOT-6 land with the same pin assignment, giving >=0.5 V of worst-case overdrive everywhere. Its asymmetric -0.5 V gate rating is covered by its own integrated gate-source Zener ('>6 kV HBM'), whose clamp current at Q10A's power-up excursion is set by R16 -- which the value-swap pass had already raised from 10k to 100k, making it 25 uA. Headroom: 25 V / 0.22 A against 5.0 V and <=165 uA.",
    "upstream": "NDC7002N"
   },
   {
@@ -487,7 +487,7 @@
    ],
    "mpn": "RC0603FR-07820KL",
    "mfr": "YAGEO",
-   "eco": "ECO-13. VOUT5 feedback top leg on U5. Left at 1% deliberately -- see ECO-13 section 13.7, which records the precision question as an OPEN follow-up rather than answering it blind: the argument that justified 0.1% on the LTC3527 was that converter's specified 50 nA feedback input current, and this fork has not read the equivalent number for the TPS63802.",
+   "eco": "VOUT5 feedback top leg on U5. Left at 1% deliberately. The rebase onto AGBM-02 recorded the precision question as an OPEN follow-up rather than answering it blind: the argument that justified 0.1% on the LTC3527 was that converter's specified 50 nA feedback input current, and this fork has not read the equivalent number for the TPS63802.",
    "upstream": "RC0603FR-07100KL"
   },
   {
@@ -497,7 +497,7 @@
    ],
    "mpn": "RC0603FR-0791KL",
    "mfr": "YAGEO",
-   "eco": "ECO-13. Both TPS63802 feedback bottom legs. 1%, see R59.",
+   "eco": "Both TPS63802 feedback bottom legs. 1%, see R59.",
    "upstream": "RC0603FR-07100KL"
   },
   {
@@ -506,7 +506,7 @@
    ],
    "mpn": "RC0603FR-07510KL",
    "mfr": "YAGEO",
-   "eco": "ECO-13. VOUT3 feedback top leg on U13. 1%, see R59.",
+   "eco": "VOUT3 feedback top leg on U13. 1%, see R59.",
    "upstream": "RC0603FR-07100KL"
   },
   {
@@ -515,7 +515,7 @@
    ],
    "mpn": "RC0603FR-0718KL",
    "mfr": "YAGEO",
-   "eco": "ECO-13. The /RESET RC with C30. Generic value, resolved from the AGBM-02 README.",
+   "eco": "The /RESET RC with C30. Generic value, resolved from the AGBM-02 README.",
    "upstream": "RC0603FR-1018KL"
   },
   {
@@ -525,7 +525,7 @@
    ],
    "mpn": "CGA3E2X7R1H103K080AA",
    "mfr": "TDK",
-   "eco": "ECO-13. TPS63802 feedforward caps. TDK CGA -- the automotive-qualified grade of the C-series, X7R 50 V, matching the family ECO-10 chose for the decoupling so the board stays on as few dielectric systems as possible.",
+   "eco": "TPS63802 feedforward caps. TDK CGA -- the automotive-qualified grade of the C-series, X7R 50 V, matching the family chosen for the decoupling so the board stays on as few dielectric systems as possible.",
    "upstream": "C0603C103K5RACTU"
   },
   {
@@ -534,7 +534,7 @@
    ],
    "mpn": "GRT188R61E106ME13D",
    "mfr": "Murata Electronics",
-   "eco": "ECO-13. Converter input bulk on VCC. Takes the same soft-termination 25 V part ECO-10 already chose for every other 10 uF placement."
+   "eco": "Converter input bulk on VCC. Takes the same soft-termination 25 V part already chosen for every other 10 uF placement."
   },
   {
    "refs": [
@@ -542,7 +542,7 @@
    ],
    "mpn": "CC0805MKX5R8BB226",
    "mfr": "YAGEO",
-   "eco": "ECO-21. 16 V -> 25 V for DC-bias headroom, at the user's direction. C21 and C58 sit on VOUT5, C42 on VOUT3, C1 on /VFILT, and a 16 V X5R gives up more of its 22 uF to DC bias at those rails than a 25 V one does -- which is what ECO-15 accepted when it reverted this line to MouseBiteLabs' 16 V part.\nNO 25 V PART PRESERVES EVERYTHING, and this is the cost. Every 22 uF / 25 V / 0805 part with stock at either distributor on 2026-08-20 gives up BOTH of the incumbent's extras: AEC-Q200 qualification and Murata's GRT soft-termination, which exists to stop flex cracking on a board that gets handled. The only 25 V GRT parts -- GRT21BR61E226ME13K and -13L -- read ZERO at Digi-Key AND Mouser (verified 2026-08-20), the same wall ECO-15 hit. So the trade taken here is deliberate and narrow: keep the X5R dielectric so the ONLY electrical change is the voltage rating, and give up the automotive qualification and the flex-crack termination rather than also changing dielectric formulation.\nVERIFIED PARAMETER BY PARAMETER against the incumbent GRT21BR61C226ME13K on the Digi-Key API, 2026-08-20. Identical: 22 uF, +/-20%, X5R, -55 to +85 C, 0805 (2012 metric), 1.45 mm max thickness, 2.00 x 1.25 mm. Different: 25 V against 16 V; no AEC-Q200; $0.60 against $0.42; 24-week against 19-week lead; 130,753 at Digi-Key against 8,218 (verified 2026-08-20). Mouser reads 0 for both, so Digi-Key is the source for this line.",
+   "eco": "16 V -> 25 V for DC-bias headroom, at the user's direction. C21 and C58 sit on VOUT5, C42 on VOUT3, C1 on /VFILT, and a 16 V X5R gives up more of its 22 uF to DC bias at those rails than a 25 V one does -- which is what an earlier revert of this line to MouseBiteLabs' 16 V part accepted.\nNO 25 V PART PRESERVES EVERYTHING, and this is the cost. Every 22 uF / 25 V / 0805 part with stock at either distributor on 2026-08-20 gives up BOTH of the incumbent's extras: AEC-Q200 qualification and Murata's GRT soft-termination, which exists to stop flex cracking on a board that gets handled. The only 25 V GRT parts -- GRT21BR61E226ME13K and -13L -- read ZERO at Digi-Key AND Mouser (verified 2026-08-20), the same wall that earlier revert hit. So the trade taken here is deliberate and narrow: keep the X5R dielectric so the ONLY electrical change is the voltage rating, and give up the automotive qualification and the flex-crack termination rather than also changing dielectric formulation.\nVERIFIED PARAMETER BY PARAMETER against the incumbent GRT21BR61C226ME13K on the Digi-Key API, 2026-08-20. Identical: 22 uF, +/-20%, X5R, -55 to +85 C, 0805 (2012 metric), 1.45 mm max thickness, 2.00 x 1.25 mm. Different: 25 V against 16 V; no AEC-Q200; $0.60 against $0.42; 24-week against 19-week lead; 130,753 at Digi-Key against 8,218 (verified 2026-08-20). Mouser reads 0 for both, so Digi-Key is the source for this line.",
    "note": "22 uF +/-20% 25 V X5R 0805, YAGEO CC series.",
    "alternate": "GRT21BR61E226ME13L is the part to come BACK to. It is the incumbent's own family at 25 V -- same GRT soft-termination, same AEC-Q200, same X5R, same 1.45 mm -- so it would make this swap cost nothing at all. It is at 0 / 0 with a 21-week lead (2026-08-20). Re-check it before every order; if it has restocked, take it.\nThe rest of the 25 V field on 2026-08-20, all 0805 / 1.45 mm / 22 uF, ranked by stock: C0805X5R226M250NPH (EYang, X5R, 400,000, $0.17, 0-week lead) -- cheapest and deepest, but a budget maker on a board that is otherwise Murata / KEMET / YAGEO. GMC21X5R226M25NT (Cal-Chip, X5R, 46,919, $0.94). GRM21BC81E226ME44K (Murata, 2,589, $0.38) -- keeps the manufacturer and runs to +105 C, but it is X6S, a DIFFERENT dielectric formulation, and its DC-bias curve could not be verified: Murata publishes that only through SimSurfing, which returns HTTP 500/503 from here, and the product PDFs do not carry the curve. Since DC bias is the entire reason for going to 25 V, an unverifiable bias curve is the wrong thing to accept. CL21A226MAYNNWE (Samsung, X5R, 2,000, $0.32, 39-week lead). KGM21AR51E226MU (Kyocera AVX, X5R, 233 + 7 at Mouser, $1.06, 28-week lead) -- a genuine second source, too thin for anything past a prototype run.\nREJECTED: ZRA21CR61E226ME01L reads as 25 V X5R with stock, but Digi-Key gives its package as 'Nonstandard SMD' at 1.65 mm, not 0805 / 1.45 mm. It is not a drop-in. The 16 V incumbent GRT21BR61C226ME13K remains buildable at 8,218 and is what to fall back to if every 25 V line above dries up; it is MouseBiteLabs' own choice and costs only the DC-bias headroom this ECO went after.",
    "upstream": "GRT21BR61C226ME13K"
@@ -554,7 +554,7 @@
    ],
    "mpn": "CL10C270JB8NNNC",
    "mfr": "Samsung Electro-Mechanics",
-   "eco": "ECO-13. A GAP IN MOUSEBITELABS' OWN BOM: C70 and C71 are fitted (not DNP) on both AGBM-01 and AGBM-02, and neither README lists them, so there is no upstream link to resolve. They are the 27 pF coupling caps on the hotkey touch-input nets -- Net-(C70-Pad1) is C70.1, R70.2, TP10.1, Z57.2 -- read off the netlist. C0G/NP0 is the right dielectric for a coupling cap whose value is the point. CHOSEN AGAINST THE FAMILIES THIS BOARD OTHERWISE USES, and here is why not: TDK's CGA3E2C0G1H270J080AA is the AEC-Q200 part that would match ECO-10's decoupling choice, but Mouser shows 8 in stock; Murata's GCM1885C1H270JA16D and GRM1885C1H270JA01D are both flagged Not Recommended for New Designs; TDK's C1608C0G1H270J080AA is Obsolete. The Samsung part is active with 174,716 at Mouser, $0.13 (Mouser figures, verified 2026-08-19 -- Digi-Key was rate-limiting during this lookup and reported nothing, which means UNKNOWN, not unavailable).",
+   "eco": "A GAP IN MOUSEBITELABS' OWN BOM: C70 and C71 are fitted (not DNP) on both AGBM-01 and AGBM-02, and neither README lists them, so there is no upstream link to resolve. They are the 27 pF coupling caps on the hotkey touch-input nets -- Net-(C70-Pad1) is C70.1, R70.2, TP10.1, Z57.2 -- read off the netlist. C0G/NP0 is the right dielectric for a coupling cap whose value is the point. CHOSEN AGAINST THE FAMILIES THIS BOARD OTHERWISE USES, and here is why not: TDK's CGA3E2C0G1H270J080AA is the AEC-Q200 part that would match this board's decoupling choice, but Mouser shows 8 in stock; Murata's GCM1885C1H270JA16D and GRM1885C1H270JA01D are both flagged Not Recommended for New Designs; TDK's C1608C0G1H270J080AA is Obsolete. The Samsung part is active with 174,716 at Mouser, $0.13 (Mouser figures, verified 2026-08-19 -- Digi-Key was rate-limiting during this lookup and reported nothing, which means UNKNOWN, not unavailable).",
    "alternate": "CC0603JRNPO9BN270 (YAGEO, 31,697 at Mouser, $0.10, verified 2026-08-19)",
    "upstream": "C0603C270J5GACTU"
   }

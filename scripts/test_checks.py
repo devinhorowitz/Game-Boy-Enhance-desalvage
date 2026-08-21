@@ -91,7 +91,7 @@ def main():
     # It comes straight from build_board's own swap tables now; it used to be scraped out of
     # the ECO markdown, which is why those documents had to stay in lockstep with the code.
     import build_board
-    chain = {ref: new for ref, field, _old, new in build_board.ECO8 + build_board.ECO11
+    chain = {ref: new for ref, field, _old, new in build_board.VALUE_SWAPS + build_board.FET_SWAPS
              if field == "Value"}
     if not chain:
         print("  BLIND:  the generator changes no Value -- case [1] cannot run")

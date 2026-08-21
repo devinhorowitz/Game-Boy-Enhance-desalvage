@@ -205,7 +205,7 @@ DNP_REFS = ("X1", "C3", "C4")
 #                   reverted this change; the rebase deletes it outright.
 # Both Description rows survive: AGBM-02 still carries the legacy "0805L050WR" string on
 # PTC1 and F1 alike, exactly as AGBM-01 and AGBM-11 do.
-ECO8 = [
+VALUE_SWAPS = [
     ("U7",   "Value",       "TLV9364",       "TLV9064IPWR"),
     ("DL1",  "Value",       "150060VS75000", "150060GS75000"),
     ("R25",  "Value",       "3.3k",          "22k"),
@@ -236,7 +236,6 @@ ECO8 = [
 # filter's 0.1% +/-25 ppm thin film, the 25 V AEC-Q200 decoupling, and the supervisor
 # divider legs are all PART-NUMBER choices, and they live in scripts/mpn_overrides.json
 # against references AGBM-02 carries at identical positions.
-ECO10 = []
 
 # --- ECO-11: the brownout latch is not guaranteed to arm --------------------------------
 # NDC7002N gate threshold, read off onsemi's own table: VGS(th) = 1.0 min / 1.9 typ /
@@ -275,7 +274,7 @@ ECO10 = []
 # there is no margin problem to fix, and Q2/Q7 switch display signals from U16 where the
 # worst-case overdrive is already 0.73 V and where changing RDS(on) and Ciss would be an
 # unanalysed timing risk bought for no stated benefit.
-ECO11 = [
+FET_SWAPS = [
     ("Q9",  "Value", "NDC7002N", "FDC6301N"),
     ("Q10", "Value", "NDC7002N", "FDC6301N"),
 ]
@@ -295,7 +294,6 @@ ECO11 = [
 # Section 12.2 (R23, VOUT3 back to 3.336 V) goes with the LTC3527. The part-number half of
 # ECO-12 -- R3/R4 to Susumu RG1608 0.1%, R63 onto the same film as its partner R58 -- is
 # unaffected and still lives in scripts/mpn_overrides.json.
-ECO12 = []
 
 
 # --- ECO-9: the board should say what a machine can actually place --------------------
@@ -596,8 +594,8 @@ def build():
     for ref in DNP_REFS:
         replace_in(ref, "(attr smd)", "(attr smd dnp)", "DNP flag")
 
-    # ---------- ECO-8 / ECO-10 / ECO-11  the part swaps ------------------------------
-    for ref, field, old, new in ECO8 + ECO10 + ECO11 + ECO12:  # 10/12 empty on this base
+    # ---------- the part swaps -------------------------------------------------------
+    for ref, field, old, new in VALUE_SWAPS + FET_SWAPS:
         replace_in(ref, f'(property "{field}" "{old}"',
                    f'(property "{field}" "{new}"', f"{field} swap")
     # ---------- the thresholds this board is FOR -------------------------------------
