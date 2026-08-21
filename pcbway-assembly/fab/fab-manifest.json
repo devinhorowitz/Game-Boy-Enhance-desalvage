@@ -1,0 +1,30 @@
+{
+  "content": "2f24c382dc47b78a",
+  "kicad": "10.0.5",
+  "members": [
+    "ORDER.txt",
+    "assembly/agbm-02-cxc-bom.csv",
+    "assembly/agbm-02-cxc-cpl.csv",
+    "assembly/agbm-02-cxc-do-not-populate.csv",
+    "drill/AGBM-02_AA_1-1_GBE-plus-CXC-NPTH-drl_map.gbr",
+    "drill/AGBM-02_AA_1-1_GBE-plus-CXC-NPTH.drl",
+    "drill/AGBM-02_AA_1-1_GBE-plus-CXC-PTH-drl_map.gbr",
+    "drill/AGBM-02_AA_1-1_GBE-plus-CXC-PTH.drl",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-B_Cu.gbl",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-B_Mask.gbs",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-B_Paste.gbp",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-B_Silkscreen.gbo",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-Edge_Cuts.gm1",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-F_Cu.gtl",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-F_Mask.gts",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-F_Paste.gtp",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-F_Silkscreen.gto",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-In1_Cu.g1",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-In2_Cu.g2",
+    "gerbers/AGBM-02_AA_1-1_GBE-plus-CXC-job.gbrjob"
+  ],
+  "source": {
+    "base": "40e917af3a3f1992",
+    "board": "b6f9b61e566f3245"
+  }
+}

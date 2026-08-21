@@ -16,6 +16,7 @@ python3 scripts/check_stock.py  --offline  # every MPN buys the value the board 
 python3 scripts/check_consistency.py       # everything else
 python3 scripts/test_checks.py             # ...and the checks can still fail
 python3 scripts/check_drc.py               # KiCad's own DRC, against HIS project rules
+python3 scripts/fab_package.py             # the zip you upload to PCBWay
 ```
 
 `check_stock.py` without `--offline` also queries the distributors, and needs
@@ -45,6 +46,7 @@ The suite runs in CI on every push that touches anything it reads
 | `render_board.py` | the copper views, drawn from the board with Pillow. Stamps each manifest with the SHA of the board and base it drew from. |
 | `render_assembled.py` | the raytraced views, drawn by KiCad from a throwaway re-poured copy. Names every body it could not resolve on every run. |
 | `check_drc.py` | KiCad's DRC on both boards, **under MouseBiteLabs' own `.kicad_pro` rules**, and a diff: only violations at positions his board does not have are this fork's. |
+| `fab_package.py` | board → the PCBWay upload: gerbers, drill, CPL and BOM. Re-pours a throwaway copy first, because the committed fill would plot a shorted board, and **refuses to plot at all** if the re-poured copy does not pass DRC. |
 | `check_consistency.py` | the numbered checks. |
 | `test_checks.py` | mutates the board in memory and asserts each check **fails**. A check that has never gone red is not known to work, and a check that *declined to run* is not the same as one that passed. |
 
@@ -75,6 +77,7 @@ not missing ones.
 | [18] | every CPL rotation is `kicad-cli`'s own, and pin 1 is where the stock library puts it | a polarised part goes in backwards |
 | [19] | the KiCad 10 companion carries the same copper, pads, nets, text and graphics as the KiCad 9 board | the two formats diverge |
 | [20] | every power figure the documents state is in `POWER_LEDGER` with a reason, and every ledger line is still stated somewhere | a modelled number drifts between the documents that repeat it, or arrives unjustified |
+| [21] | the PCBWay package was plotted from the committed board, and carries every layer, both drill files and the assembly documents | the fab package goes stale, or ships missing a layer |
 
 Check [19] compares **track coverage**, not segments: KiCad 10 merges collinear tracks, and a naive
 diff calls that hundreds of deleted traces.
