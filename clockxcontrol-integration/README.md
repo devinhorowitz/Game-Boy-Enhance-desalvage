@@ -444,6 +444,9 @@ render/agbm02_cxc_landings.png                the three landed lattice sites, cl
 render/agbm02_cxc_fit.png                     fit check: module body and courtyard, all six sites
 render/agbm02_cxc_1to1_600dpi.png             1:1 print sheet - print at 100%, lay a module on it
 render/render-manifest.json                   pixel digest of each view, and the Pillow that drew it
+render/agbm02_hero.png                        RAYTRACED: the banner view -- three-quarter
+                                              perspective, everything fitted. The one view
+                                              here that is for looking at, not checking
 render/agbm02_pcbway_top.png                  RAYTRACED: front, exactly the parts PCBWay places
 render/agbm02_pcbway_bottom.png               RAYTRACED: back
 render/agbm02_finished_top.png                RAYTRACED: front, after you hand-solder the rest

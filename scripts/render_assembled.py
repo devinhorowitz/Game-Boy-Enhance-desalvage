@@ -111,16 +111,29 @@ WIDTH, HEIGHT = 2000, 1200
 MODEL_VARS = ("KICAD6_3DMODEL_DIR", "KICAD7_3DMODEL_DIR",
               "KICAD8_3DMODEL_DIR", "KICAD9_3DMODEL_DIR")
 
-# target -> (filename, which classes keep their bodies, side, one-line description)
+# target -> (filename, which classes keep their bodies, side, one-line description,
+#            camera override or None). The override is a dict of {"size": (w, h),
+#            "flags": [...]} handed straight to kicad-cli; None means the flat,
+#            orthogonal, documentation-grade camera every other view uses.
 TARGETS = {
     "pcbway-top": ("agbm02_pcbway_top.png", {"assembly"}, "top",
-                   "front, exactly the parts PCBWay's line places"),
+                   "front, exactly the parts PCBWay's line places", None),
     "pcbway-bottom": ("agbm02_pcbway_bottom.png", {"assembly"}, "bottom",
-                      "back, exactly the parts PCBWay's line places"),
+                      "back, exactly the parts PCBWay's line places", None),
     "finished-top": ("agbm02_finished_top.png", {"assembly", "hand", "+hand-fitted"},
-                     "top", "front, after you have hand-soldered the rest too"),
+                     "top", "front, after you have hand-soldered the rest too", None),
     "finished-bottom": ("agbm02_finished_bottom.png", {"assembly", "hand", "+hand-fitted"},
-                        "bottom", "back, after you have hand-soldered the rest too"),
+                        "bottom", "back, after you have hand-soldered the rest too", None),
+    # The one view here that is for looking at rather than checking: a perspective
+    # three-quarter with the floor shadow on, wide enough to sit at the top of a README.
+    # It carries the same parts as finished-top and comes off the same re-poured copy,
+    # so it cannot show a board this repository does not ship -- it is just angled.
+    "hero": ("agbm02_hero.png", {"assembly", "hand", "+hand-fitted"}, "top",
+             "the banner view: three-quarter perspective, front, everything fitted",
+             {"size": (2400, 1040),
+              "flags": ["--perspective", "--floor",
+                        "--rotate", "-23,0,-7", "--zoom", "1.38",
+                        "--light-camera", "0.18", "--light-side-elevation", "38"]}),
 }
 
 
@@ -315,11 +328,17 @@ def report(src_after: str, info: dict, stock: str) -> dict:
             "offboard": info.get("offboard", [])}
 
 
-def render(pcb: Path, out: Path, side: str, stock: str) -> bool:
+def render(pcb: Path, out: Path, side: str, stock: str, cam: dict | None = None) -> bool:
+    w, h = (cam or {}).get("size", (WIDTH, HEIGHT))
     cmd = ["kicad-cli", "pcb", "render", "--output", str(out),
            "--quality", "high", "--background", "opaque",
-           "--width", str(WIDTH), "--height", str(HEIGHT), "--side", side,
-           "--zoom", "1.0"]
+           "--width", str(w), "--height", str(h), "--side", side]
+    # --zoom is the only default a camera override may restate, so it is added last and
+    # only when the override did not set one; a duplicated flag is a kicad-cli error.
+    extra = list((cam or {}).get("flags", ()))
+    if "--zoom" not in extra:
+        extra += ["--zoom", "1.0"]
+    cmd += extra
     for v in MODEL_VARS:
         cmd += ["--define-var", f"{v}={stock}"]
     cmd.append(str(pcb))
@@ -345,7 +364,7 @@ def main() -> int:
     a = ap.parse_args()
 
     if a.list:
-        for k, (fn, keep, side, desc) in TARGETS.items():
+        for k, (fn, keep, side, desc, _cam) in TARGETS.items():
             print(f"{k:16s} {fn:28s} {desc}")
         return 0
 
@@ -399,19 +418,19 @@ def main() -> int:
     todo = [a.only] if a.only else list(TARGETS)
     failed = 0
     for name in todo:
-        fn, keep, side, desc = TARGETS[name]
+        fn, keep, side, desc, cam = TARGETS[name]
         print(f"  {name}: {desc}")
         with tempfile.TemporaryDirectory() as td:
             pcb, info = prepare(Path(td), keep, stock)
             stats = report(pcb.read_text(encoding="utf-8"), info, stock)
             out = OUTDIR / fn
-            if not render(pcb, out, side, stock):
+            if not render(pcb, out, side, stock, cam):
                 failed += 1
                 continue
         man["targets"][fn] = {"desc": desc, "side": side,
                               "keeps": sorted(keep), **stats,
                               "bytes": out.stat().st_size}
-    live = {fn for fn, _k, _s, _d in TARGETS.values()}
+    live = {fn for fn, _k, _s, _d, _c in TARGETS.values()}
     man["targets"] = {k: v for k, v in man["targets"].items() if k in live}
     # ECO-24: the board these bodies were placed on, so a stale assembled render is
     # catchable without KiCad. Same rationale as render_board.source_digest().
