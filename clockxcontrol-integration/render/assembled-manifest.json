@@ -68,6 +68,37 @@
       "resolved": 176,
       "side": "top"
     },
+    "agbm02_hero.png": {
+      "bodyless": [
+        "MOD1",
+        "P1",
+        "P4",
+        "SP1"
+      ],
+      "bytes": 820268,
+      "desc": "the banner view: three-quarter perspective, front, everything fitted",
+      "keeps": [
+        "+hand-fitted",
+        "assembly",
+        "hand"
+      ],
+      "kept": {
+        "assembly": 180,
+        "hand": 5,
+        "hand-fitted (dnp)": 2
+      },
+      "missing": [
+        "CSS-1310TB.step",
+        "Same_Sky_SJ3-35083B-TR.step",
+        "TPS63802DLAR--3DModel-STEP-269445.STEP",
+        "Unnamed-SOLID.step",
+        "acm2520-3p-t002.step"
+      ],
+      "offboard": [],
+      "referenced": 183,
+      "resolved": 176,
+      "side": "top"
+    },
     "agbm02_pcbway_bottom.png": {
       "bodyless": [],
       "bytes": 452100,
