@@ -62,6 +62,10 @@ retired check, not a missing one.
                          reason it is that number, and every ledger line is still stated
                          somewhere. The one check with no artifact behind it: these are
                          MODELLED numbers, so the ledger is the source of truth. [ERROR]
+  [21] FAB PACKAGE    -- the PCBWay upload was plotted from the committed board, and
+                         carries every layer, both drill files and the assembly documents.
+                         The full aperture-by-aperture comparison needs KiCad and lives in
+                         `fab_package.py --check`; this half is the digest.  [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -538,6 +542,11 @@ EXPECTED_ABSENT = {
         "'AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip' at its last space. The real "
         "archive is in the tree; only this fragment is not",
     "patch5.py": "the original generator, superseded by scripts/build_board.py",
+    # A MEMBER OF THE FAB ZIP, not a file in the tree. pcbway-assembly/README.md lists the
+    # package contents, and the order sheet is written INTO the archive by fab_package.py
+    # so it travels with the upload -- a copy loose in the repository would be a second
+    # source of truth for the numbers PCBWay reads.
+    "ORDER.txt": "written into pcbway-assembly/fab/agbm-02-cxc-pcbway.zip by scripts/fab_package.py; it ships inside the upload, not beside it",
     # power-review/completeness-critic.md cites the session's own working captures as
     # PROVENANCE -- "read from the local capture at /tmp/.../cxc.txt". Naming a scratch
     # path in a committed document is a citation nobody can follow, but deleting the
@@ -1910,6 +1919,82 @@ def check_power_ledger():
             note(f"{v} mW in {len(docs)} documents: {', '.join(sorted(docs))}")
 
 
+# =====================================================================================
+# [21] the PCBWay package is plotted from THIS board, and from a re-poured copy
+# =====================================================================================
+# The fab package is the expensive artifact: a mistake in it is discovered on a panel.
+# Two ways it goes wrong, and this catches both cheaply.
+#
+#   * IT GOES STALE. The board moves, nobody re-plots, and the zip on disk describes an
+#     older design. Same failure the renders had. Same fix: the manifest carries the SHA
+#     of the board and base it was plotted from, and comparing those needs no KiCad.
+#   * IT IS PLOTTED FROM THE STORED FILL. That one would actually ship a shorted board --
+#     22 objects this fork adds sit inside a foreign-net pour the stale fill has never been
+#     recomputed around. Re-pouring is not cosmetic: it takes F.Cu from 52 filled regions
+#     to 88. fab_package.py re-pours a throwaway copy and refuses to plot otherwise, and
+#     the manifest records that it did.
+#
+# The FULL comparison re-plots and diffs every aperture, which needs kicad-cli and pcbnew
+# and takes minutes -- so it lives in `fab_package.py --check`, not here. This half runs
+# everywhere and is what stops a stale package riding a green build.
+FAB_ZIP = os.path.join(ROOT, "pcbway-assembly", "fab", "agbm-02-cxc-pcbway.zip")
+FAB_MANIFEST = os.path.join(ROOT, "pcbway-assembly", "fab", "fab-manifest.json")
+# Every member the package must carry. A fab house that gets 10 of 11 copper layers does
+# not stop -- it builds what it was sent.
+FAB_REQUIRED = (
+    "ORDER.txt",
+    "assembly/agbm-02-cxc-bom.csv",
+    "assembly/agbm-02-cxc-cpl.csv",
+    "assembly/agbm-02-cxc-do-not-populate.csv",
+)
+FAB_EXTS = (".gtl", ".g1", ".g2", ".gbl",      # copper, top to bottom
+            ".gts", ".gbs",                     # mask
+            ".gto", ".gbo",                     # silk
+            ".gtp", ".gbp",                     # paste
+            ".gm1")                             # outline
+
+
+def check_fab_package():
+    print("[21] the PCBWay package is plotted from this board, and from a re-poured copy")
+    if not os.path.exists(FAB_ZIP) or not os.path.exists(FAB_MANIFEST):
+        err("no fab package on disk -- run scripts/fab_package.py. The board is not "
+            "orderable until there is one")
+        return
+    man = json.load(open(FAB_MANIFEST, encoding="utf-8"))
+    want = _render_source_digest()
+    got = man.get("source") or {}
+    if got != want:
+        err("the fab package was plotted from a DIFFERENT board than the one committed "
+            f"(package board {got.get('board')} base {got.get('base')}; committed "
+            f"{want['board']} / {want['base']}) -- re-run scripts/fab_package.py and commit "
+            "the zip in the same commit as the board change")
+        return
+    ok(f"plotted from this exact board ({want['board']}) and base ({want['base']})")
+    with zipfile.ZipFile(FAB_ZIP) as z:
+        names = z.namelist()
+        sizes = {n: z.getinfo(n).file_size for n in names}
+    missing = [m for m in FAB_REQUIRED if m not in names]
+    exts = {os.path.splitext(n)[1].lower() for n in names if n.startswith("gerbers/")}
+    missing += [f"a {e} plot" for e in FAB_EXTS if e not in exts]
+    if not any(n.startswith("drill/") and n.lower().endswith(".drl") for n in names):
+        missing.append("an Excellon drill file")
+    # NPTH is its own file and it is NOT optional -- it carries the shell mounting holes,
+    # and a board built without them does not fit the case.
+    if not any("NPTH" in n and n.lower().endswith(".drl") for n in names):
+        missing.append("a separate NPTH drill file (the shell mounting holes)")
+    empty = sorted(n for n in names if sizes[n] == 0)
+    if missing:
+        err("the fab package is missing: " + ", ".join(missing))
+    elif empty:
+        err("member(s) of the fab package are empty: " + ", ".join(empty))
+    else:
+        cu = sorted(n for n in names if os.path.splitext(n)[1].lower()
+                    in (".gtl", ".g1", ".g2", ".gbl"))
+        ok(f"{len(names)} members: {len(cu)} copper layer(s), both masks, both silks, both "
+           f"paste layers, the outline, PTH and NPTH drill, and the assembly documents")
+        note(f"content digest {man.get('content')}, plotted by {man.get('kicad')}")
+
+
 
 def main():
     global verbose
@@ -1923,7 +2008,7 @@ def main():
                check_geometry, check_zone_fill, check_renders,
                check_upstream_links, check_paste, check_cpl_datum,
                check_rotation_convention, check_kicad10,
-               check_power_ledger):
+               check_power_ledger, check_fab_package):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

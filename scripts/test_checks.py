@@ -363,6 +363,44 @@ def main():
         "[20] a ledger line no document states any more",
         lambda d: d.update({"1234.5": "a figure no document states"}))
 
+    # [21] guards the expensive artifact. Two ways it rots, one case each. Both work on
+    # COPIES in a temp directory with cc's paths repointed, so the real package on disk is
+    # never touched -- a mutation case must not be able to damage the thing it guards.
+    def _fab_case(label, mutate):
+        import tempfile, zipfile as _zf
+        keepz, keepm = cc.FAB_ZIP, cc.FAB_MANIFEST
+        with tempfile.TemporaryDirectory() as td:
+            z2, m2 = os.path.join(td, "p.zip"), os.path.join(td, "m.json")
+            with _zf.ZipFile(cc.FAB_ZIP) as zin:
+                members = {n: zin.read(n) for n in zin.namelist()}
+            man = json.loads(io.open(cc.FAB_MANIFEST, encoding="utf-8").read())
+            mutate(members, man)
+            with _zf.ZipFile(z2, "w") as zout:
+                for k in sorted(members):
+                    zout.writestr(k, members[k])
+            io.open(m2, "w", encoding="utf-8", newline="").write(json.dumps(man))
+            cc.FAB_ZIP, cc.FAB_MANIFEST = z2, m2
+            try:
+                errs, _, _w = _run(cc.check_fab_package, good)
+            finally:
+                cc.FAB_ZIP, cc.FAB_MANIFEST = keepz, keepm
+        print(f"  {'ok:     ' if errs else 'BLIND:  '}{label}"
+              f"{' -> caught' if errs else ' -> the check did NOT fire'}")
+        return 0 if errs else 1
+
+    def _stale_source(members, man):
+        man["source"] = {"board": "0" * 16, "base": "0" * 16}
+
+    def _drop_a_copper_layer(members, man):
+        victim = next(k for k in sorted(members) if k.lower().endswith(".g1"))
+        members.pop(victim)
+
+    extra_cases += 1
+    extra_failed += _fab_case("[21] the package was plotted from a different board", _stale_source)
+    extra_cases += 1
+    extra_failed += _fab_case("[21] an inner copper layer is missing from the package",
+                              _drop_a_copper_layer)
+
     failures, skipped = extra_failed, []
     for case in cases:
         label, fn, mutated = case[:3]
