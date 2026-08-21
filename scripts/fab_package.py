@@ -227,6 +227,31 @@ def _project() -> str:
     return check_drc.project_file()
 
 
+def fab_facts(board_text: str) -> dict:
+    """The PCBWay form asks for numbers the gerbers cannot carry. Measure them off the
+    board rather than eyeballing the design, because every one is a price tier or a
+    rejection: declare a tier tighter than you need and you overpay, looser and DFM
+    bounces it."""
+    import collections
+    seg = collections.Counter(
+        float(m.group(1)) for m in
+        re.finditer(r"\(segment\b(?:(?!\(segment)[\s\S])*?\(width ([\d.]+)\)", board_text))
+    drills = collections.Counter(
+        float(m.group(1)) for m in
+        re.finditer(r"\(via\b(?:(?!\(via)[\s\S])*?\(drill ([\d.]+)\)", board_text))
+    pads = re.findall(r"\(drill ([\d.]+)\)", board_text)
+    xs, ys = [], []
+    for x0, y0, x1, y1 in geom.edge_segments(board_text):
+        xs += [x0, x1]; ys += [y0, y1]
+    st = re.search(r"\(stackup\b(.*?)\n\t\t\)\n", board_text, re.S)
+    cu = re.findall(r'\(layer "([^"]+)"\s*\(type "copper"\)\s*\(thickness ([\d.]+)\)',
+                    st.group(1) if st else "")
+    return {"size_x": max(xs) - min(xs), "size_y": max(ys) - min(ys),
+            "min_track_mm": min(seg), "min_drill_mm": min(float(d) for d in pads),
+            "via_drill_mm": min(drills), "vias": sum(drills.values()),
+            "copper_mm": {n: float(t) for n, t in cu}}
+
+
 def order_sheet(board_text: str, members: dict) -> str:
     s = stackup(board_text)
     # COUNT WITH A CSV READER, NOT BY SPLITTING ON NEWLINES. The BOM's note column carries
@@ -242,6 +267,7 @@ def order_sheet(board_text: str, members: dict) -> str:
     drills = sorted(k.split("/")[-1] for k in members if k.startswith("drill/"))
     spec = order_spec()
     st = stackup(board_text)
+    f = fab_facts(board_text)
     finish = spec["surface_finish"].replace("**", "")
     # The stackup and his README disagree about thickness. Say so, loudly, rather than
     # picking one silently -- the .gbrjob in this same package declares the stackup's
@@ -273,12 +299,27 @@ ORDER OPTIONS -- these must be set on the form; the gerbers cannot carry them
   contacts for the D-pad and buttons, so the HASL exception does not apply unless you are
   also fitting tactile switches.
 
+MEASURED OFF THE BOARD -- the rest of the form
+  Size (single) ......... {f['size_x']:.2f} x {f['size_y']:.2f} mm
+  Material .............. FR-4. Let PCBWay apply their free TG150 upgrade
+  Min track/spacing ..... 6/6 mil. The narrowest track is {f['min_track_mm']:.4f} mm
+                          ({f['min_track_mm'] / 0.0254:.2f} mil) and the FFC lands sit on a
+                          0.200 mm gap, so 8/8 mil is a hair too tight to declare
+  Min hole size ......... {f['min_drill_mm']:.2f} mm  -> pick the 0.3 mm tier
+  Finished copper ....... 1 oz outer, 1 oz inner ({', '.join(f'{k} {v}' for k, v in
+                          sorted(f['copper_mm'].items()))} mm)
+  Via process ........... TENTING VIAS. All {f['vias']} vias are already tented in the mask
+                          gerbers -- zero apertures over any of them -- which matters
+                          because the ClockxControl lies flat over 25 of them
+  Impedance control ..... none
+  Castellations ......... none
+  Edge plating .......... none
+  Edge connector ........ no. P1 is a through-hole cartridge socket, not a gold finger
+
 BOARD
   Outline ............... in Edge.Cuts. It includes 13 shell holes and two routed openings
                           INSIDE footprints (SW1's switch shaft, VR2's wheel), so the
                           router has to follow Edge.Cuts, not the bounding box
-  Castellations ......... none
-  Edge plating .......... none
 
 GERBERS ({len(gerbers)} files, RS-274X, 6-digit, Protel extensions)
   .GTL / .G1 / .G2 / .GBL ... copper, top to bottom
