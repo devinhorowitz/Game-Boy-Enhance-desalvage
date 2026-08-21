@@ -2,7 +2,7 @@
   "pillow": "12.3.0",
   "source": {
     "base": "9baf08be6d4c7dd2",
-    "board": "4bba6d88df700037"
+    "board": "0868eb24f3cbc81c"
   },
   "supersample": 3,
   "views": {

@@ -259,6 +259,14 @@ def main():
     # shipped comparing footprints, pads, vias and track coverage, and was described as
     # proving "the same board" -- it proved the same COPPER, and a user's five silkscreen
     # edits passed straight through it. A gate is only as wide as the thing it measures.
+    # ECO-26. A PROPERTY and a GRAPHIC are different code paths. The case below moves a
+    # Reference, which lives in `(property ...)`; this one moves an fp_text, which lives in
+    # the footprint's graphics and is the path whose reader was blind -- `(at 0 0 180)` has
+    # a rotation, and the position pattern could not match it.
+    cases.append(("[19] a silkscreen TEXT moves and the KiCad 10 copy does not",
+                  cc.check_kicad10,
+                  good.replace("(at -2.538 2.7004 180)", "(at 0 0 180)", 1),
+                  "non-copper graphics differ"))
     cases.append(("[19] only the SILKSCREEN moves and the KiCad 10 copy does not",
                   cc.check_kicad10,
                   good.replace("(at -1.7944 1.5128 0)", "(at 0 -1.8 0)", 1),

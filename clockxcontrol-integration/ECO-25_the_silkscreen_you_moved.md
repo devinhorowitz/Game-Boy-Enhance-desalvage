@@ -96,6 +96,15 @@ against that background.
 * `python3 scripts/build_board.py --check` — byte-identical rebuild
 * a format-neutral silkscreen diff against the upload — **0 differences** across 508 text
   placements, 210 footprints carrying silk, and 360 top-level silk items
+
+> ### ⚠ That "0 differences" was produced by a blind reader — see [ECO-26](ECO-26_the_third_blind_reader.md)
+>
+> The position pattern behind it was `(at x y)` anchored on the closing paren, which matches
+> nothing against `(at 0 0 180)`. **Every `fp_text` on the board extracted an empty position**,
+> so two texts in different places compared equal. One more edit was outstanding and invisible:
+> `MOD1`'s `CLOCKXCONTROL` label, which the user had moved out from under MouseBiteLabs'
+> silkscreen. ECO-26 fixes the reader, adopts the move, and makes a text item that yields no
+> position an error rather than a match.
 * `python3 scripts/kicad10.py --check` — copper, text placement and non-copper graphics all
   match
 * `python3 scripts/check_consistency.py` — 0 errors

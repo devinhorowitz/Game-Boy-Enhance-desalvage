@@ -766,7 +766,7 @@ def build():
 \t\t\t)
 \t\t)
 \t\t(fp_text user "CLOCKXCONTROL"
-\t\t\t(at 0 0 180)
+\t\t\t(at -2.538 2.7004 180)
 \t\t\t(layer "F.SilkS")
 \t\t\t(uuid "{uid('modtext')}")
 \t\t\t(effects
