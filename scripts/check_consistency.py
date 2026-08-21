@@ -58,6 +58,10 @@ retired check, not a missing one.
                          nets, text and non-copper graphics as the KiCad 9 board. Tracks
                          compare by COVERAGE, because KiCad 10 merges collinear runs and a
                          naive diff reads that as hundreds of deleted traces. [ERROR]
+  [20] POWER LEDGER   -- every power figure a document states is in POWER_LEDGER with the
+                         reason it is that number, and every ledger line is still stated
+                         somewhere. The one check with no artifact behind it: these are
+                         MODELLED numbers, so the ledger is the source of truth. [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -1829,6 +1833,83 @@ def check_kicad10():
            f"track run(s), {len(kicad10.vias(b9))} via(s), "
            f"{len(kicad10.footprints(b9))} footprint(s), every pad and net identical")
 
+# =====================================================================================
+# [20] every power figure a document states is in the ledger
+# =====================================================================================
+# THREE DOCUMENTS NOW STATE THE SAME POWER BUDGET and nothing recomputes any of it. The
+# numbers are MODELLED -- derived from MouseBiteLabs' published measurements, not measured
+# on a board of this fork, because no such board exists -- so unlike every other check
+# here there is no artifact to re-derive them from. That makes them exactly the kind of
+# number that rots: someone edits one document, the other two keep the old value, and a
+# reader has no way to tell which is current.
+#
+# So they get the exclusion-ledger treatment instead. Every "N mW" a fork document states
+# must appear below with the reason it is that number. Add a figure to a document and this
+# check goes red until it is ledgered; change one and it goes red until every copy agrees.
+#
+# TWO PAIRS HERE LOOK LIKE CONTRADICTIONS AND ARE NOT. Leave them alone:
+#   * 40 mW and 44/45 mW are the SAME 12 mA in different reference frames -- 12 mA x 3.3 V
+#     at the VDD3 rail is 39.6 mW; referred back through converter 2 and the series
+#     protection to the battery it is 44-45 mW. Every other figure here is battery-side.
+#   * 26 mW and 25.9 mW, 29 mW and 29.0 mW are a rounded prose figure and its table row.
+POWER_LEDGER = {
+    "0.62":  "DL1+R25 after the swap, at VOUT5 -- the 'to' half of 4.66 -> 0.62",
+    "0.98":  "post-brownout latched-off drain after the swaps, from 6.90",
+    "6.90":  "post-brownout latched-off drain before the swaps",
+    "12.0":  "U7 TLV9364 -> TLV9064IPWR, the largest single line, at all three points",
+    "19":    "net cost of the fork in use at stock speed: 45 module - 25.9 swaps",
+    "21.8":  "what the swaps hand back at idle",
+    "22":    "net cost of the fork at idle: 44 module - 21.8 swaps",
+    "25.9":  "what the swaps hand back in use at stock speed",
+    "26":    "25.9 rounded, in prose",
+    "29":    "29.0 rounded, in prose",
+    "29.0":  "what the swaps hand back at 1.75x",
+    "40":    "the module's own 12 mA AT THE VDD3 RAIL (12 mA x 3.3 V). NOT battery-side",
+    "45":    "the module referred to the BATTERY, before it overclocks anything",
+    "150":   "MouseBiteLabs' own headline: the AGBM draws ~150 mW less than a Funnyplaying GBA",
+    "159":   "module AND overclock together, against a stock board, at 1.75x",
+    "170":   "MouseBiteLabs' measured AGBM-01 idle -- an ANCHOR, his figure not ours",
+    "200":   "the module at 1.75x AT THE RAIL, the upper end of insideGadgets' 40-60 mA",
+    "792":   "MouseBiteLabs' measured representative use -- an ANCHOR, FP ITA max brightness",
+    "951":   "the 792 mW anchor with the module fitted and running at 1.75x",
+}
+POWER_DOCS = ("README.md",
+              "clockxcontrol-integration/DESIGN-DECISIONS.md",
+              "clockxcontrol-integration/README.md",
+              "pcbway-assembly/README.md")
+
+
+def check_power_ledger():
+    print("[20] every power figure a document states is in the ledger")
+    seen, unledgered = {}, []
+    for md in POWER_DOCS:
+        path = os.path.join(ROOT, md)
+        if not os.path.exists(path):
+            err(f"{md} is missing -- it is one of the documents that states the power budget")
+            continue
+        for m in re.finditer(r"(\d+(?:\.\d+)?) mW", open(path, encoding="utf-8").read()):
+            v = m.group(1)
+            seen.setdefault(v, set()).add(md)
+            if v not in POWER_LEDGER:
+                unledgered.append(f"{md}: {v} mW")
+    if unledgered:
+        err("power figure(s) stated by a document with no line in POWER_LEDGER -- these are "
+            "MODELLED numbers that nothing here can re-derive, so a new one has to be "
+            "justified in the ledger in the same commit that states it: "
+            + "; ".join(sorted(set(unledgered))))
+    stale = sorted(set(POWER_LEDGER) - set(seen))
+    if stale:
+        err("POWER_LEDGER line(s) no longer stated by any document -- a figure that left the "
+            "prose must leave the ledger too, or the ledger stops describing the documents: "
+            + ", ".join(f"{v} mW" for v in stale))
+    if not unledgered and not stale:
+        shared = {v: d for v, d in seen.items() if len(d) > 1}
+        ok(f"{len(seen)} distinct power figure(s) across {len(POWER_DOCS)} documents, every "
+           f"one ledgered; {len(shared)} stated in more than one document")
+        for v, docs in sorted(shared.items()):
+            note(f"{v} mW in {len(docs)} documents: {', '.join(sorted(docs))}")
+
+
 
 def main():
     global verbose
@@ -1841,7 +1922,8 @@ def main():
                check_blockers, check_structure, check_assembly_split,
                check_geometry, check_zone_fill, check_renders,
                check_upstream_links, check_paste, check_cpl_datum,
-               check_rotation_convention, check_kicad10):
+               check_rotation_convention, check_kicad10,
+               check_power_ledger):
         fn()
     print(f"\n== {len(errors)} error(s), {len(warnings)} warning(s) ==")
     return 1 if errors else 0

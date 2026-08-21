@@ -337,6 +337,32 @@ def main():
         extra_failed += _json_case(
             f"[16] {_victim} silently stops matching his part", OVERS, _strip)
 
+    # [20] is the ONE check with no artifact behind it: the power figures are modelled from
+    # MouseBiteLabs' measurements, not derived from the board, so nothing can recompute them
+    # and the ledger IS the source of truth. Both directions have to fire -- a figure that
+    # appears in prose without a ledger line, and a ledger line no document states any more.
+    # Mutating the LEDGER rather than the documents keeps this off the filesystem.
+    def _ledger_case(label, mutate):
+        keep = dict(cc.POWER_LEDGER)
+        try:
+            mutate(cc.POWER_LEDGER)
+            errs, _, _w = _run(cc.check_power_ledger, good)
+            print(f"  {'ok:     ' if errs else 'BLIND:  '}{label}"
+                  f"{' -> caught' if errs else ' -> the check did NOT fire'}")
+            return 0 if errs else 1
+        finally:
+            cc.POWER_LEDGER.clear()
+            cc.POWER_LEDGER.update(keep)
+
+    extra_cases += 1
+    extra_failed += _ledger_case(
+        "[20] a document states a power figure with no ledger line",
+        lambda d: d.pop(sorted(d)[0]))
+    extra_cases += 1
+    extra_failed += _ledger_case(
+        "[20] a ledger line no document states any more",
+        lambda d: d.update({"1234.5": "a figure no document states"}))
+
     failures, skipped = extra_failed, []
     for case in cases:
         label, fn, mutated = case[:3]

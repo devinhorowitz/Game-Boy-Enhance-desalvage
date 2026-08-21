@@ -99,6 +99,43 @@ rate-limited Mouser query would otherwise have reported a resistor as unstocked 
 
 **One board's machine-placed parts cost about $54 at Digi-Key qty-1 pricing.**
 
+### Eleven lines are this fork's choice, and reverting one has a price
+
+These are the lines `mpn_overrides.json` sets against MouseBiteLabs' own schematic. **If a
+distributor is dry and you are tempted to fall back to his part, this is what that costs.**
+Savings are at the battery, at three operating points; the ClockxControl draws ~12 mA whether
+or not you overclock, so fitting it costs about 45 mW before it speeds anything up, and these
+are the other side of that ledger.
+
+| Ref | His part → this fork's | idle | in use, stock | 1.75× | what you give up by reverting |
+|---|---|---|---|---|---|
+| `U7` | TLV9364 → **TLV9064IPWR** | 12.0 mW | 12.0 | 12.0 | **not just efficiency — his part is specified 4.5 V to 40 V and sits on the 2.5 V `VAUD` rail, below its own minimum** |
+| `DL1` + `R25` | AlInGaP + 3.3 k → **InGaN + 22 k** | 4.6 | 4.6 | 4.6 | 4.66 → 0.62 mW at `VOUT5` for the same visible brightness |
+| `PTC1` | 0805L075SLYR → **0805L110SLYR** | 0.1 | 2.2 | 3.2 | **hold-current margin.** His part derates to 0.55 A at 40 °C, under the realistic worst case |
+| `R15` + `R16` | 10 k → **100 k** | 0.74 | 0.74 | 0.73 | brownout-latch bias, and `R16` also sets the clamp current for `Q10A` |
+| `R65` | 100 k → **470 k** | 0.25 | 0.25 | 0.25 | quiescent bias only |
+| `R11` + `R24` | 1 k → 10 k, 100 k → **1 M** | 0.05 | 0.05 | 0.05 | quiescent bias only |
+| **Total** | | **21.8 mW** | **25.9 mW** | **29.0 mW** |  |
+
+`Q9`/`Q10` (NDC7002N → **FDC6301N**) are on the list too and save nothing — they are a
+correctness fix. The NDC7002N's worst-case gate threshold is *above* the drive those two
+actually get, so a worst-case part leaves the brownout latch unarmed and the low-battery LED
+dark, invisibly, because the console works normally until the protection was meant to act.
+**Do not substitute those two back.** `Q2`, `Q5` and `Q7` keep the NDC7002N deliberately.
+
+Separately, and not a running saving: the post-brownout latched-off drain falls **6.90 mW →
+0.98 mW**, a 7.1× cut in what a flat pack loses while the console sits switched on but latched
+off.
+
+Two of the twelve refs are Description-only corrections and change nothing you order: `F1` and
+`PTC1` both shipped a legacy `0805L050WR` string that names neither part.
+
+**Provenance.** Every figure is *modelled*, referred to the battery, and anchored on
+MouseBiteLabs' own published measurements — 170 mW idle, 792 mW representative use, 951 mW
+with the module at 1.75×, 2.4 V pack. **Nothing was measured on a built board of this fork**,
+because none exists. Full derivation in
+[`../clockxcontrol-integration/DESIGN-DECISIONS.md`](../clockxcontrol-integration/DESIGN-DECISIONS.md) §7.
+
 ---
 
 ## 3. What is not ready to order
