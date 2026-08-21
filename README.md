@@ -39,9 +39,8 @@ on the back is the FFC display connector whose lands MouseBiteLabs narrowed in h
 > — and check [13] re-measures all six on every run, failing if a margin moves by 5 µm.
 >
 > **Eleven value changes and two corrected descriptions, to buy back some of what the module
-> costs.** The ClockxControl draws
-> ~12 mA of its own whether or not you overclock, so fitting it costs about **45 mW at the
-> battery before it speeds anything up**. The swaps are the other side of that ledger — an
+> costs.** The ClockxControl draws ~12 mA of its own whether or not you overclock, so fitting
+> it costs about **45 mW at the battery before it speeds anything up**. The swaps are the other side of that ledger — an
 > op-amp off a rail it was never specified for, an LED and its ballast, a PPTC off a hold
 > current it sat under, and six resistors in the quiescent network:
 >
@@ -63,8 +62,8 @@ on the back is the FFC display connector whose lands MouseBiteLabs narrowed in h
 > * **Overclocked at 1.75×** — the module and the overclock together are **+159 mW**, and the
 >   swaps recover 29 mW. The overclock costs about 79 minutes of runtime on a 6.26 Wh pack;
 >   this hands back about 12 of them. **The energy cannot be won back**, and nothing here
->   pretends otherwise — the swaps make the *stock* build free and take the edge off the
->   overclocked one.
+>   pretends otherwise — the swaps get a *stock* build back to roughly where it started, and
+>   take some of the edge off an overclocked one.
 >
 > Every figure above is **modelled**, referred to the battery, and anchored on MouseBiteLabs'
 > own published measurements (170 mW idle, 792 mW representative use, 951 mW with the module
