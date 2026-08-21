@@ -266,8 +266,16 @@ check [6] keeps naming these. Check **[16]** fails if any link in the base schem
   `C_1210_3225Metric_Boxed_2` (3.2 × 2.5 mm). The land measures 4.10 × 2.70 mm.
 - **`CP1`/`CP2`/`CP3` polarity**: they are **polarized tantalums on a symmetric land pattern with no
   polarity marking anywhere on the board**. A human reads the part's own stripe; a pick-and-place
-  reads the CPL rotation, and if that rotation is wrong all three go in backwards.
-  **Add polarity silkscreen before ordering assembly.**
+  reads the CPL rotation, and if that rotation is wrong all three go in backwards, and nothing
+  downstream catches it — not DRC, not AOI, not a visual check, and a reversed tantalum fails
+  shorted. **Add polarity silkscreen before ordering assembly**, and until then `ORDER.txt` carries
+  the warning by name.
+
+  This is now derived rather than asserted. `fab_package.polarity_risk()` takes the polarised parts
+  from the distributor's own description and measures each land and its silkscreen for mirror
+  symmetry; check [21] fails if `ORDER.txt` stops naming one. It finds **exactly `CP1`, `CP2` and
+  `CP3`** — the board's other polarised parts are all marked, `D1`/`D2` by a bracket drawn round the
+  cathode end and `DL1`/`DL2` by the diode triangle.
 
 ---
 
