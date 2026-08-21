@@ -27,7 +27,8 @@ WHAT GOES IN THE ZIP
                      RS-274X with Protel extensions (.GTL/.G1/.G2/.GBL/...), 6-digit
     drill/           Excellon, millimetres, PTH and NPTH in separate files, plus a map
     assembly/        the position file and the BOM, straight out of pcbway-assembly/generated
-    ORDER.txt        stackup, thickness, layer count and the things a human has to tell them
+    ORDER.txt        stackup, thickness, layer count, the four counts the assembly quote
+                     form asks for, and the things a human has to tell them
 
 DETERMINISM
 
@@ -252,6 +253,137 @@ def fab_facts(board_text: str) -> dict:
             "copper_mm": {n: float(t) for n, t in cu}}
 
 
+# What PCBWay's assembly quote actually asks for, and why each is measured rather than
+# counted by eye. "Fine pitch" is 0.65 mm because that is the coarsest pitch on this board
+# that still needs a stencil-and-reflow process rather than a hand iron.
+FINE_PITCH_MM = 0.65
+
+
+def _pad_geometry(fp):
+    """[(kind, x, y)] for one footprint, in its own local coordinates.
+
+    Local coordinates are the point: rotation cancels out of a pitch, and every question
+    below is about the footprint's internal shape, not where it sits on the board.
+    """
+    out = []
+    for blk in kisexp.pad_blocks(fp.body):
+        head = re.match(r'\(pad "[^"]*" (\S+) ', blk)
+        at = re.search(r"\(at (-?[\d.]+) (-?[\d.]+)", blk)
+        if head and at:
+            out.append((head.group(1), float(at.group(1)), float(at.group(2))))
+    return out
+
+
+def _bands(vals, tol=0.05):
+    """Cluster near-equal coordinates. -> [(centre, [indices])]."""
+    out = []
+    for i, v in sorted(enumerate(vals), key=lambda p: p[1]):
+        if out and abs(v - out[-1][0]) <= tol:
+            out[-1][1].append(i)
+        else:
+            out.append([v, [i]])
+    return [(c, idx) for c, idx in out]
+
+
+def _even(centres, tol=0.05):
+    """True if these band centres are evenly spaced -- the signature of a pad ARRAY."""
+    gaps = [b - a for a, b in zip(centres, centres[1:])]
+    return len(gaps) >= 2 and max(gaps) - min(gaps) <= tol
+
+
+def _package_shape(pads):
+    """-> ("bga" | "quad" | "dual" | "discrete", lead_pitch_mm).
+
+    THE FOUR-EDGE TEST IS WRONG AND U2 IS WHY. Asking "are there pads near all four edges
+    of the bounding box?" calls U2 a QFP, because the corner pads of its two lead columns
+    sit on the y-extremes. What separates a quad package from a dual one is not where the
+    pads are but WHICH WAY THE LEAD ROWS RUN: a QFP has rows along both axes, a TSOP or
+    TSSOP or VSON has rows along one. Count the rows, not the edges.
+
+    AND THE FILLED-GRID TEST IS WRONG FOR THE SAME PART. U2's 96 pads sit in 4 columns of
+    24, which is exactly rows x cols -- a "perfectly filled grid" by cell arithmetic, and
+    it is not a BGA. What makes an array an array is that BOTH axes are evenly spaced.
+    U2's four columns are 1.76, 13.79 and 3.87 mm apart, because they are two lead frames
+    of different width sharing one land, so it fails on x and is correctly a dual package.
+
+    Pitch is measured ALONG a lead row, never as the nearest pad-to-pad distance on the
+    footprint: the nearest neighbour of a pad is often the pad opposite it in the other
+    row, which reported EM1's 0.65 mm choke as a 0.013 mm part.
+    """
+    if len(pads) < 3:
+        return "discrete", 0.0
+    xs = [p[1] for p in pads]
+    ys = [p[2] for p in pads]
+    xb, yb = _bands(xs), _bands(ys)
+    # A LEAD ROW IS NOT MERELY THREE PADS SHARING A COORDINATE. U2 again: each of its 24
+    # y-bands holds one pad from each of its 4 columns, so a bare count test reads 24
+    # horizontal "rows" and calls the part a QFP. A lead row is collinear AND EVENLY
+    # SPACED -- U2's four columns sit 1.76, 13.79 and 3.87 mm apart and fail that at once,
+    # while U1's bottom row of 38 pads on a uniform 0.5 mm passes.
+    def _lead_rows(bands, along):
+        out = []
+        for c, idx in bands:
+            if len(idx) >= 3 and _even(sorted(along[i] for i in idx)):
+                out.append((c, idx))
+        return out
+    cols = _lead_rows(xb, ys)   # rows running along y
+    rows = _lead_rows(yb, xs)   # rows running along x
+    pitches = []
+    for _, idx in cols:
+        run = sorted(ys[i] for i in idx)
+        pitches += [b - a for a, b in zip(run, run[1:]) if b - a > 0.01]
+    for _, idx in rows:
+        run = sorted(xs[i] for i in idx)
+        pitches += [b - a for a, b in zip(run, run[1:]) if b - a > 0.01]
+    pitch = min(pitches) if pitches else 0.0
+    if (len(xb) >= 3 and len(yb) >= 3
+            and _even([c for c, _ in xb]) and _even([c for c, _ in yb])):
+        return "bga", pitch
+    if cols and rows:
+        return "quad", pitch
+    if cols or rows:
+        return "dual", pitch
+    return "discrete", pitch
+
+
+def assembly_counts(board_text: str) -> dict:
+    """The four counts PCBWay's assembly form asks for, off the board and the BOM.
+
+    They are on the form because they price the job: unique parts sets the feeder count,
+    BGA/QFP decides whether the run needs X-ray, and through-hole decides whether it needs
+    a second, manual process at all. Getting one wrong is a requote, so derive each from
+    the artifact rather than typing a remembered number -- swap a footprint and the sheet
+    moves with it.
+    """
+    every = list(kisexp.footprints(board_text))
+    placed = [fp for fp in every if fp.placed]
+    # The parts a human still has to solder. Named, not counted, because "0 through-hole"
+    # on the form is only true of the ASSEMBLY scope and an assembler reading it should be
+    # told immediately which real parts are waiting on the far side of that boundary.
+    unplaced_th = sorted(
+        f.ref for f in every
+        if not f.placed and any(k == "thru_hole" for k, _, _ in _pad_geometry(f)))
+    smd, thru, quad, bga, fine = [], [], [], [], []
+    for fp in placed:
+        pads = _pad_geometry(fp)
+        (thru if any(k == "thru_hole" for k, _, _ in pads) else smd).append(fp.ref)
+        shape, pitch = _package_shape(pads)
+        if shape == "bga":
+            bga.append(fp.ref)
+        elif shape == "quad":
+            quad.append(fp.ref)
+        if pitch and pitch <= FINE_PITCH_MM + 1e-9:
+            fine.append((fp.ref, fp.name.split(":")[-1], pitch,
+                         "top" if fp.layer == "F.Cu" else "bottom"))
+    with open(GEN / "agbm-02-cxc-pcbway-assembly.csv", newline="", encoding="utf-8") as fh:
+        bom = list(csv.DictReader(fh))
+    return {"placements": len(placed), "smd": sorted(smd), "through_hole": sorted(thru),
+            "unplaced_through_hole": unplaced_th,
+            "quad": sorted(quad), "bga": sorted(bga),
+            "fine_pitch": sorted(fine, key=lambda r: (r[2], r[0])),
+            "bom_lines": len(bom), "unique_mpns": len({r["mpn"] for r in bom})}
+
+
 def order_sheet(board_text: str, members: dict) -> str:
     s = stackup(board_text)
     # COUNT WITH A CSV READER, NOT BY SPLITTING ON NEWLINES. The BOM's note column carries
@@ -268,6 +400,31 @@ def order_sheet(board_text: str, members: dict) -> str:
     spec = order_spec()
     st = stackup(board_text)
     f = fab_facts(board_text)
+    a = assembly_counts(board_text)
+    n_smd, n_thru = len(a["smd"]), len(a["through_hole"])
+    n_bgaqfp, n_fine = len(a["bga"]) + len(a["quad"]), len(a["fine_pitch"])
+    uth = a["unplaced_through_hole"]
+    named = [r for r in uth if not r.startswith("TP")]
+    n_uth, n_uth_named, uth_named = len(uth), len(named), ", ".join(named)
+    front = [r for r, _, _, sd in a["fine_pitch"] if sd == "top"]
+    front_refs = " and ".join(front) if len(front) < 3 else ", ".join(front)
+    fine_list = "".join(f"\n                            {r:5s} {nm:34s} {pt:.2f} mm  {sd}"
+                        for r, nm, pt, sd in a["fine_pitch"])
+    # Say WHY the two numbers differ rather than leaving a reader to wonder whether one of
+    # them is a miscount. Naming the part is what makes it checkable.
+    dupnote = ""
+    if a["unique_mpns"] != a["bom_lines"]:
+        import collections as _c
+        with open(GEN / "agbm-02-cxc-pcbway-assembly.csv", newline="", encoding="utf-8") as fh:
+            vals = _c.defaultdict(list)
+            for r in csv.DictReader(fh):
+                vals[r["mpn"]].append(r["value"])
+        dup = sorted(m for m, v in vals.items() if len(v) > 1)
+        pad = "\n" + " " * 26
+        dupnote = (pad + "They differ because " + ", ".join(dup) + " appears on more" +
+                   pad + "than one line -- same part, different schematic value strings" +
+                   pad + "(" + "; ".join(" / ".join(vals[m]) for m in dup) + ")." +
+                   " ONE FEEDER, not two.")
     finish = spec["surface_finish"].replace("**", "")
     # The stackup and his README disagree about thickness. Say so, loudly, rather than
     # picking one silently -- the .gbrjob in this same package declares the stackup's
@@ -333,12 +490,34 @@ DRILL ({len(drills)} files, Excellon, millimetres)
   mounting holes.
 
 ASSEMBLY
-  Side .................. both. The fine-pitch work is on the BACK.
+  Side .................. both. Most of the fine-pitch work is on the BACK; {front_refs}
+                          are the exceptions and sit on the front.
   Placements ............ {n_cpl}   (assembly/agbm-02-cxc-cpl.csv)
   BOM lines ............. {n_bom}   (assembly/agbm-02-cxc-bom.csv)
   Do not populate ....... {n_dnp} lines (assembly/agbm-02-cxc-do-not-populate.csv)
   Rotation .............. KiCad convention, byte-identical to `kicad-cli pcb export pos`.
                           Origin is the lower-left corner of the outline, X right, Y up.
+
+  -- the four numbers the assembly quote form asks for, measured, not remembered --
+  Unique parts .......... {a['unique_mpns']} distinct manufacturer part numbers across {a['bom_lines']} BOM lines.{dupnote}
+  SMD parts ............. {n_smd} -- EVERY placement. Not one part in the assembly scope
+                          has a through-hole pad.
+  Through-hole parts .... {n_thru}. The board does have through-hole pads -- {n_uth} footprints carry
+                          them, {n_uth_named} of them real parts and the rest test points -- but every
+                          one is on the do-not-populate list and is fitted by hand
+                          afterwards. Nothing on this order needs selective solder or a
+                          wave. The {n_uth_named}: {uth_named}.
+  BGA / QFP parts ....... {n_bgaqfp}. There is no BGA anywhere on this board, and the only quad
+                          flat pack is U1, the QFP-128 AGB CPU -- which is a SALVAGED part,
+                          excluded from both the BOM and the position file, and never
+                          touched by the line.
+  Fine pitch ............ {n_fine} placements at {FINE_PITCH_MM} mm or finer:{fine_list}
+                          U2 is the one to look at twice. Its land carries TWO overlapping
+                          TSOP-48 patterns, 96 pads for a 48-pin part, so that a salvaged
+                          AGB SRAM and the ordered CY62157EV30LL-45ZXIT both fit. Only the
+                          OUTER pair is pasted -- 48 apertures there, none on the inner
+                          pair -- so the stencil already says which land takes the part.
+                          Follow the paste layer.
 
 THINGS A HUMAN HAS TO TELL THEM
   1. CP1, CP2 and CP3 are POLARISED TANTALUMS ON A SYMMETRIC LAND WITH NO POLARITY MARK

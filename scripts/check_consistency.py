@@ -64,8 +64,12 @@ retired check, not a missing one.
                          MODELLED numbers, so the ledger is the source of truth. [ERROR]
   [21] FAB PACKAGE    -- the PCBWay upload was plotted from the committed board, and
                          carries every layer, both drill files and the assembly documents.
-                         The full aperture-by-aperture comparison needs KiCad and lives in
-                         `fab_package.py --check`; this half is the digest.  [ERROR]
+                         Also that ORDER.txt still states MouseBiteLabs' own thickness and
+                         layer count, and that the package classifier can still tell a QFP
+                         from a dual package -- the assembly form's BGA/QFP count is
+                         derived from it, and a blind classifier reports the same zero as
+                         a board with none. The full aperture-by-aperture comparison needs
+                         KiCad and lives in `fab_package.py --check`.  [ERROR]
 
 Exit: nonzero if any ERROR-level check fails. Warnings do not fail the build.
 Needs: python3 and the standard library. Nothing else -- no KiCad, no pip, no container.
@@ -2015,6 +2019,35 @@ def check_fab_package():
     else:
         ok(f"the order sheet carries his spec: {spec['thickness']}, {spec['layers']} layers, "
            f"{spec['surface_finish'].replace('**', '').split('(')[0].strip()}")
+
+    # "BGA/QFP: 0" IS A NUMBER THAT CHANGES THE QUOTE AND THE INSPECTION PROCESS, and a
+    # package detector that has quietly stopped detecting reports exactly the same zero as
+    # a board with no quad packages on it. The two are indistinguishable from the sheet.
+    # So prove the detector can still see one before believing its zero: U1 IS a QFP-128
+    # and must classify as quad, and U2 -- 96 pads in four columns, which every naive test
+    # calls a QFP or a BGA -- must classify as dual. If either moves, the zero is
+    # meaningless and this goes red.
+    shape = lambda fp: fab_package._package_shape(fab_package._pad_geometry(fp))[0]
+    seen = {fp.ref: shape(fp) for fp in kisexp.footprints(board()) if fp.ref in ("U1", "U2")}
+    wrong = [f"{r} reads as {seen.get(r, 'absent')!r}, not {w!r}"
+             for r, w in (("U1", "quad"), ("U2", "dual")) if seen.get(r) != w]
+    if wrong:
+        err("the package classifier no longer recognises this board's landmarks -- "
+            + "; ".join(wrong) + ". ORDER.txt's BGA/QFP count is derived from it, so it "
+            "cannot be trusted until this is fixed")
+        return
+    counts = fab_package.assembly_counts(board())
+    n = len(counts["bga"]) + len(counts["quad"])
+    stated = re.search(r"BGA / QFP parts \.+ (\d+)", sheet)
+    if not stated:
+        err("ORDER.txt states no BGA/QFP count -- the assembly form asks for one")
+    elif int(stated.group(1)) != n:
+        err(f"ORDER.txt says {stated.group(1)} BGA/QFP part(s); the board has {n} in the "
+            "assembly scope -- regenerate the package")
+    else:
+        ok(f"the classifier still sees U1 as a QFP and U2 as a dual package, and the sheet's "
+           f"{n} BGA/QFP agrees with the board ({len(counts['smd'])} SMD, "
+           f"{len(counts['through_hole'])} through-hole, {counts['unique_mpns']} unique MPN(s))")
 
 
 

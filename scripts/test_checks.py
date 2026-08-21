@@ -415,6 +415,36 @@ def main():
     extra_failed += _fab_case("[21] the order sheet stops stating his thickness",
                               _order_sheet_loses_his_thickness)
 
+    # The assembly form's BGA/QFP count decides whether the run gets X-ray inspection.
+    # Move the number away from what the board says and [21] has to notice.
+    def _order_sheet_miscounts_qfp(members, man):
+        members["ORDER.txt"] = re.sub(
+            rb"(BGA / QFP parts \.+ )0", rb"\g<1>2", members["ORDER.txt"])
+
+    extra_cases += 1
+    extra_failed += _fab_case("[21] the order sheet miscounts the BGA/QFP parts",
+                              _order_sheet_miscounts_qfp)
+
+    # AND THE CASE THE ZERO ITSELF DEPENDS ON. A classifier that has stopped recognising
+    # quad packages reports the same "0 BGA/QFP" as a board that has none, so the sheet
+    # alone cannot tell them apart. Blind the classifier -- make every package read as a
+    # dual -- and [21] must refuse to believe its own zero. If this case ever goes BLIND,
+    # the number on the order form has stopped meaning anything.
+    def _blind_the_classifier(members, man):
+        import fab_package
+        keep = fab_package._package_shape
+        fab_package._package_shape = lambda pads: ("dual", 0.5)
+        _restore.append(lambda: setattr(fab_package, "_package_shape", keep))
+
+    _restore = []
+    extra_cases += 1
+    try:
+        extra_failed += _fab_case("[21] the package classifier stops recognising a QFP",
+                                  _blind_the_classifier)
+    finally:
+        for undo in _restore:
+            undo()
+
     failures, skipped = extra_failed, []
     for case in cases:
         label, fn, mutated = case[:3]
