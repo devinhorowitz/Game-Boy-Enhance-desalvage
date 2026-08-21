@@ -7,11 +7,11 @@
 
 WHY THIS FILE EXISTS
 
-ECO-6 §6.6 says the views in `render/` were "produced by a renderer built against the
+The views in `render/` were once described as "produced by a renderer built against the
 board file directly". That renderer was never committed. What shipped was a set of PNGs
-with no generator -- so when ECO-13 rebased the fork from AGBM-01 onto AGBM-02, every
+with no generator -- so when the fork rebased from AGBM-01 onto AGBM-02, every
 render silently went on describing a board this repository no longer contains. Their git
-blob SHAs were identical before and after the rebase, which is how ECO-14 §14.5 caught it.
+blob SHAs were identical before and after the rebase, and it was caught by hand.
 
 The defect was never really "the pictures are stale". It was that a picture had no
 provenance. This file is the provenance: the views are a FUNCTION of the board file, so
@@ -31,7 +31,7 @@ THE ZONE FILLS ARE THE STORED ONES, ON PURPOSE
 
 The earlier renderer drew an APPROXIMATE RE-POUR -- it computed what the pour ought to look
 like. That is a friendlier picture and a worse one: it showed a board that does not exist in
-the file, and it hid the very defect ECO-14 check [14] exists to gate. These views draw the
+the file, and it hid the very defect check [14] exists to gate. These views draw the
 fill KiCad actually last computed, which is MouseBiteLabs' fill from before this fork added
 any copper. Where an added via or pad lands inside a foreign-net pour, the view rings it in
 `ALERT` and the caption counts them. That is not a rendering artifact -- it is the board,
@@ -187,7 +187,7 @@ class Canvas:
         stored (size w h) as though it were width-by-height in BOARD axes. U1's pin 39 was
         drawn 0.3 mm wide and 1.25 tall where it is physically 1.25 by 0.3: a picture whose
         whole job is to show what size and orientation each land really is, drawing a
-        quarter of them across the wrong axis. ECO-18 gave geom.collect() the angle; this
+        quarter of them across the wrong axis. geom.collect() now returns the angle; this
         is the other half.
         """
         a = ang % 360
@@ -396,8 +396,8 @@ def views(board):
         ("agbm02_cxc_diff.png",     lambda b, s: diff(b, s, BB)),
         ("agbm02_cxc_placement.png",lambda b, s: window(
             b, s, WIN, 34.0,
-            "The ClockxControl window -- ECO-6's placement",
-            "The component-free window below the RAM that ECO-6 opens by moving C7, with "
+            "The ClockxControl window -- the module placement",
+            "The component-free window below the RAM, opened by moving C7, with "
             "the MOD1 landings, the routing to TP2/TP8/TP9 and the three wire pads. "
             "{n} of the {tot} objects a stale pour swallows are in frame.")),
         ("agbm02_cxc_landings.png", lambda b, s: window(
@@ -447,7 +447,7 @@ def diff(board, base, bb):
     im = caption(c.finish(False),
                  "AGBM-02 + ClockxControl -- the copper diff, all four layers",
                  "Everything MouseBiteLabs routed is faded to a third. Everything at full "
-                 f"value is what ECO-6 added or moved. All {n} objects a stale "
+                 f"value is what this fork added or moved. All {n} objects a stale "
                  f"pour swallows are ringed.",
                  _keys(ORDER), ppm)
     return im, f"all layers, this fork's copper at full value, {n} ringed"
@@ -560,7 +560,7 @@ def module_geometry(board):
     Returns (body, courtyard, landed, ghosts) in BOARD coords. `ghosts` are the three
     lattice sites that exist only as F.Fab circles -- the module has six, this fork lands
     three, and no document says why those three. Drawing them is the point: the open
-    question in ECO-14 §14.5 is a geometric one, and prose was the wrong medium for it.
+    question is a geometric one, and prose was the wrong medium for it.
     """
     fp = kisexp.by_ref(board)["MOD1"]
     fx, fy, rot = fp.at
@@ -614,7 +614,7 @@ def fit(board, base):
         f"{abs(body[1][1]-body[0][1]):.2f} mm), blue its courtyard. Green marks the three "
         f"lattice sites this fork LANDS; grey rings the three it does not -- they exist "
         f"only as F.Fab circles. Which three are landed, and why those three, is the open "
-        f"item in ECO-14 §14.5 and needs a physical module to settle. {n} of the {tot} "
+        f"item and needs a physical module to settle. {n} of the {tot} "
         f"objects a stale pour swallows are in frame.",
         [KEY_ADDED, ("landed lattice site", (120, 255, 160)),
          ("unlanded lattice site", (150, 150, 160)), ("module body", (236, 236, 214)),
@@ -658,7 +658,7 @@ def sheet(board, base):
 def source_digest(board, base):
     """{"board": sha, "base": sha} -- WHAT THESE PICTURES WERE MADE FROM.
 
-    ECO-24. The per-view `pixels` digests below can only be checked by RE-RENDERING, which
+    The per-view `pixels` digests below can only be checked by RE-RENDERING, which
     needs Pillow -- and this project's CI installs nothing on purpose, so check [15] used to
     report "did not run" there and a stale render sailed through a green build. Nobody would
     have noticed until a fab got a picture of a board that no longer existed.

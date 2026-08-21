@@ -8,7 +8,7 @@
 WHAT IT JOINS
 
   scripts/mpn_overrides.json   HAND-MAINTAINED. Which part a refdes buys, and why. An
-                               override beats a schematic link -- which is how ECO-8's
+                               override beats a schematic link -- which is how this fork's value
                                swaps survive the fact that the upstream schematic still
                                points at the parts they replaced.
   scripts/link_mpn.json        The upstream schematic's own per-symbol Digi-Key links,
@@ -56,9 +56,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OVERRIDES = os.path.join(ROOT, "scripts", "mpn_overrides.json")
 LINKMAP = os.path.join(ROOT, "scripts", "link_mpn.json")
 OUT = os.path.join(ROOT, "pcbway-assembly", "resolved-mpns.json")
-# ECO-13: the schematic whose own Digi-Key links resolve the generic values is AGBM-02's
+# The schematic whose own Digi-Key links resolve the generic values is AGBM-02's
 # now, matching the board. AGBM-01's links buy an LTC3527 front end this board does not
-# have, and three resistors whose stale values ECO-12 had to correct by hand.
+# have, and three resistors whose stale values the wiki audit had to correct by hand.
 SCHEMATIC_ZIP = os.path.join(ROOT, "AGBM-02 (AA Batteries)", "AGBM-02 Design Files.zip")
 
 DK_TOKEN_URL = "https://api.digikey.com/v1/oauth2/token"

@@ -11,11 +11,11 @@ what "legal" means -- which is the whole reason this file exists.
 
 WHY THE FIRST SEARCH WAS WRONG, twice over.
 
-ECO-14 maximised distance to HARD COPPER and nothing else. That is not the constraint set.
+An earlier pass maximised distance to HARD COPPER alone. That is not the constraint set.
 A fiducial has to satisfy FIVE separate things at once, and KiCad's DRC checks four of them:
 
   edge     the board outline INCLUDING its 13 gr_circle shell holes and the two fp_circle
-           openings inside SW1 and VR2. Two of ECO-14's marks were in holes.
+           openings inside SW1 and VR2. Two of the earlier marks were in holes.
   keepout  this board has 64 keepout zones, 30 of which forbid a pad or a footprint. Four
            are drawn as one full-circle arc and carry no (xy) vertex at all.
   copper   tracks, vias and pads ON THE MARK'S OWN LAYER -- inside the 1.0 mm mask window
@@ -24,7 +24,7 @@ A fiducial has to satisfy FIVE separate things at once, and KiCad's DRC checks f
            a single opening spanning two nets.
   crtyd    courtyards, so no part body ends up over the mark.
 
-And the fifth thing, which is not a constraint but an assumption ECO-14 made for free: that
+And the fifth thing, which is not a constraint but an assumption that pass made for free: that
 the six have to be three coincident front/back PAIRS. They do not. Front and back register
 independently. Dropping that assumption takes this board from 492 legal sites to 3,655 on
 the front and 6,324 on the back, and none of the six spots finally chosen is legal on the

@@ -71,7 +71,7 @@ Subtle shading and anti-aliasing noise -- nothing structural moves -- but it mea
 gate on these would fail at random on the SAME machine, and it means re-running this script
 always produces a git diff whether or not the board changed. Do not "fix" check [15] by
 extending its pixel comparison to cover these four; that check would be red half the time.
-The `source` digest ECO-24 added to the manifest is the honest gate for them: it asserts
+The `source` digest in the manifest is the honest gate for them: it asserts
 what these pictures were drawn FROM, which is deterministic, rather than what they look
 like, which is not.
 """
@@ -93,13 +93,13 @@ import kisexp                                                    # noqa: E402
 import bom_split                                                 # noqa: E402
 import build_board                                               # noqa: E402
 
-# The hand-solder set, taken from the generator rather than typed here. P1 and P4 carry
-# `dnp` ON TOP OF `exclude_from_bom`, so bom_split.classify() calls them "none" -- correct
-# for the assembly house, which leaves them off entirely, and wrong for a picture of a
-# FINISHED board, which certainly has its cartridge connector fitted. Naming them by class
-# alone would have quietly left the two biggest through-hole parts off the finished view.
-# X1/C3/C4 stay off: ECO-7 marks the crystal DNP for ClockxControl builds, and a finished
-# ClockxControl board really does not have one.
+# The hand-solder set, taken from the generator rather than typed here. P1 and P4 carry `dnp` ON
+# TOP OF `exclude_from_bom`, so bom_split.classify() calls them "none" -- correct for the
+# assembly house, which leaves them off entirely, and wrong for a picture of a FINISHED board,
+# which certainly has its cartridge connector fitted. Naming them by class alone would have
+# quietly left the two biggest through-hole parts off the finished view. X1/C3/C4 stay off: the
+# board marks the crystal DNP for ClockxControl builds, and a finished ClockxControl board
+# really does not have one.
 HAND_FITTED = set(build_board.THRU_HOLE_REASONS) | set(build_board.SALVAGE_ONLY)
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -163,7 +163,7 @@ def footprint_blocks(src: str):
 
     Paren-balanced rather than a lazy regex: a footprint contains nested pads, models and
     properties, and a lazy match runs past its own end into the next part -- the same bug
-    ECO-15 found in check_stock's schematic parser, which handed SW1's link to U13.
+    a parser bug found in check_stock, which handed SW1's link to U13.
     """
     for m in re.finditer(r'\n\t\(footprint "', src):
         i = m.start() + 1
@@ -250,7 +250,7 @@ def strip_unplaced(src: str, keep: set[str]) -> tuple[str, dict]:
         n = blk.count("(model ")
         # OFF-BOARD FOOTPRINTS ARE NOT PART OF THE BOARD, whatever they classify as.
         # MouseBiteLabs' AGBM-02 parks an unannotated HC49 crystal -- ref "REF**", zero
-        # pads, a leftover reference for the crystal option ECO-7 marks DNP -- at
+        # pads, a leftover reference for the crystal the board marks DNP -- at
         # (8.89, -81.888), nine millimetres above the top edge. It carries a 3D model, so
         # the first assembled render came back with a crystal floating in space beside the
         # board. It is outside Edge.Cuts, so no fab makes it; it is not ours to delete from
@@ -441,7 +441,7 @@ def main() -> int:
                               "bytes": out.stat().st_size}
     live = {fn for fn, _k, _s, _d, _c in TARGETS.values()}
     man["targets"] = {k: v for k, v in man["targets"].items() if k in live}
-    # ECO-24: the board these bodies were placed on, so a stale assembled render is
+    # The board these bodies were placed on, so a stale assembled render is
     # catchable without KiCad. Same rationale as render_board.source_digest().
     import render_board as _rb
     import geom as _geom

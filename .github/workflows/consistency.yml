@@ -1,9 +1,9 @@
 # .github/workflows/consistency.yml -- the drift guard for this fork.
 #
 # Runs scripts/check_consistency.py: the shipped board must rebuild byte-for-byte from
-# the committed ECO-5 base, the shipped package must match the tree, and every claim the
-# ECO documents make about part values, DNP flags, placement and the two open blockers
-# must still be true of the board.
+# MouseBiteLabs' committed AGBM-02, the shipped package must match the tree, and every
+# claim the documents make about part values, DNP flags, placement, clearance and the buy
+# lists must still be true of the board.
 #
 # NO CONTAINER, NO PINNED IMAGE, NO pip INSTALL. That is a deliberate difference from the
 # SOLAR-GLOW suite this is borrowed from, which pins a KiCad image by digest in three
@@ -86,7 +86,7 @@ jobs:
       # "declined, with a reason" from "read nothing"; only the second is BLIND. Run
       # test_checks.py locally, where both are installed, for full coverage. That
       # distinction did not exist until 2026-08-20 and its absence made this workflow
-      # RED on every commit from ECO-16 to ECO-20 while every local run was green.
+      # RED on a run of commits while every local run was green.
       - name: The drift guard can still fail
         run: python3 scripts/test_checks.py
       # The CONVERSION needs KiCad 10 and does not run here; the PROOF is pure text, so it

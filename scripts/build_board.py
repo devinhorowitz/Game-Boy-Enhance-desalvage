@@ -8,48 +8,55 @@
 WHY THIS EXISTS
 
 Until this file landed, the shipped board was the output of a script that lived in a
-scratch directory and was never committed. ECO-8 said so in its own section 8.6 -- "the
-script is not in the repository" -- which meant the deliverable could not be rebuilt by
-anyone, including its author, and no gate could tell whether the committed board was
-still the one the ECOs describe. Every number in ECO-6, ECO-7 and ECO-8 was a claim about
-a binary blob nobody could re-derive.
+scratch directory and was never committed. The deliverable could not be rebuilt by anyone,
+including its author, and no gate could tell whether the committed board was still the one
+the documents described. Every number in them was a claim about a binary blob nobody could
+re-derive.
 
 This is SOLAR-GLOW's `Generated/` doctrine applied here: the artifact is a FUNCTION of
 committed inputs, so it can be rebuilt, diffed, and gated. Its inputs are
 
     AGBM-02 (AA Batteries)/AGBM-02 Design Files.zip
                                 MouseBiteLabs' AGBM-02, UNMODIFIED. His newest board.
-    scripts/routes.json         the frozen ECO-6 routing
-    the ECO tables below        every deliberate edit, one line each
+    scripts/routes.json         the frozen routing
+    the tables below            every deliberate edit, one line each
 
 and its output is byte-identical to `AGBM-02_AA_1-1_GBE-plus-CXC.kicad_pcb` inside
 `clockxcontrol-integration/board/agbm-02-clockxcontrol.zip`. Consistency check [1] asserts
-exactly that, which is what makes the ECO documents auditable rather than decorative.
+exactly that, which is what makes the documents auditable rather than decorative.
 
-WHAT IT DOES, IN ECO ORDER
+WHAT IT DOES
 
-    ECO-6  move C7 out of the module window; ADD six fiducials (MouseBiteLabs ships
-           none -- he hand-builds); drop the two VDD2 stitching vias the R landing lands
-           on; add the ClockxControl land pattern, the three wire pads (TP83/84/85) and
-           the CK1 isolation jumper JP4 -- JP4 and not JP3, because JP2 and JP3 are HIS
-           RAM straps on AGBM-02; add the CXC_CLK net and route everything.
-    ECO-7  mark X1/C3/C4 DNP -- the ClockxControl drives CK1 directly, so an assembly
-           house must not fit the crystal or its load caps.
-    ECO-8  eleven Value/Description edits from the power review. No copper. Three of
-           the original thirteen are already done upstream on AGBM-02 -- see ECO-13.
-    ECO-9  mark the parts a pick-and-place cannot handle `exclude_from_bom` +
-           `exclude_from_pos_files`, so the board itself says what a machine can buy
-           and place. No copper either -- attributes only.
-    ECO-10 the precision pass. On AGBM-02 it changes NO Value -- its LTC3527 divider
-           work went with the LTC3527; its part-number work lives in mpn_overrides.json.
-    ECO-12 the wiki audit. Also NO Value on this base: AGBM-02 already carries the
-           R3/R4/R64 the AGBM-01 PCB had stale.
-    ECO-13 the rebase itself.
-    ECO-14 the ClockxControl audit on the new base -- and the open question that the
-           module is powered at VDD3 = 3.3 V while the pin it drives sits in the
-           VDD2 = 2.5 V domain.
-    ECO-11 Q9 and Q10 to a logic-level FET, because the NDC7002N's worst-case gate
-           threshold is ABOVE the gate drive those two are given. Two Values, no copper.
+    THE MODULE       move C7 out of the module window; ADD six fiducials (MouseBiteLabs
+                     ships none -- he hand-builds); drop the two VDD2 stitching vias the R
+                     landing lands on; add the ClockxControl land pattern, the three wire
+                     pads (TP83/84/85) and the CK1 isolation jumper JP4 -- JP4 and not JP3,
+                     because JP2 and JP3 are HIS RAM straps on AGBM-02; add the CXC_CLK net
+                     and route everything.
+    THE STOCK LAND   put C7's original land back as C7A, unpopulated, so third-party mods
+                     that solder where C7 has always been keep their landmark.
+    THE CRYSTAL      mark X1/C3/C4 DNP -- the ClockxControl drives CK1 directly, so an
+                     assembly house must not fit the crystal or its load caps.
+    THE VALUES       eleven Value/Description edits from the power review, plus Q9 and Q10
+                     to a logic-level FET because the NDC7002N's worst-case gate threshold
+                     is ABOVE the drive those two are given. No copper.
+    THE SPLIT        mark the parts a pick-and-place cannot handle `exclude_from_bom` +
+                     `exclude_from_pos_files`, so the board itself says what a machine can
+                     buy and place. Attributes only.
+    THE PASTE        strip solder-paste apertures from everything the machine will not
+                     place, and from the one of U2's two nested lands that is not used.
+    THE SILKSCREEN   move the C7 and C7A reference designators apart, and hide MOD1's own,
+                     so no label prints across the landing pattern.
+
+Some edits that older revisions of this fork made are now INHERITED rather than applied:
+AGBM-02 already carries the R3/R4/R64 values the AGBM-01 PCB had stale, and the LTC3527
+divider work went with the LTC3527, which AGBM-02 does not have. Where that is so, the
+assertion further down verifies the value against the BASE rather than against an edit of
+ours -- which is strictly stronger, because it fails if UPSTREAM ever drifts.
+
+The open electrical question is recorded in DESIGN-DECISIONS.md: the module is powered at
+VDD3 = 3.3 V while the pin it drives sits in the VDD2 = 2.5 V domain, which is what
+insideGadgets specifies.
 
 EVERY EDIT ASSERTS ITS OWN PRECONDITION. A replacement whose target string is missing, or
 present more than once, fails the build instead of silently producing a different board.
@@ -67,11 +74,11 @@ import textwrap
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# --- ECO-13: the base is MouseBiteLabs' AGBM-02, unmodified --------------------------
-# It was the ECO-5 AGBM-01 desalvage until 2026-08-19. ECO-5 was OUR footprint work, which
+# --- the base is MouseBiteLabs' AGBM-02, unmodified ----------------------------------
+# It was an AGBM-01 desalvage until 2026-08-19. That earlier base was OUR footprint work, which
 # MouseBiteLabs never saw and never used; AGBM-02 is his, and it already carries the
 # CY62157 land, the MA17 and /BYTE straps, and a front-shell fit he physically verified.
-# See clockxcontrol-integration/ECO-13_rebase_onto_agbm02.md.
+# See clockxcontrol-integration/DESIGN-DECISIONS.md.
 BASE_ZIP = os.path.join(ROOT, "AGBM-02 (AA Batteries)", "AGBM-02 Design Files.zip")
 BASE_MEMBER = "AGBM-02 Design Files/AGBM-02_AA_1-1.kicad_pcb"
 ROUTES = os.path.join(ROOT, "scripts", "routes.json")
@@ -83,14 +90,15 @@ OUT = os.path.join(ROOT, "clockxcontrol-integration", "board",
 FOOTPRINT_OUT = os.path.join(ROOT, "clockxcontrol-integration", "footprint",
                              "ClockxControl_GBA_GBC.kicad_mod")
 
-# --- ECO-6 geometry ------------------------------------------------------------------
+# --- geometry ------------------------------------------------------------------------
 # The module body is 18.65 x 12.00 mm; MOD_X/MOD_Y is its centre. rev B moved it west out
-# of the R3/TP114 cluster -- ECO-6 section 6.7 is the accounting for what that cost.
+# of the R3/TP114 cluster -- the two stitching vias that cost are ledgered in
+# DESIGN-DECISIONS.md.
 MOD_X, MOD_Y = 91.95, -44.95
 C7_FROM, C7_TO = "(at 91.9 -41.1 180)", "(at 93.1 -37.4 180)"
 
-# --- ECO-19: the stock C7 land comes back, unpopulated ---------------------------------
-# ECO-6 moved C7 out of the module window because it was the one part standing in it. That
+# --- the stock C7 land comes back, unpopulated -----------------------------------------
+# C7 had to leave the module window because it was the one part standing in it. That
 # made this board a SIDE-GRADE rather than an upgrade: third-party mods that solder to C7
 # where it has always been lose their landmark, and a board that gains an overclocker by
 # giving up compatibility with everything else is a trade, not an improvement.
@@ -101,11 +109,11 @@ C7_FROM, C7_TO = "(at 91.9 -41.1 180)", "(at 93.1 -37.4 180)"
 #
 # So the land goes back, DNP, as `C7A`. Three facts make this nearly free:
 #
-#   1. ECO-6 §6.1: "C7 had no tracks attached on the original board -- both pads were fed by
+#   1. On C7: "it had no tracks attached on the original board -- both pads were fed by
 #      pours". Restoring the land needs NO routing. The VDD35 and GND pours already cover
 #      both pad centres -- verified against the stored fill.
 #   2. The nearest copper THIS FORK adds is 2.778 mm away. Nothing to clear.
-#   3. DNP means ECO-17 strips its paste automatically, so no aperture lands under a module.
+#   3. DNP means its paste is stripped automatically, so no aperture lands under a module.
 #
 # THE TWO ARE MUTUALLY EXCLUSIVE AND THAT IS THE POINT. C7A's land is 2.15 mm inside MOD1's
 # body, so a POPULATED 0603 there fouls a module lying on the board. Populate C7 (the moved
@@ -113,44 +121,44 @@ C7_FROM, C7_TO = "(at 91.9 -41.1 180)", "(at 93.1 -37.4 180)"
 # both. Bare, the land is copper and mask, flush with everything else the module already
 # sits over: 25 of MouseBiteLabs' own vias are under that body already.
 C7A_REF = "C7A"
-# ECO-25. Silkscreen placements the user made in KiCad and uploaded, adopted verbatim.
-# C7 and C7A are the SAME LAND IN TWO PLACES -- ECO-19 restored the stock one -- so both
-# inherited MouseBiteLabs' identical refdes offset of (0, -1.8) and printed on top of each
-# other. These move them apart. MOD1's own Reference and Value are hidden for the same
-# reason: they sat across the module body, which is the one part of this board where a
-# builder needs to see the landing pattern rather than a label.
+# SILKSCREEN. Placements the user made in KiCad and uploaded, adopted
+# verbatim. C7 and C7A are the SAME LAND IN TWO PLACES -- the stock one was restored
+# -- so both inherited MouseBiteLabs' identical refdes offset of (0, -1.8) and printed on top of
+# each other. These move them apart. MOD1's own Reference and Value are hidden for the same
+# reason: they sat across the module body, which is the one part of this board where a builder
+# needs to see the landing pattern rather than a label.
 C7_REF_FROM = "(at 0 -1.8 0)"
 C7_REF_TO = "(at -1.7944 1.5128 0)"          # C7, the MOVED cap: label goes down-left
 C7A_REF_TO = "(at 3.1524 -0.6124 0)"         # C7A, the stock land: label goes right
 DROP_VIAS = [(84.4, -45.9), (85.4, -45.9)]          # both on VDD2
-# FIDUCIALS ARE OURS, NOT MOUSEBITELABS'. Neither AGBM-01 nor AGBM-02 carries a single
-# one -- he hand-builds, and a hand builder does not need optical registration. A
-# pick-and-place does, so ECO-9's whole premise needs them. ECO-5 added six and ECO-6 then
-# moved a pair out from under the module; on this base they are simply placed clear of it
+# FIDUCIALS ARE OURS, NOT MOUSEBITELABS'. Neither AGBM-01 nor AGBM-02 carries a single one -- he
+# hand-builds, and a hand builder does not need optical registration. A pick-and-place does, so
+# the assembly split's whole premise needs them. Six were added, then a pair moved
+# out from under the module; on this base they are simply placed clear of it
 # to begin with. Three per side in a deliberately asymmetric triangle so the machine cannot
-# register the panel 180 degrees out. Each spot was clearance-checked against AGBM-02.
-# ECO-14 placed all six and ECO-20 replaced them, because ECO-14's search was blind in
-# four directions at once and said so with confidence. It modelled HARD COPPER -- tracks,
-# vias, pads -- and nothing else, so it never saw:
+# register the panel 180 degrees out. Each spot was clearance-checked against AGBM-02. An
+# earlier pass placed all six and a later one replaced them, because that first search was
+# blind in four directions at once and said so with confidence. It modelled HARD COPPER --
+# tracks, vias, pads -- and nothing else, so it never saw:
 #   * Edge.Cuts circles. 13 of this board's outline items are gr_circle -- the shell's
 #     screw and standoff holes -- and two more are fp_circle INSIDE SW1 and VR2, routed
 #     openings for the switch shaft and the volume wheel. FID2/FID5 landed inside the
 #     1.2 mm hole at (110.91, -56.85) and FID3/FID6 straddled the rim of the one at
-#     (30.50, -70.68), while ECO-14 wrote "each is >= 3.0 mm from the board edge".
+#     (30.50, -70.68), while the note claimed "each is >= 3.0 mm from the board edge".
 #   * this board's 64 keepout zones -- four of which are drawn as a single full-circle arc
 #     carrying no (xy) vertex at all. FID1 and FID2 sat inside two of them.
 #   * soldermask apertures. FID1's 2 mm window merged with BT1's, the battery terminal:
 #     seven bridge violations and 0.000 mm to BT1's plated GND pad, 4.5 mm from the
 #     fiducial centre, because that terminal's pad is nothing like a circle. The two
 #     7.5 x 5 mm B.Mask polygons over the cartridge contacts are the same trap on the back.
-#   * that a mark on the FRONT does not care what the BACK is doing. ECO-14 kept the six
+#   * that a mark on the FRONT does not care what the BACK is doing. That pass kept the six
 #     as three coincident pairs, so every site had to be clear on both layers at once.
 #     Dropping that gives the search 3,655 legal front sites and 6,324 back ones instead
 #     of 492, and none of the six spots below is legal on the other side -- the pairs were
 #     costing real margin for nothing. Front and back register independently anyway.
-# KiCad's own DRC found every one of these the first time it was run, in ECO-19. The spots
-# below come from a search that models all of it, and each was confirmed by re-running that
-# DRC. Margins in mm -- "(none)" means nothing of that kind within 9 mm:
+# KiCad's own DRC found every one of these the first time it was run. The
+# spots below come from a search that models all of it, and each was confirmed by re-running
+# that DRC. Margins in mm -- "(none)" means nothing of that kind within 9 mm:
 #     FID1  (100.50,  -3.50) F   edge 3.12  keepout (none)  copper 2.26  mask (none)  crtyd (none)
 #     FID2  (103.75, -58.50) F   edge(none) keepout (none)  copper 1.84  mask (none)  crtyd 2.22
 #     FID3  ( 24.25, -55.75) F   edge 2.94  keepout  2.71   copper 2.00  mask (none)  crtyd 4.58
@@ -186,7 +194,7 @@ WIRE_PADS = [("TP83", 97.9, -37.95, "CXC_CLK", "CLK", "CXC CLK wire"),
              ("TP84", 99.45, -37.95, "VDD3", "V+", "CXC V+ wire"),
              ("TP85", 101.0, -37.95, "GND", "V-", "CXC V- wire")]
 
-# --- ECO-7: the crystal network is not fitted on a ClockxControl build ----------------
+# --- the crystal network is not fitted on a ClockxControl build -----------------------
 DNP_REFS = ("X1", "C3", "C4")
 
 # --- the drop-in part swaps ----------------------------------------------------------
@@ -194,14 +202,14 @@ DNP_REFS = ("X1", "C3", "C4")
 # clockxcontrol-integration/DESIGN-DECISIONS.md section 7; this list is what the board
 # actually carries, and check [5]/[6] hold the buy documents to it.
 # ON THE AGBM-02 BASE, THREE OF THE ORIGINAL THIRTEEN ROWS ARE ALREADY DONE UPSTREAM:
-#   F1    Value  -- AGBM-02 already reads F0805B2R00FSTR. ECO-8's BOM fix was right and
+#   F1    Value  -- AGBM-02 already reads F0805B2R00FSTR. The BOM fix was right and
 #                   MouseBiteLabs made the same fix; nothing left for us to change.
 #   PTC1  Value  -- AGBM-02 already reads 0805L075SLYR, not the stale "0467001.NR". The
 #                   ANNOTATION is fixed upstream, but the ENGINEERING finding stands: that
 #                   part derates to 0.55 A hold at 40 C, below the load. So the swap
 #                   remains, from a different starting value.
 #   R23   Value  -- the ref does not exist on AGBM-02. It was the LTC3527's VOUT3 feedback
-#                   leg, and AGBM-02 has no LTC3527. ECO-12 section 12.2 had already
+#                   leg, and AGBM-02 has no LTC3527. The wiki audit had already
 #                   reverted this change; the rebase deletes it outright.
 # Both Description rows survive: AGBM-02 still carries the legacy "0805L050WR" string on
 # PTC1 and F1 alike, exactly as AGBM-01 and AGBM-11 do.
@@ -221,23 +229,23 @@ VALUE_SWAPS = [
     ("R65",  "Value",       "100k",          "470k"),
 ]
 
-# --- ECO-10: the precision pass -- NO Value swaps survive the rebase -------------------
-# On AGBM-01, ECO-10's headline was rescaling both LTC3527 feedback dividers 10x down,
+# --- the precision pass -- NO Value swaps survive the rebase --------------------------
+# On AGBM-01 the headline was rescaling both LTC3527 feedback dividers 10x down,
 # because the converter's own 50 nA max FB input current was moving VOUT3 by +/-85 mV --
-# more than the resistors' tolerance, and more than the 108 mV ECO-8 had trimmed off that
+# more than the resistors' tolerance, and more than the 108 mV already trimmed off that
 # rail to save power. It was the right finding about the wrong converter.
 #
 # AGBM-02 has no LTC3527. R21, R22, R23, R55, C40 and C41 -- every leg of both dividers and
 # both feedforward caps -- DO NOT EXIST on this base. Twin TPS63802s set their rails
-# elsewhere, so the entire divider analysis, and ECO-12 section 12.2 which reverted part of
-# it, are deleted by the rebase rather than carried.
+# elsewhere, so the entire divider analysis, and the wiki audit's revert of part of
+# it, go with it rather than being carried.
 #
-# ECO-10's OTHER work survives untouched, because none of it is a Value change: the audio
-# filter's 0.1% +/-25 ppm thin film, the 25 V AEC-Q200 decoupling, and the supervisor
-# divider legs are all PART-NUMBER choices, and they live in scripts/mpn_overrides.json
-# against references AGBM-02 carries at identical positions.
+# Its OTHER work survives untouched, because none of it is a Value change: the
+# audio filter's 0.1% +/-25 ppm thin film, the 25 V AEC-Q200 decoupling, and the supervisor
+# divider legs are all PART-NUMBER choices, and they live in scripts/mpn_overrides.json against
+# references AGBM-02 carries at identical positions.
 
-# --- ECO-11: the brownout latch is not guaranteed to arm --------------------------------
+# --- the brownout latch is not guaranteed to arm ----------------------------------------
 # NDC7002N gate threshold, read off onsemi's own table: VGS(th) = 1.0 min / 1.9 typ /
 # **2.5 V max** at VDS = VGS, ID = 250 uA. There is no RDS(on) specification below
 # VGS = 4.5 V at all. Now the gate drive those two parts actually get:
@@ -246,7 +254,7 @@ VALUE_SWAPS = [
 #         (datasheet: "Manual reset internal pull-up resistance ... 100 kOhm"), i.e. sink
 #         ~14 uA, with VGS = SW - Vce(sat) ~= 2.0 V at the 2.07 V trip point.
 #   Q10B  run state, VGS = 0.990 x SW -- 2.05 V at the trip, 3.17 V on a fresh pack.
-#   Q9B   low-battery state, gate = /D1A ~= 3.0 V after ECO-8's InGaN LED raised the
+#   Q9B   low-battery state, gate = /D1A ~= 3.0 V after the InGaN LED swap raised the
 #         forward drop; it must pass DL2's ~165 uA through R10.
 #
 # A worst-case NDC7002N is at or BELOW its own threshold in all three, and the threshold is
@@ -258,17 +266,17 @@ VALUE_SWAPS = [
 # FDC6301N: VGS(th) = 0.65 / 0.85 / **1.5 V max**, same SUPERSOT-6 / TSOT-23-6 land, same
 # pin assignment. Every one of those nodes gains at least 0.5 V of worst-case overdrive.
 #
-# THE ONE OBJECTION, AND WHY IT DOES NOT HOLD. The FDC6301N's gate rating is asymmetric,
-# -0.5 to +8 V, against the NDC7002N's 20 V. Q10A is the only node that ever sees a negative
-# VGS: at power-up /EN rises through R11 while Q10A's gate is still held down by R17, so
-# VGS goes to about -SW. But the datasheet's own feature list reads "Gate-Source Zener for
-# ESD Ruggedness. >6 kV Human Body Model" -- the part carries an integrated clamp, which
-# forward-conducts at ~-0.7 V with the current set by R16. ECO-8 raised R16 from 10k to
-# 100k, so that clamp current is (3.2-0.7)/100k = 25 uA. This is what the Zener is for.
+# THE ONE OBJECTION, AND WHY IT DOES NOT HOLD. The FDC6301N's gate rating is asymmetric, -0.5 to
+# +8 V, against the NDC7002N's 20 V. Q10A is the only node that ever sees a negative VGS: at
+# power-up /EN rises through R11 while Q10A's gate is still held down by R17, so VGS goes to
+# about -SW. But the datasheet's own feature list reads "Gate-Source Zener for ESD Ruggedness.
+# >6 kV Human Body Model" -- the part carries an integrated clamp, which forward-conducts at
+# ~-0.7 V with the current set by R16, which was raised from 10k to 100k, so that
+# clamp current is (3.2-0.7)/100k = 25 uA. This is what the Zener is for.
 #
 # Headroom: FDC6301N is 25 V / 0.22 A against a 5.0 V maximum VDS anywhere here and drain
-# currents of 14 uA (Q10A), ~41 uA (Q10B), 124 uA (Q9A's LED after ECO-8) and ~165 uA (Q9B).
-# Three orders of margin. RDS(on) 5 Ohm max at VGS = 2.7 V costs Q9A 0.6 mV.
+# currents of 14 uA (Q10A), ~41 uA (Q10B), 124 uA (Q9A's LED after the swap) and ~165 uA
+# (Q9B). Three orders of margin. RDS(on) 5 Ohm max at VGS = 2.7 V costs Q9A 0.6 mV.
 #
 # Q2, Q5 and Q7 keep the NDC7002N, deliberately: Q5's gates are driven to VOUT5 = 5.0 V so
 # there is no margin problem to fix, and Q2/Q7 switch display signals from U16 where the
@@ -279,8 +287,8 @@ FET_SWAPS = [
     ("Q10", "Value", "NDC7002N", "FDC6301N"),
 ]
 
-# --- ECO-12: the wiki audit -- NO Value swaps survive the rebase either -----------------
-# ECO-12 section 12.1 corrected R3/R4/R64 on AGBM-01 from a stale PCB annotation (1k/10k/
+# --- the wiki audit -- NO Value swaps survive the rebase either ------------------------
+# The wiki audit corrected R3/R4/R64 on AGBM-01 from a stale PCB annotation (1k/10k/
 # 100k) to the values MouseBiteLabs' schematic, both AA README BOMs and his AGBM-02 PCB all
 # carry (5.1k/33k/200k) -- the values that put the low-battery trip at 2.309 V and the
 # blink at 2.102 V, matching the wiki and his own build-guide Test 4.
@@ -292,11 +300,11 @@ FET_SWAPS = [
 # it fails if UPSTREAM ever drifts.
 #
 # Section 12.2 (R23, VOUT3 back to 3.336 V) goes with the LTC3527. The part-number half of
-# ECO-12 -- R3/R4 to Susumu RG1608 0.1%, R63 onto the same film as its partner R58 -- is
+# Its part-number half -- R3/R4 to Susumu RG1608 0.1%, R63 onto its partner R58's film -- is
 # unaffected and still lives in scripts/mpn_overrides.json.
 
 
-# --- ECO-9: the board should say what a machine can actually place --------------------
+# --- the board should say what a machine can actually place ---------------------------
 # Until this, the board asked a pick-and-place to buy and place 179 parts -- including the
 # SALVAGED CPU and SRAM, which nobody sells at any price, and five parts with through-hole
 # pads, which a reflow line does not do. A BOM and a CPL generated from that describe a
@@ -319,11 +327,11 @@ SALVAGE_ONLY = {
           "assembly BOM; hand-fit after the reflow.",
 }
 # U2 IS NO LONGER HERE, AND THAT IS THE POINT OF THE REBASE. On the AGBM-01 base it was a
-# salvaged AGB-SRAM, and ECO-5 was OUR unverified attempt to let a CY62157EV30LL stand in
-# for it. AGBM-02 carries MouseBiteLabs' own dual land, so U2 is an ORDERABLE PART -- the
-# machine buys it and places it, and a build needs exactly one chip off a donor: the CPU.
-# His Required Parts page says so outright: "For the AGBM-02 and AGBM-12, you *only* need
-# the CPU."
+# salvaged AGB-SRAM, and this fork's own unverified edit let a CY62157EV30LL
+# stand in for it. AGBM-02 carries MouseBiteLabs' own dual land, so U2 is an ORDERABLE PART --
+# the machine buys it and places it, and a build needs exactly one chip off a donor: the CPU.
+# His Required Parts page says so outright: "For the AGBM-02 and AGBM-12, you *only* need the
+# CPU."
 #
 # TWO HAND STEPS COME WITH IT, and no assembly line performs either. Both must be left OPEN
 # if you populate a salvaged OEM AGB-SRAM instead, which this land still accepts:
@@ -346,7 +354,7 @@ THRU_HOLE_REASONS = {
 #   P2   42 SMD pads, an FFC connector -- a machine's job
 #   SW1  5 SMD pads
 #   VR1  3 SMD pads
-#   BT1, SW2, SW3  already DNP in the ECO-5 base
+#   BT1, SW2, SW3  already DNP on the base board
 #
 # MOD1 carries the same pair, set where its footprint is built rather than here: the
 # ClockxControl is a mezzanine whose plated holes are filled with solder FROM ABOVE
@@ -360,8 +368,8 @@ THRU_HOLE_REASONS = {
 # open build decisions in pcbway-assembly/README.md, and this is the switch for it.
 
 
-# --- ECO-17: solder paste must agree with the placement list -------------------------
-# ECO-9 encoded WHO PLACES WHAT in the board's attributes. The paste layer never got the
+# --- solder paste must agree with the placement list ---------------------------------
+# The assembly split encoded WHO PLACES WHAT in the board's attributes. Paste never got the
 # memo. A stencil is cut from F.Paste/B.Paste and knows nothing about `dnp` or
 # `exclude_from_pos_files`, so paste is deposited on every aperture and reflowed whether a
 # part lands on it or not. On this board that was 194 pads across twelve parts nobody
@@ -376,20 +384,20 @@ THRU_HOLE_REASONS = {
 #        reflows into a bump on the flat gold surface the rubber pad has to sit on. This
 #        is the one that actually ruins a board.
 #   P3, VR2   hand-soldered, so their SMD pads get bumps too.
-#   C3, C4, X1   the crystal network ECO-7 marks DNP for ClockxControl builds.
+#   C3, C4, X1   the crystal network, marked DNP for ClockxControl builds.
 #   JP1   a solder jumper that is meant to be OPEN. Paste bridges it CLOSED on reflow.
 #   R70, R71   DNP.
 #
-# THE RULE IS MECHANICAL, like ECO-9's: a pad keeps its paste aperture only if the machine
-# is going to put a part on it. "Not placed" is read off the board -- `dnp` or
+# THE RULE IS MECHANICAL, like the split's: a pad keeps its paste aperture only if the
+# machine is going to put a part on it. "Not placed" is read off the board -- `dnp` or
 # `exclude_from_pos_files` -- never from a hand-list here.
 PASTE_KEEP_NOTES = {
     "MOD1": "no paste to begin with: its plated holes are filled from above onto the pads "
-            "below, which is why ECO-9 makes it hand-solder in the first place",
+            "below, which is why the split makes it hand-solder in the first place",
     "SP1":  "no paste to begin with, two through-hole pads",
 }
 
-# --- ECO-17b: U2 carries TWO nested land patterns, and only one may be pasted ---------
+# --- U2 carries TWO nested land patterns, and only one may be pasted ------------------
 # MouseBiteLabs' `AGB-SRAM_2` is a dual land: every one of the 48 pins has TWO pads on the
 # same net, an inner and an outer, so one footprint accepts either RAM.
 #
@@ -484,17 +492,17 @@ def uid(seed):
 def build():
     raw = zipfile.ZipFile(BASE_ZIP).read(BASE_MEMBER).decode("utf-8")
     # LINE ENDINGS ARE PART OF THE ARTIFACT, and the rebase changed them completely. The
-    # ECO-5 base carried exactly ONE stray CRLF, at the very end of the file; MouseBiteLabs'
-    # AGBM-02 as he saves it is CRLF THROUGHOUT -- 273,525 of them. Normalising to LF here,
-    # deliberately and once, is what makes the rebuild byte-stable; doing it implicitly with
-    # a text-mode open() is how a .kicad_pcb ends up alternating line endings between saves.
-    # The shape is asserted so that a base board with different line endings fails the build
-    # instead of quietly producing a board that no longer matches the ECOs.
+    # AGBM-01 base carried exactly ONE stray CRLF, at the very end of the file;
+    # MouseBiteLabs' AGBM-02 as he saves it is CRLF THROUGHOUT -- 273,525 of them. Normalising
+    # to LF here, deliberately and once, is what makes the rebuild byte-stable; doing it
+    # implicitly with a text-mode open() is how a .kicad_pcb ends up alternating line endings
+    # between saves. The shape is asserted so that a base board with different line endings
+    # fails the build instead of quietly producing a board no document describes.
     crlf, lf_only = raw.count("\r\n"), raw.count("\n") - raw.count("\r\n")
     if lf_only or crlf < 100000 or not raw.endswith(")\r\n"):
         raise AssertionError(
             f"base board line endings changed: {crlf} CRLF and {lf_only} bare LF. AGBM-02 "
-            "ships CRLF THROUGHOUT (the ECO-5 base carried exactly one, at EOF), so this "
+            "ships CRLF THROUGHOUT (the AGBM-01 base carried exactly one, at EOF), so this "
             "expects a fully-CRLF file. Normalisation is deliberate -- see the comment.")
     txt = raw.replace("\r\n", "\n")
     orig_len = len(txt)
@@ -511,10 +519,10 @@ def build():
                  "/CPU/TP2", "/CPU/TP8", "/CPU/TP9"):
         if want not in NET:
             raise AssertionError(
-                f"the base board has no net named {want!r}. Every ECO-6 route and every "
+                f"the base board has no net named {want!r}. Every route and every "
                 "landing pad is anchored to a net NAME; refusing to guess a number.")
     if "CXC_CLK" in NET:
-        raise AssertionError("the base board already declares CXC_CLK -- ECO-6 creates it")
+        raise AssertionError("the base board already declares CXC_CLK -- this fork creates it")
     VDD2_NET = NET["VDD2"]
 
     def fp_span(ref):
@@ -538,13 +546,13 @@ def build():
             raise AssertionError(f"{ref}: {what} -- expected 1x {old!r}, found {n}")
         txt = txt[:s] + b.replace(old, new, 1) + txt[e:]
 
-    # ---------- ECO-6.1  C7 out of the module window -------------------------------
+    # ---------- C7 out of the module window ----------------------------------------
     # Take the block BEFORE the move: that copy is the stock land, in its stock place.
     _s7, _e7, c7_stock = fp_span("C7")
     replace_in("C7", C7_FROM, C7_TO, "C7 relocation")
-    replace_in("C7", C7_REF_FROM, C7_REF_TO, "ECO-25: C7 refdes moved clear of C7A's")
+    replace_in("C7", C7_REF_FROM, C7_REF_TO, "C7 refdes moved clear of C7A's")
 
-    # ---------- ECO-19  and put the stock land back, unpopulated --------------------
+    # ---------- and put the stock land back, unpopulated ----------------------------
     c7a = c7_stock
     if C7_FROM not in c7a:
         raise AssertionError(f"C7's block does not carry {C7_FROM} -- it has moved upstream")
@@ -555,8 +563,8 @@ def build():
     c7a = c7a.replace('(property "Reference" "C7"', f'(property "Reference" "{C7A_REF}"', 1)
     c7a = c7a.replace('(property "Value" "0.1u"',
                       '(property "Value" "0.1u DNP-alt"', 1)
-    # ECO-25, the other half of the pair. C7A's refdes moves the opposite way from C7's,
-    # and its Value is hidden: a DNP alternate does not need its capacitance on the
+    # The other half of the pair. C7A's refdes moves the opposite way from
+    # C7's, and its Value is hidden: a DNP alternate does not need its capacitance on the
     # silkscreen -- what a builder needs to read there is WHICH land this is.
     if c7a.count(C7_REF_FROM) != 1:
         raise AssertionError(f"C7A: expected exactly one {C7_REF_FROM}, "
@@ -564,10 +572,10 @@ def build():
     c7a = c7a.replace(C7_REF_FROM, C7A_REF_TO, 1)
     _val = '(property "Value" "0.1u DNP-alt"\n\t\t\t(at 0 1.43 0)\n\t\t\t(layer "F.Fab")'
     if _val not in c7a:
-        raise AssertionError("C7A's Value block is not where ECO-25 expects it")
+        raise AssertionError("C7A's Value block is not where this edit expects it")
     c7a = c7a.replace(_val, _val + '\n\t\t\t(hide yes)', 1)
     if "\n\t\t(attr smd)" not in c7a:
-        raise AssertionError("C7's (attr smd) line is not where ECO-19 expects it")
+        raise AssertionError("C7's (attr smd) line is not where this edit expects it")
     c7a = c7a.replace("\n\t\t(attr smd)",
                       "\n\t\t(attr smd dnp exclude_from_bom exclude_from_pos_files)", 1)
     # Every uuid must be new AND deterministic -- a duplicate makes the file invalid, and a
@@ -576,10 +584,10 @@ def build():
     for k, u in enumerate(seen_u):
         c7a = c7a.replace(f'(uuid "{u}")', f'(uuid "{uid(f"c7a:{k}:{u}")}")', 1)
     if len(re.findall(r'\(uuid "', c7a)) != len(seen_u):
-        raise AssertionError("ECO-19 lost a uuid while re-stamping C7A")
+        raise AssertionError("lost a uuid while re-stamping C7A")
     C7A_BLOCK = c7a
 
-    # ---------- ECO-6.3  drop the two VDD2 stitching vias under the R landing -------
+    # ---------- drop the two VDD2 stitching vias under the R landing ----------------
     for ox, oy in DROP_VIAS:
         pat = re.compile(r"\n\t\(via\n\t\t\(at " + re.escape(f"{ox:g} {oy:g}")
                          + r"\).*?\n\t\)", re.S)
@@ -590,7 +598,7 @@ def build():
             raise AssertionError(f"via {ox},{oy} is not on VDD2 -- refusing to drop it")
         txt = txt[:m.start()] + txt[m.end():]
 
-    # ---------- ECO-7  the crystal network is not fitted ----------------------------
+    # ---------- the crystal network is not fitted -----------------------------------
     for ref in DNP_REFS:
         replace_in(ref, "(attr smd)", "(attr smd dnp)", "DNP flag")
 
@@ -654,7 +662,7 @@ def build():
     if not 3.5 < blink < 3.7:
         raise AssertionError(f"critical-battery blink rate is {blink:.2f} Hz, not ~3.6 Hz")
 
-    # ---------- ECO-9  what a machine cannot place -----------------------------------
+    # ---------- what a machine cannot place ------------------------------------------
     hand = dict(THRU_HOLE_REASONS)
     hand.update(SALVAGE_ONLY)
     derived = set()
@@ -677,7 +685,7 @@ def build():
         txt = txt[:s] + nb + txt[e:]
         derived.add(ref)
     # Nothing else on the board may carry a through-hole pad and still be machine-placed.
-    # This is the rule checking itself: if a future ECO adds a through-hole part, the
+    # This is the rule checking itself: if a future change adds a through-hole part, the
     # build fails here rather than quietly shipping a CPL a machine cannot execute.
     i2 = 0
     stragglers = []
@@ -700,7 +708,7 @@ def build():
             + ", ".join(sorted(stragglers))
             + " -- add them to THRU_HOLE_REASONS, or mark them DNP.")
 
-    # ---------- ECO-6.4  the new footprints ----------------------------------------
+    # ---------- the new footprints -------------------------------------------------
     ghost = "".join(f'''\t\t(fp_circle
 \t\t\t(center {cx} {cy})
 \t\t\t(end {cx + 0.635} {cy})
@@ -802,12 +810,12 @@ def build():
 \t)
 '''
 
-    # ECO-14: these carry `exclude_from_pos_files` as well as `exclude_from_bom`. They are
-    # WIRE PADS and a SOLDER JUMPER -- a human tins them and lands a wire, and no
-    # pick-and-place operation touches either. The generated CPL was already correct without
-    # the flag, but only because bom_split.py happens to key off `exclude_from_bom`; the
-    # BOARD said something different from what the CPL did, and MouseBiteLabs' own
-    # equivalents (TP18, TP80) carry the flag. Now the board says what it means.
+    # These carry `exclude_from_pos_files` as well as `exclude_from_bom`. They
+    # are WIRE PADS and a SOLDER JUMPER -- a human tins them and lands a wire, and no
+    # pick-and-place operation touches either. The generated CPL was already correct without the
+    # flag, but only because bom_split.py happens to key off `exclude_from_bom`; the BOARD said
+    # something different from what the CPL did, and MouseBiteLabs' own equivalents (TP18, TP80)
+    # carry the flag. Now the board says what it means.
     def tp(ref, x, y, dia, net, netname, silk, val, sx=0.0, sy=1.5):
         return f'''\t(footprint "Bucketmouse:TestPoint_Pad_D1.0mm"
 \t\t(layer "F.Cu")
@@ -855,7 +863,7 @@ def build():
     # GND pad 4 mm further east buys nothing.)
 
 
-    # ---------- ECO-6.2  fiducials, because a machine needs to see the board ---------
+    # ---------- fiducials, because a machine needs to see the board ------------------
     # The (clearance 0.55) on each pad is load-bearing, not decoration. These pads are
     # NETLESS and they sit inside MouseBiteLabs' GND pours; on a re-pour the zone floods
     # right up to them, leaving copper 0.5 + zone_clearance = 0.7 mm from centre -- INSIDE
@@ -895,7 +903,7 @@ def build():
 \t)
 ''' for ref, x, y, lay in FIDUCIALS)
 
-    # ---------- ECO-6.5  the CXC_CLK net -------------------------------------------
+    # ---------- the CXC_CLK net ----------------------------------------------------
     mnet = max(int(n) for n in re.findall(r'\n\t\(net (\d+) "', txt))
     NEWNET = mnet + 1
     lastnet = list(re.finditer(r'\n\t\(net \d+ "[^"]*"\)', txt))[-1]
@@ -954,7 +962,7 @@ def build():
 \t)
 '''
 
-    # ---------- ECO-6.6  copper ----------------------------------------------------
+    # ---------- copper -------------------------------------------------------------
     E, X = R["eco6"], R["eco6_extra"]
     segs, vias = [], []
 
@@ -980,8 +988,8 @@ def build():
     add(NEWNET, [("F.Cu", [[97.9, -38.6], [97.9, -37.95]])])   # tail to the moved pad row
     vdd3 = [list(r) for r in E["VDD3"]["runs"]]
     vdd3[0] = ("F.Cu", [[99.45, -37.95], [99.25, -37.85], [99.25, -35.9]])
-    # ---------- ECO-22  the VDD3 tail loses a via it never needed --------------------
-    # ECO-6 brought VDD3 across on B.Cu, punched a via at (97.1, -34.1), and ran the last
+    # ---------- the VDD3 tail loses a via it never needed ----------------------------
+    # VDD3 was brought across on B.Cu, punched a via at (97.1, -34.1), and ran the last
     # 1.3 mm to P1 pad S1 on F.Cu. That via's DRILL sits 0.4680 mm from S1's own 1.0 mm
     # hole, against MouseBiteLabs' 0.5 mm min_hole_to_hole -- 32 microns short, a DRILL
     # rule, so being on the same net buys nothing. Nothing in this repository had ever
@@ -992,7 +1000,7 @@ def build():
     # can land on it directly and the via is redundant. Measured along the new corridor
     # (97.4, -34.4) -> (96.9, -35.2):
     #     B.Cu  0.8260 mm to the nearest foreign copper (seg VDD5)
-    #     F.Cu  0.1679 mm -- which is why ECO-6 went to F.Cu at all, and it was the
+    #     F.Cu  0.1679 mm -- which is why the route went to F.Cu at all, and it was the
     #           wrong trade: it bought 0.30 mm of track clearance for a drill collision.
     # Moving the via instead needs ~0.8 mm of travel to find a legal spot, and the best
     # one clears by 8 microns. Deleting a hole beats relocating one.
@@ -1004,9 +1012,9 @@ def build():
     add(NET["GND"], [("F.Cu", [[92.325, -37.4], [93.3, -38.7]])], [(93.3, -38.7)])
     add(NET["/CPU/CK1"], X["CK1"]["runs"], X["CK1"]["vias"])                 # JP4 pad 1 -> crystal node
 
-    # ---------- ECO-20  U1 pad 39 gets its ground back ------------------------------
+    # ---------- U1 pad 39 gets its ground back --------------------------------------
     # MouseBiteLabs' board has ZERO unconnected pads. This fork shipped one, and it was
-    # ours: the CPU's pin 39 is a GND pin fed by nothing but the F.Cu pour, and ECO-6's
+    # ours: the CPU's pin 39 is a GND pin fed by nothing but the F.Cu pour, and this fork's
     # /CPU/TP8 route walks diagonally past its lower-left corner on the way to MOD1.
     #
     #     TP8 copper to pad 39 copper, closest approach : 0.3594 mm at (73.372, -46.628)
@@ -1058,9 +1066,9 @@ def build():
     # were spliced in, so anything added afterwards escaped the rule entirely -- and its
     # own self-check passed, because at that point the offender did not exist yet. MOD1,
     # JP4, TP83-85 and the fiducials happen to carry no paste by construction, so nothing
-    # showed until ECO-19 added C7A: a DNP land that came through with both apertures
+    # showed until C7A arrived: a DNP land that came through with both apertures
     # intact. A rule about the finished board has to run on the finished board.
-    # ---------- ECO-17  paste follows the placement list ------------------------------
+    # ---------- paste follows the placement list --------------------------------------
     # ONE PASS over spans collected up front, then a rebuild. An earlier version walked and
     # spliced in the same loop and its indices drifted after each replacement, which made
     # the walk skip a footprint -- SW4, the A/B buttons, still holding all sixteen
@@ -1123,7 +1131,7 @@ def build():
         raise AssertionError("paste apertures survive on parts nobody places: "
                              + ", ".join(sorted(left)))
 
-    # ---------- ECO-17c  the 3D body must be the RAM we buy ---------------------------
+    # ---------- the 3D body must be the RAM we buy ------------------------------------
     # MouseBiteLabs' model names the 12.4 mm package, which is the SALVAGED OEM part -- the
     # right default for his build and the wrong one for ours, because this fork's BOM buys
     # the CY62157EV30LL. Left alone, every "as PCBWay assembles it" render shows a chip two
@@ -1155,7 +1163,7 @@ def library_footprint(board_text):
     """Derive clockxcontrol-integration/footprint/ClockxControl_GBA_GBC.kicad_mod
     FROM the board's own MOD1 block, so the two cannot drift.
 
-    ECO-14 found they had. The shipped library file labelled the three landings "1", "2",
+    They had. The shipped library file labelled the three landings "1", "2",
     "3" and carried a "pad end" string the board does not have, its centre text was 1.2
     against the board's 1.05, and its reference read "MOD" not "MOD1". Pads and outlines
     agreed, so nothing was wrong on a board built from the .kicad_pcb -- but anyone
@@ -1209,13 +1217,13 @@ def main():
             return 0
         sys.exit(f"FAIL: rebuild differs from the shipped board "
                  f"({len(txt)} vs {len(want)} chars). Regenerate and repack, or explain "
-                 f"the difference in the ECO that made it.")
+                 f"the difference in DESIGN-DECISIONS.md.")
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(txt)
     print(f"wrote {a.out}")
     # The library footprint is DERIVED from the board, in the same run, so the two cannot
-    # drift. ECO-14 found they had. See library_footprint().
+    # drift. They had. See library_footprint().
     if not a.no_footprint:
         with open(FOOTPRINT_OUT, "w", encoding="utf-8") as f:
             f.write(library_footprint(txt))

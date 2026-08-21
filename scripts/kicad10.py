@@ -30,7 +30,7 @@ WHAT "THE SAME COPPER" HAS TO MEAN
 Not byte equality, and not segment-for-segment equality either: KiCad 10 MERGES COLLINEAR
 TRACKS on load. Converting this board turns 3,554 segments into roughly 3,240 without
 moving any copper -- and a naive comparison reads that as 314 deleted tracks, which is
-precisely the wrong conclusion the ECO-22 investigation nearly reached.
+precisely the wrong conclusion the project-rules investigation nearly reached.
 
 So tracks are compared by COVERAGE. Every segment is grouped by (layer, net, and the
 infinite line it lies on), projected onto that line, and the intervals merged into maximal
@@ -203,7 +203,7 @@ def graphics(board):
     """Everything that is NOT copper: silkscreen, fab, courtyard, mask, and the placement
     of every Reference and Value.
 
-    ECO-25 ADDED THIS, AFTER SHIPPING A GATE THAT COULD NOT SEE A SILKSCREEN MOVE. The
+    THIS WAS ADDED AFTER SHIPPING A GATE THAT COULD NOT SEE A SILKSCREEN MOVE. The
     original compare() checked footprints, pads, vias and track coverage, and was described
     as proving "the same board". It proved the same COPPER. A user moved two refdes labels
     and hid three more in KiCad, and every comparison in this repository -- including the

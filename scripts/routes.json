@@ -1,5 +1,5 @@
 {
- "_comment": "Routing produced by the ECO-6 auto-router and frozen here. Each entry is {runs: [[layer, [[x,y],...]], ...], vias: [[x,y], ...]}. Coordinates are board mm, KiCad convention (y grows DOWNWARD). Keys are the net numbers or net names the generator maps in NETNO. Frozen because the router is not deterministic across runs and the clearance analysis in ECO-6 was done against THESE paths.",
+ "_comment": "Routing produced by this fork's auto-router and frozen here. Each entry is {runs: [[layer, [[x,y],...]], ...], vias: [[x,y], ...]}. Coordinates are board mm, KiCad convention (y grows DOWNWARD). Keys are the net numbers or net names the generator maps in NETNO. Frozen because the router is not deterministic across runs and the clearance analysis was done against THESE paths.",
  "eco6": {
   "12": {
    "runs": [

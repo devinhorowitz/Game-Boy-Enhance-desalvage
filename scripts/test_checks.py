@@ -24,11 +24,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_consistency as cc                                   # noqa: E402
 
-# ECO-13 INVERTED THIS CASE. On the ECO-5 base Net-(Q5B-G) was BROKEN, so the mutation
-# ADDED the missing via and check [10] had to notice the blocker was fixed. On AGBM-02 the
-# net is WHOLE and check [10] asserts that, so the mutation now DELETES the via that joins
-# it -- (100.8, -62.15) on net 224, the same coordinate ECO-5 removed the first time -- and
-# the check has to notice the net came apart.
+# THE REBASE INVERTED THIS CASE. On the AGBM-01 base Net-(Q5B-G) was BROKEN, so the
+# mutation ADDED the missing via and check [10] had to notice the blocker was fixed. On AGBM-02
+# the net is WHOLE and check [10] asserts that, so the mutation now DELETES the via that joins
+# it -- (100.8, -62.15) on net 224, the same coordinate that base removed the first time
+# -- and the check has to notice the net came apart.
 BREAK_THE_NET = re.compile(
     r'\n\t\(via\n\t\t\(at 100\.8 -62\.15\)(?:(?!\n\t\()[\s\S])*?\n\t\)')
 
@@ -42,12 +42,12 @@ def _run(fn, board):
     return list(cc.errors), s.getvalue(), list(cc.warnings)
 
 
-# A CHECK THAT DECLINES TO RUN IS NOT THE SAME AS A CHECK THAT READS NOTHING, and this
-# file could not tell them apart until 2026-08-20. Two of the checks need something the
-# gate deliberately does not install -- [15] needs Pillow, [18] needs kicad-footprints --
-# and on a bare runner each says so and returns. Their mutation cases then reported BLIND,
-# `test_checks.py` exited 1, and CI went red on every commit from ECO-16 onward while
-# every local run was green. Seven commits of a red build nobody looked at.
+# A CHECK THAT DECLINES TO RUN IS NOT THE SAME AS A CHECK THAT READS NOTHING, and this file
+# could not tell them apart until 2026-08-20. Two of the checks need something the gate
+# deliberately does not install -- [15] needs Pillow, [18] needs kicad-footprints -- and on a
+# bare runner each says so and returns. Their mutation cases then reported BLIND,
+# `test_checks.py` exited 1, and CI went red on every commit from that point onward
+# while every local run was green. Seven commits of a red build nobody looked at.
 #
 # The distinction is the check's OWN announcement. `check_consistency` warns with this
 # phrase, and a stated reason, exactly where it gives up; a check that silently matches
@@ -89,7 +89,7 @@ def main():
     # the generator rather than typed here -- a literal turns this case into a no-op the
     # moment a part changes, which happened twice before the "BLIND" guard below caught it.
     # It comes straight from build_board's own swap tables now; it used to be scraped out of
-    # the ECO markdown, which is why those documents had to stay in lockstep with the code.
+    # the markdown, which is why those documents had to stay in lockstep with the code.
     import build_board
     chain = {ref: new for ref, field, _old, new in build_board.VALUE_SWAPS + build_board.FET_SWAPS
              if field == "Value"}
@@ -123,9 +123,9 @@ def main():
                   r'\t\t\(at ([-\d.]+) ([-\d.]+)', good)
 
     cases = [
-        # The mutated value is pulled from the generator rather than typed here, so an ECO
-        # that moves a part cannot silently turn these cases into no-ops. Two of them did
-        # exactly that when ECO-10 rescaled R23 from 1.69M to 169k, and the "BLIND" guard
+        # The mutated value is pulled from the generator rather than typed here, so a change
+        # moves a part cannot silently turn these cases into no-ops. Two of them did exactly
+        # that when the precision pass rescaled R23 from 1.69M to 169k, and the "BLIND" guard
         # below is what said so.
         ("[1]  a hand-edited board no longer rebuilds",
          cc.check_reproducible,
@@ -140,26 +140,26 @@ def main():
         ("[9]  a part lands inside the module window",
          cc.check_module_window,
          good.replace(f"(at {m.group(1)} {m.group(2)}", "(at 91.95 -44.95", 1)),
-        # The one that matters most: restoring the via ECO-5 deleted makes the net whole,
-        # which makes four documents wrong. The check must say so.
+        # The one that matters most: restoring the via that base deleted makes the net
+        # whole, which makes four documents wrong. The check must say so.
         ("[10] the Net-(Q5B-G) blocker COMES BACK",
          cc.check_blockers,
          BREAK_THE_NET.sub("", good, count=1)),
-        # [13] is the geometry gate ECO-14 added. Three mutations, one per way the two
+        # [13] is the geometry gate. Three mutations, one per way the two
         # defects it was built for could come back.
         ("[13] the CXC_CLK via returns to its 0.1632 mm spot",
          cc.check_geometry,
          good.replace("(at 47.5 -59.5)", "(at 47.45 -59.6)", 1)),
-        # ECO-20 gave check [13] four axes it never had: the board outline INCLUDING its
-        # shell holes, keepout zones, soldermask apertures as filled regions, and
-        # courtyards. One case per axis, each moving a mark back to a spot ECO-14 actually
-        # shipped -- so these are not invented failures, they are the real ones.
+        # Check [13] gained four axes it never had: the board outline INCLUDING its
+        # shell holes, keepout zones, soldermask apertures as filled regions, and courtyards.
+        # One case per axis, each moving a mark back to a spot that actually shipped once
+        # -- so these are not invented failures, they are the real ones.
         ("[13] a fiducial lands back on a shell-hole rim (gr_circle)",
          cc.check_geometry,
          good.replace("(at 24.25 -55.75)", "(at 31.0 -69.5)", 1), "edge 0.082"),
         # A SEPARATE BLIND SPOT FROM THE ONE ABOVE. SW1 and VR2 each carry an Edge.Cuts
         # circle INSIDE the footprint -- the switch shaft and the volume wheel -- and a
-        # top-level-only scan sees neither. This spot is where ECO-20's first attempt at
+        # top-level-only scan sees neither. This spot is where the first attempt at
         # FID1 went, with geom reporting 2.80 mm of edge clearance and DRC 0.2145.
         ("[13] a fiducial lands in SW1's routed shaft opening (fp_circle)",
          cc.check_geometry,
@@ -179,20 +179,20 @@ def main():
         ("[13] a fiducial loses the clearance that holds the pour back",
          cc.check_geometry,
          good.replace("(clearance 0.55)", "", 1)),
-        # [13] also gates MECHANICAL fit as of this pass -- whether the module physically
-        # clears its same-side neighbours. Nothing measured that before: every gate was
-        # about copper. Nudging C7 back toward the module closes the 0.820 mm gap ECO-6
-        # opened by moving it, which is the exact regression the ledger exists to catch.
+        # [13] also gates MECHANICAL fit as of this pass -- whether the module physically clears
+        # its same-side neighbours. Nothing measured that before: every gate was about copper.
+        # Nudging C7 back toward the module closes the 0.820 mm gap opened by
+        # moving it, which is the exact regression the ledger exists to catch.
         ("[13] C7 drifts back toward the module body",
          cc.check_geometry,
          good.replace("(at 93.1 -37.4 180)", "(at 93.1 -38.4 180)", 1)),
         # [2b] the shipped .kicad_mod must stay DERIVED from the board. Editing the library
-        # copy by hand is precisely the drift that let it fall out of step for four ECOs.
+        # copy by hand is precisely the drift that let it fall out of step for so long.
         ("[2b] the board's MOD1 changes and the library copy does not",
          cc.check_library_footprint,
          good.replace('"CLOCKXCONTROL"', '"CLOCKXCONTROLX"', 1)),
-        # [17] paste vs placement, ECO-17. Two ways it rots, and the second is the one that
-        # would ruin a board: restoring an aperture on a membrane contact, and pasting U2's
+        # [17] paste vs placement. Two ways it rots, and the second is the one
+        # that would ruin a board: restoring an aperture on a membrane contact, and pasting U2's
         # unused land so solder reflows under the body of the RAM that IS fitted.
         ("[17] paste comes back on a DNP membrane-contact pad",
          cc.check_paste,
@@ -229,7 +229,7 @@ def main():
     extra_failed = 0
     extra_cases = 0
     if stripped == good:
-        print("  BLIND:  [12] the mutation found nothing to strip -- ECO-9's flags moved")
+        print("  BLIND:  [12] the mutation found nothing to strip -- the flags moved")
         extra_failed += 1
     else:
         _asm, _hand, _none, _cpl, probs = bom_split.build(board=stripped)
@@ -246,19 +246,18 @@ def main():
     cases.append(("[14] an added pad leaves the pour the ledger has it in",
                   cc.check_zone_fill,
                   good.replace("(at 97.9 -37.95)", "(at 97.9 -30.0)", 1)))
-    # [15] is the render gate. Any board change at all must make the committed PNGs stale;
-    # if it does not, the renderer is not actually reading the board.
-    # [19] ECO-23. The KiCad 10 companion is a DERIVED artifact; if the KiCad 9 board moves
-    # and it does not, the repository is carrying two different boards. Moving one track
-    # endpoint in the source is exactly that.
-    # ECO-25. THE CASE ABOVE MOVES COPPER; THIS ONE MOVES ONLY SILKSCREEN. check [19]
-    # shipped comparing footprints, pads, vias and track coverage, and was described as
-    # proving "the same board" -- it proved the same COPPER, and a user's five silkscreen
-    # edits passed straight through it. A gate is only as wide as the thing it measures.
-    # ECO-26. A PROPERTY and a GRAPHIC are different code paths. The case below moves a
-    # Reference, which lives in `(property ...)`; this one moves an fp_text, which lives in
-    # the footprint's graphics and is the path whose reader was blind -- `(at 0 0 180)` has
-    # a rotation, and the position pattern could not match it.
+    # [15] is the render gate. Any board change at all must make the committed PNGs stale; if it
+    # does not, the renderer is not actually reading the board. [19] KiCad 10. The
+    # KiCad 10 companion is a DERIVED artifact; if the KiCad 9 board moves and it does not, the
+    # repository is carrying two different boards. Moving one track endpoint in the source is
+    # exactly that. THE CASE ABOVE MOVES COPPER; THIS ONE MOVES ONLY
+    # SILKSCREEN. check [19] shipped comparing footprints, pads, vias and track coverage, and
+    # was described as proving "the same board" -- it proved the same COPPER, and a user's five
+    # silkscreen edits passed straight through it. A gate is only as wide as the thing it
+    # measures. A PROPERTY and a GRAPHIC are different code paths. The
+    # case below moves a Reference, which lives in `(property ...)`; this one moves an fp_text,
+    # which lives in the footprint's graphics and is the path whose reader was blind -- `(at 0 0
+    # 180)` has a rotation, and the position pattern could not match it.
     cases.append(("[19] a silkscreen TEXT moves and the KiCad 10 copy does not",
                   cc.check_kicad10,
                   good.replace("(at -2.538 2.7004 180)", "(at 0 0 180)", 1),
@@ -306,8 +305,8 @@ def main():
         "[16] a link in MouseBiteLabs' schematic goes unresolved", LINKS,
         lambda d: d["links"].pop(sorted(d["links"])[0]))
     # SELF-SELECTING TARGET. Two earlier attempts proved nothing: "the first entry with an
-    # upstream" landed on a line whose value an ECO had changed (which [16] hands to check
-    # [3] and skips), and CP1 stopped being a divergence at all the moment ECO-15 put it
+    # upstream" landed on a line whose value this fork had changed (which [16] hands to check
+    # [3] and skips), and CP1 stopped being a divergence at all the moment his own link put it
     # back on MouseBiteLabs' part. So find a line that [16] is ACTUALLY counting right now
     # -- same value on both sides, upstream recorded -- and strip its ledger.
     def _pick_diverging():

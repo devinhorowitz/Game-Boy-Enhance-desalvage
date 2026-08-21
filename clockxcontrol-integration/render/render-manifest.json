@@ -24,7 +24,7 @@
     },
     "agbm02_cxc_diff.png": {
       "caption": "all layers, this fork's copper at full value, 22 ringed",
-      "pixels": "d3c31244ddc761c6",
+      "pixels": "e13b286a7eafb5f0",
       "size": [
         1471,
         928
@@ -32,7 +32,7 @@
     },
     "agbm02_cxc_fit.png": {
       "caption": "module fit at 46 px/mm, 3 landed, 3 not",
-      "pixels": "10f000b8ad0521d8",
+      "pixels": "2d8e9399802c7e43",
       "size": [
         1028,
         836
@@ -48,7 +48,7 @@
     },
     "agbm02_cxc_placement.png": {
       "caption": "module window at 34 px/mm, 10 ringed",
-      "pixels": "18eec3b13bfd0c83",
+      "pixels": "227b1084a8581275",
       "size": [
         859,
         977
