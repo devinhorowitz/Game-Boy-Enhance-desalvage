@@ -20,7 +20,7 @@ WHY IT HAS TO RE-POUR FIRST
 
 The committed board carries MouseBiteLabs' stored fill, from before this fork added any
 copper -- check [14] exists to say so. DRC on that fill would report the board as it cannot
-be built. The copy is re-poured with pcbnew, exactly as ECO-16's renders are, and the
+be built. The copy is re-poured with pcbnew, exactly as the assembled renders are, and the
 committed board stays stale on purpose.
 
 WHAT THIS FOUND THAT NOTHING ELSE COULD
@@ -29,12 +29,12 @@ Check [13] measures copper-to-copper distance and knows nothing about keepout zo
 board-edge rules, soldermask bridging, or whether a pour still REACHES a pad. This board has
 64 mechanical keepout zones. The first run turned up two defects that had been shipping:
 
-  * the six fiducials ECO-14 placed sit on a battery terminal, in shell holes and inside
-    keepout zones -- placed by a search that only knew about hard copper;
-  * U1 pad 39 [GND] has no ground connection at all, because ECO-6's /CPU/TP8 route runs
+  * six fiducials sitting on a battery terminal, in shell holes and inside keepout zones --
+    placed by a search that only knew about hard copper;
+  * U1 pad 39 [GND] with no ground connection at all, because the /CPU/TP8 route runs
     0.3594 mm from its copper where a pour sliver needs 0.400 to survive.
 
-ECO-20 fixed both, so both are gone from the ledger below -- and the ledger is written so
+Both are fixed, so both are gone from the ledger below -- and the ledger is written so
 that a FIX breaks the check just as loudly as a regression: leave a line in after the
 violation stops happening and the run fails with "0 new, ledger says N -- FIXED? remove its
 line". That is deliberate. The dangerous state for a file like this is a stale entry that
@@ -64,19 +64,19 @@ ROOT = Path(__file__).resolve().parent.parent
 # rather than renumber it. Fix one and this file must lose its line in the same commit.
 KNOWN_NEW = {
     "courtyards_overlap": (
-        1, "ECO-19: C7A's courtyard overlaps MOD1's body BY DESIGN. The stock C7 land is "
+        1, "C7A's courtyard overlaps MOD1's body BY DESIGN. The stock C7 land is "
            "restored inside the module window, DNP, so mods that solder to C7 where "
            "MouseBiteLabs has always kept it still have their landmark. Exactly one of "
            "C7 / C7A is ever populated."),
 }
-# ECO-22 EMPTIED THE REST OF THIS TABLE, and not by fixing 53 things. Four lines here --
-# silk_overlap 25, silk_over_copper 12, lib_footprint_issues 11, text_height 6 -- were
-# never violations of this board's rules at all. They were violations of KiCad's DEFAULT
-# rules, which is what ran because drc() wrote the board into a directory with no project
-# file. MouseBiteLabs sets all four to `ignore` in the .kicad_pro he has shipped since
-# AGBM-01. Reading his project instead of guessing at it took the fork's contribution from
-# "55 new violations" to ONE, and that one is deliberate.
-# MouseBiteLabs' board has 0 unconnected items and so, since ECO-20, does this one. An
+# THE REST OF THIS TABLE EMPTIED WITHOUT ANYTHING BEING FIXED. Four lines that used to sit
+# here -- silk_overlap 25, silk_over_copper 12, lib_footprint_issues 11, text_height 6 --
+# were never violations of this board's rules at all. They were violations of KiCad's
+# DEFAULT rules, which is what ran while drc() wrote the board into a directory with no
+# project file. MouseBiteLabs sets all four to `ignore` in the .kicad_pro he has shipped
+# since AGBM-01. Reading his project instead of guessing at it took the fork's contribution
+# from "55 new violations" to ONE, and that one is deliberate.
+# MouseBiteLabs' board has 0 unconnected items and so does this one. An
 # entry here is an unconnected pad this fork is choosing to live with; there are none.
 KNOWN_UNCONNECTED: dict[str, str] = {}
 
@@ -84,7 +84,7 @@ KNOWN_UNCONNECTED: dict[str, str] = {}
 def project_file() -> str:
     """MouseBiteLabs' own .kicad_pro, out of the base zip.
 
-    THE SINGLE MOST CONSEQUENTIAL LINE IN THIS FILE, AND IT WAS MISSING UNTIL ECO-22.
+    THE SINGLE MOST CONSEQUENTIAL LINE IN THIS FILE, AND IT WAS ONCE MISSING.
     KiCad reads its design rules from the PROJECT, not the board. This function used to
     write the board into an empty temp directory, so every run silently fell back to
     KiCad's built-in defaults -- a different rule set from the one the board is designed
@@ -101,9 +101,12 @@ def project_file() -> str:
         silk_over_copper         IGNORE           warning          39 phantom violations
 
     Under the defaults this fork looked like it added 55 violations to a 695-violation
-    board. Under the rules the board is actually designed to, MouseBiteLabs' AGBM-02 has
-    203 and this fork has 204 -- and the one it adds is ECO-19's deliberate C7A courtyard.
-    The 489-violation difference is almost entirely checks HE TURNED OFF.
+    board. Under the rules the board is actually designed to it adds exactly one, the
+    deliberate C7A courtyard, and the difference is almost entirely checks HE TURNED OFF.
+
+    The absolute counts move whenever he revises the board -- his August 2026 FFC-land
+    narrowing took both boards down by 39 -- which is why nothing here pins a number and
+    the check diffs his report against this fork's by violation POSITION instead.
     """
     with zipfile.ZipFile(ROOT / "AGBM-02 (AA Batteries)" / "AGBM-02 Design Files.zip") as z:
         return z.read("AGBM-02 Design Files/AGBM-02_AA_1-1.kicad_pro").decode("utf-8")

@@ -189,11 +189,11 @@ WIRE_PADS = [("TP83", 97.9, -37.95, "CXC_CLK", "CLK", "CXC CLK wire"),
 # --- ECO-7: the crystal network is not fitted on a ClockxControl build ----------------
 DNP_REFS = ("X1", "C3", "C4")
 
-# --- ECO-8: the drop-in part swaps ---------------------------------------------------
-# ref, field, old, new. Documented in clockxcontrol-integration/ECO-8_component_swaps.md;
-# consistency check [3] holds that document's table and this list to the same values, so
-# neither can drift from the other or from the board.
-# ON THE AGBM-02 BASE, THREE OF ECO-8's THIRTEEN ROWS ARE ALREADY DONE UPSTREAM:
+# --- the drop-in part swaps ----------------------------------------------------------
+# ref, field, old, new. The reasoning is in
+# clockxcontrol-integration/DESIGN-DECISIONS.md section 7; this list is what the board
+# actually carries, and check [5]/[6] hold the buy documents to it.
+# ON THE AGBM-02 BASE, THREE OF THE ORIGINAL THIRTEEN ROWS ARE ALREADY DONE UPSTREAM:
 #   F1    Value  -- AGBM-02 already reads F0805B2R00FSTR. ECO-8's BOM fix was right and
 #                   MouseBiteLabs made the same fix; nothing left for us to change.
 #   PTC1  Value  -- AGBM-02 already reads 0805L075SLYR, not the stale "0467001.NR". The

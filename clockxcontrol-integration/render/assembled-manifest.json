@@ -2,8 +2,8 @@
   "kicad": "10.0.5",
   "models": "/usr/share/kicad/3dmodels",
   "source": {
-    "base": "9baf08be6d4c7dd2",
-    "board": "0868eb24f3cbc81c"
+    "base": "40e917af3a3f1992",
+    "board": "b6f9b61e566f3245"
   },
   "targets": {
     "agbm02_finished_bottom.png": {
@@ -13,7 +13,7 @@
         "P4",
         "SP1"
       ],
-      "bytes": 452920,
+      "bytes": 452349,
       "desc": "back, after you have hand-soldered the rest too",
       "keeps": [
         "+hand-fitted",
@@ -32,9 +32,7 @@
         "Unnamed-SOLID.step",
         "acm2520-3p-t002.step"
       ],
-      "offboard": [
-        "REF**"
-      ],
+      "offboard": [],
       "referenced": 183,
       "resolved": 176,
       "side": "bottom"
@@ -46,7 +44,7 @@
         "P4",
         "SP1"
       ],
-      "bytes": 439966,
+      "bytes": 439222,
       "desc": "front, after you have hand-soldered the rest too",
       "keeps": [
         "+hand-fitted",
@@ -65,16 +63,14 @@
         "Unnamed-SOLID.step",
         "acm2520-3p-t002.step"
       ],
-      "offboard": [
-        "REF**"
-      ],
+      "offboard": [],
       "referenced": 183,
       "resolved": 176,
       "side": "top"
     },
     "agbm02_pcbway_bottom.png": {
       "bodyless": [],
-      "bytes": 452283,
+      "bytes": 452100,
       "desc": "back, exactly the parts PCBWay's line places",
       "keeps": [
         "assembly"
@@ -87,16 +83,14 @@
         "TPS63802DLAR--3DModel-STEP-269445.STEP",
         "acm2520-3p-t002.step"
       ],
-      "offboard": [
-        "REF**"
-      ],
+      "offboard": [],
       "referenced": 180,
       "resolved": 175,
       "side": "bottom"
     },
     "agbm02_pcbway_top.png": {
       "bodyless": [],
-      "bytes": 434734,
+      "bytes": 434680,
       "desc": "front, exactly the parts PCBWay's line places",
       "keeps": [
         "assembly"
@@ -109,9 +103,7 @@
         "TPS63802DLAR--3DModel-STEP-269445.STEP",
         "acm2520-3p-t002.step"
       ],
-      "offboard": [
-        "REF**"
-      ],
+      "offboard": [],
       "referenced": 180,
       "resolved": 175,
       "side": "top"
