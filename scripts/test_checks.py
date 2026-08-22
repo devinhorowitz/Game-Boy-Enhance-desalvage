@@ -436,15 +436,61 @@ def main():
         fab_package._package_shape = lambda pads: ("dual", 0.5)
         _restore.append(lambda: setattr(fab_package, "_package_shape", keep))
 
-    # The polarity warning is the one instruction the gerbers cannot carry: drop a
-    # tantalum's refdes out of the sheet and nothing else on the board would ever say it
-    # goes in one way round.
-    def _order_sheet_drops_a_tantalum(members, man):
-        members["ORDER.txt"] = members["ORDER.txt"].replace(b"CP2", b"C__", 1)
+    # POLARITY. Three cases, because the reader here has been wrong once already: it read
+    # silkscreen only from inside the footprint and called three MARKED capacitors unmarked.
+    #   1. delete the "+" glyphs    -> the board-level reader must notice they are gone
+    #   2. flatten the LED silk     -> the footprint reader must notice IT has gone blind
+    #   3. move a "+" to the far end -> a mark at the cathode is worse than no mark at all
+    # THE DIGEST GATE HAS TO BE STOOD DOWN FOR THESE, or they prove nothing. Check [21]
+    # compares the package's recorded source digest to the board's and RETURNS EARLY if they
+    # differ -- which any board mutation makes true. Run as-is, all three of these "caught"
+    # an error about a stale package and never reached the polarity block at all. Two of
+    # them were passing on that basis. So the digest is stubbed to agree, isolating the one
+    # check under test, and each case names the phrase its own error has to contain.
+    def _polarity_case(label, mutate_board, want):
+        mutated = mutate_board(good)
+        if mutated == good:
+            print(f"  BLIND:  {label} -- the mutation did not change the board")
+            return 1
+        keep = cc._render_source_digest
+        cc._render_source_digest = lambda: json.loads(
+            io.open(cc.FAB_MANIFEST, encoding="utf-8").read())["source"]
+        try:
+            errs, _out, _w = _run(cc.check_fab_package, mutated)
+        finally:
+            cc._render_source_digest = keep
+        hit = any(want in e for e in errs)
+        print(f"  {'ok:     ' if hit else 'BLIND:  '}{label}"
+              + (" -> caught" if hit else
+                 f" -> no error contained {want!r} (got {errs or 'nothing'})"))
+        return 0 if hit else 1
 
-    extra_cases += 1
-    extra_failed += _fab_case("[21] the order sheet stops naming an unmarked polarised part",
-                              _order_sheet_drops_a_tantalum)
+    def _delete_the_plus_glyphs(board):
+        return re.sub(r'\n\t\(gr_text\s*\n?\s*"\+"[\s\S]*?\n\t\)', "", board)
+
+    def _flatten_the_led_silk(board):
+        # DL1/DL2 draw the diode symbol twice over: a filled triangle AND a bar beside it.
+        # Flattening only the triangle leaves the bar, and the bar alone is still asymmetric
+        # -- which is why the first version of this case never fired. Take both: delete the
+        # triangle and centre the bar, and the land stops saying which end is the cathode.
+        board = re.sub(
+            r"\(fp_poly\n\t+\(pts\n\t+\(xy 0\.2 -0\.3\) \(xy -0\.2 0\) "
+            r"\(xy 0\.2 0\.3\)[\s\S]*?\n\t\t\)\n", "", board)
+        return board.replace("(start -0.2 -0.3)", "(start 0 -0.3)").replace(
+            "(end -0.2 0.3)", "(end 0 0.3)")
+
+    def _move_a_plus_to_the_cathode(board):
+        return board.replace("(at 102.9 -23.1", "(at 109.5 -23.1", 1)
+
+    for _label, _fn, _want in (
+            ("[21] the '+' polarity glyphs are deleted from the board",
+             _delete_the_plus_glyphs, "board-level reader has gone blind"),
+            ("[21] an LED's land silkscreen stops identifying pin 1",
+             _flatten_the_led_silk, "have no usable polarity mark"),
+            ("[21] a '+' is moved to the cathode end",
+             _move_a_plus_to_the_cathode, "THE MARK IS AT THE WRONG END")):
+        extra_cases += 1
+        extra_failed += _polarity_case(_label, _fn, _want)
 
     # THE CASE THIS WHOLE SECOND ZIP EXISTS FOR. PCBWay rejected the first upload for
     # having "no drill file" while it held two valid Excellon files -- one directory down,

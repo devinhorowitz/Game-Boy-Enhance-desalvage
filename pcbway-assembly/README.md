@@ -264,18 +264,29 @@ check [6] keeps naming these. Check **[16]** fails if any link in the base schem
 - **`CP1`/`CP2`/`CP3` package**: the specified part is a KYOCERA AVX **TPSB107M010R0400**, a
   1411/3528-metric molded tantalum, 3.50 × 2.80 × 2.10 mm, on a footprint named
   `C_1210_3225Metric_Boxed_2` (3.2 × 2.5 mm). The land measures 4.10 × 2.70 mm.
-- **`CP1`/`CP2`/`CP3` polarity**: they are **polarized tantalums on a symmetric land pattern with no
-  polarity marking anywhere on the board**. A human reads the part's own stripe; a pick-and-place
-  reads the CPL rotation, and if that rotation is wrong all three go in backwards, and nothing
-  downstream catches it — not DRC, not AOI, not a visual check, and a reversed tantalum fails
-  shorted. **Add polarity silkscreen before ordering assembly**, and until then `ORDER.txt` carries
-  the warning by name.
+- **`CP1`/`CP2`/`CP3` polarity — RESOLVED, and this entry was wrong.** It read *"polarized tantalums
+  on a symmetric land pattern with no polarity marking anywhere on the board"* and recommended
+  adding silkscreen before ordering. **The marking is already there.** Each of the three has a
+  `gr_text "+"` on `F.SilkS` sitting **1.83 mm from pad 1** and 4.77 mm from pad 2, and `CP2`'s is on
+  the opposite side of the part because `CP2` is rotated 180° — the marks track the placement, which
+  is what tells you they were put there deliberately.
 
-  This is now derived rather than asserted. `fab_package.polarity_risk()` takes the polarised parts
-  from the distributor's own description and measures each land and its silkscreen for mirror
-  symmetry; check [21] fails if `ORDER.txt` stops naming one. It finds **exactly `CP1`, `CP2` and
-  `CP3`** — the board's other polarised parts are all marked, `D1`/`D2` by a bracket drawn round the
-  cathode end and `DL1`/`DL2` by the diode triangle.
+  The land *is* symmetric, and that part was true. What was false is the conclusion drawn from it:
+  `polarity_risk()` read silkscreen only from **inside** each footprint, and these marks are
+  board-level free text, which is the normal way to mark polarity without editing a shared library
+  footprint. The reader could not see them, so it reported the board as unmarked and `ORDER.txt`
+  told PCBWay so in capitals.
+
+  It now reads **both** sources a board can use, and check [21] proves it can still see each one
+  before believing any verdict — if the `"+"` glyphs vanish it reports the *reader* as blind rather
+  than the board as unmarked. Across the whole board: **all 7 polarised parts are marked at the
+  correct end**, three by a `"+"` beside pin 1 (`CP1`–`CP3`) and four by their own land silkscreen
+  (`D1`/`D2` by a bracket round the cathode, `DL1`/`DL2` by the diode triangle). A `"+"` moved to the
+  cathode end now fails the check, which a presence-only test would have passed.
+
+  `CP1`–`CP3` are still worth confirming on a first article — they fail **shorted** when reversed,
+  and the land underneath gives a machine nothing to disagree with — but nothing needs adding to the
+  board.
 
 ---
 
@@ -395,8 +406,9 @@ gerbers repeats the stackup's number. Check [21] asserts the sheet still carries
    and it is the largest unverified thing in the package.
 3. **Re-run `python3 scripts/check_stock.py`** to refresh stock and price. It needs
    `DIGIKEY_CLIENT_ID`, `DIGIKEY_CLIENT_SECRET` and `MOUSER_PART_API_KEY` in the environment.
-4. **Correct the `D1`/`D2` Description field**, fix the two footprint mismatches, and add tantalum
-   polarity marking.
+4. **Correct the `D1`/`D2` Description field** and fix the two footprint mismatches. *(Tantalum
+   polarity marking used to be on this list. It should not have been — the board already carries a
+   `"+"` beside pin 1 on all three; see section 3.)*
 5. **Update the schematic's `Source` links** for any line this fork overrides, so a BOM regenerated
    from the schematic does not silently revert them.
 
