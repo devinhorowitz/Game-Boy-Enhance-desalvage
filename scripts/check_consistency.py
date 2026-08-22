@@ -2095,6 +2095,28 @@ def check_fab_package():
            f"({', '.join(r for r, _m, _v, _w in by_glyph)}) and {len(by_land)} by the land's "
            f"own asymmetric silkscreen ({', '.join(r for r, _m, _v, _w in by_land)})")
 
+    # THE LAYER MAP IS A THING A FAB TYPES INTO A FORM, so the sheet has to agree with the
+    # files rather than with a table somebody wrote once. Each copper plot declares its own
+    # position in a Gerber X2 attribute; the sheet is generated from those, and this is what
+    # notices if the two ever come apart -- a renamed plot, a re-ordered stackup, or an
+    # attribute that stopped being written at all.
+    with zipfile.ZipFile(FAB_ZIP) as z:
+        gerbers = {n: z.read(n) for n in z.namelist() if n.startswith("gerbers/")}
+    cmap = fab_package.copper_layer_map(gerbers)
+    want = [(1, "Top"), (2, "Inr"), (3, "Inr"), (4, "Bot")]
+    got = [(pos, side) for pos, _fn, side in cmap]
+    missing = [f"L{p}  {fn}" for p, fn, _s in cmap if fn not in sheet]
+    if got != want:
+        err("the copper plots do not declare a clean L1-top .. L4-bottom stack: "
+            + ", ".join(f"L{p} {fn} ({sd})" for p, fn, sd in cmap)
+            + " -- a fab maps files to layers off exactly this")
+    elif missing:
+        err("ORDER.txt does not name every copper plot in its layer map: "
+            + ", ".join(missing))
+    else:
+        ok("the order sheet's layer map matches what the gerbers declare about themselves: "
+           + ", ".join(f"L{p}={fn.split('-')[-1]}" for p, fn, _s in cmap))
+
     # PCBWAY REJECTED THE FIRST UPLOAD FOR HAVING "no drill file" WHILE HOLDING TWO VALID
     # EXCELLON FILES -- in drill/. Their intake reads the archive flat, so a drill file one
     # directory down is a drill file that does not exist. This is the check that the zip
