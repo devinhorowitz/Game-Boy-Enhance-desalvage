@@ -446,6 +446,51 @@ def main():
     extra_failed += _fab_case("[21] the order sheet stops naming an unmarked polarised part",
                               _order_sheet_drops_a_tantalum)
 
+    # THE CASE THIS WHOLE SECOND ZIP EXISTS FOR. PCBWay rejected the first upload for
+    # having "no drill file" while it held two valid Excellon files -- one directory down,
+    # in drill/. Put a file back in a folder and [21] has to catch it, because the symptom
+    # downstream is not an error, it is a polite email a week later.
+    def _upload_case(label, mutate):
+        import tempfile, zipfile as _zf
+        keep = cc.FAB_UPLOAD
+        with tempfile.TemporaryDirectory() as td:
+            z2 = os.path.join(td, "u.zip")
+            with _zf.ZipFile(cc.FAB_UPLOAD) as zin:
+                members = {n: zin.read(n) for n in zin.namelist()}
+            mutate(members)
+            with _zf.ZipFile(z2, "w") as zout:
+                for k in sorted(members):
+                    zout.writestr(k, members[k])
+            cc.FAB_UPLOAD = z2
+            try:
+                errs, _, _w = _run(cc.check_fab_package, good)
+            finally:
+                cc.FAB_UPLOAD = keep
+        print(f"  {'ok:     ' if errs else 'BLIND:  '}{label}"
+              f"{' -> caught' if errs else ' -> the check did NOT fire'}")
+        return 0 if errs else 1
+
+    def _renest_the_drill(members):
+        for n in [k for k in members if k.lower().endswith(".drl")]:
+            members["drill/" + n] = members.pop(n)
+
+    def _drop_the_npth(members):
+        for n in [k for k in members if "NPTH" in k]:
+            members.pop(n)
+
+    # And the other way the upload can lie: a job file that states a thickness the order
+    # form contradicts. KiCad writes 1.2 mm; this board is ordered at 1.0.
+    def _readd_a_stale_gbrjob(members):
+        members["AGBM-02_AA_1-1_GBE-plus-CXC-job.gbrjob"] = json.dumps(
+            {"GeneralSpecs": {"LayerNumber": 4, "BoardThickness": 1.2}}).encode()
+
+    for label, fn in (("[21] a drill file slips back into a subfolder", _renest_the_drill),
+                      ("[21] the NPTH drill file goes missing from the upload", _drop_the_npth),
+                      ("[21] a job file states a thickness the order form contradicts",
+                       _readd_a_stale_gbrjob)):
+        extra_cases += 1
+        extra_failed += _upload_case(label, fn)
+
     _restore = []
     extra_cases += 1
     try:

@@ -1,5 +1,5 @@
 {
-  "content": "b0a900c2ed9cd4b6",
+  "content": "8ab5de51f57516ec",
   "kicad": "10.0.5",
   "members": [
     "ORDER.txt",
@@ -26,5 +26,21 @@
   "source": {
     "base": "40e917af3a3f1992",
     "board": "b6f9b61e566f3245"
-  }
+  },
+  "upload_content": "821c9c6770773bdf",
+  "upload_members": [
+    "AGBM-02_AA_1-1_GBE-plus-CXC-B_Cu.gbl",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-B_Mask.gbs",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-B_Paste.gbp",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-B_Silkscreen.gbo",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-Edge_Cuts.gm1",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-F_Cu.gtl",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-F_Mask.gts",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-F_Paste.gtp",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-F_Silkscreen.gto",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-In1_Cu.g1",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-In2_Cu.g2",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-NPTH.drl",
+    "AGBM-02_AA_1-1_GBE-plus-CXC-PTH.drl"
+  ]
 }

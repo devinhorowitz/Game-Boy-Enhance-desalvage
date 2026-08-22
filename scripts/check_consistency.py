@@ -1947,6 +1947,7 @@ def check_power_ledger():
 # everywhere and is what stops a stale package riding a green build.
 FAB_ZIP = os.path.join(ROOT, "pcbway-assembly", "fab", "agbm-02-cxc-pcbway.zip")
 FAB_MANIFEST = os.path.join(ROOT, "pcbway-assembly", "fab", "fab-manifest.json")
+FAB_UPLOAD = os.path.join(ROOT, "pcbway-assembly", "fab", "agbm-02-cxc-gerbers.zip")
 # Every member the package must carry. A fab house that gets 10 of 11 copper layers does
 # not stop -- it builds what it was sent.
 FAB_REQUIRED = (
@@ -1986,10 +1987,12 @@ def check_fab_package():
     missing += [f"a {e} plot" for e in FAB_EXTS if e not in exts]
     if not any(n.startswith("drill/") and n.lower().endswith(".drl") for n in names):
         missing.append("an Excellon drill file")
-    # NPTH is its own file and it is NOT optional -- it carries the shell mounting holes,
-    # and a board built without them does not fit the case.
+    # NPTH is its own file and it is NOT optional -- it carries P3's two 1.8 mm locating
+    # pegs, and the headphone jack has nothing to seat into without them. (It does NOT carry
+    # the shell mounting holes, which this comment used to claim: those are cut out of
+    # Edge.Cuts by the router. Right conclusion, invented reason.)
     if not any("NPTH" in n and n.lower().endswith(".drl") for n in names):
-        missing.append("a separate NPTH drill file (the shell mounting holes)")
+        missing.append("a separate NPTH drill file (P3's locating pegs)")
     empty = sorted(n for n in names if sizes[n] == 0)
     if missing:
         err("the fab package is missing: " + ", ".join(missing))
@@ -2072,6 +2075,58 @@ def check_fab_package():
         ok(f"the order sheet names all {len(risky)} polarised part(s) the board gives no "
            f"polarity mark for ({', '.join(r for r, _m, _d in risky)}), and every other "
            "polarised part on the board carries one")
+
+    # PCBWAY REJECTED THE FIRST UPLOAD FOR HAVING "no drill file" WHILE HOLDING TWO VALID
+    # EXCELLON FILES -- in drill/. Their intake reads the archive flat, so a drill file one
+    # directory down is a drill file that does not exist. This is the check that the zip
+    # they actually receive is flat, is fabrication data only, and still has both drills.
+    if not os.path.exists(FAB_UPLOAD):
+        err("no flat upload zip on disk -- run scripts/fab_package.py. The full package is "
+            "the record; PCBWay's PCB-file box takes the flat one")
+        return
+    with zipfile.ZipFile(FAB_UPLOAD) as z:
+        up = z.namelist()
+    nested = sorted(n for n in up if "/" in n or "\\" in n)
+    drl = sorted(n for n in up if n.lower().endswith((".drl", ".drd", ".txt")))
+    if nested:
+        err("the upload zip has files in FOLDERS: " + ", ".join(nested[:4])
+            + " -- PCBWay reads the archive flat and reported the last one as having no "
+              "drill file at all")
+    elif not drl:
+        err("the upload zip contains no drill file, which is exactly what PCBWay rejected")
+    elif not any("NPTH" in n for n in drl):
+        err("the upload zip has no NPTH drill file -- it carries P3's two locating pegs "
+            "and the headphone jack has nothing to seat into without them")
+    else:
+        ok(f"the upload zip is flat ({len(up)} files, no folders) and carries both drill "
+           f"files ({', '.join(os.path.splitext(n)[0].split('-')[-1] for n in drl)})")
+
+    # And that nothing inside it contradicts the order form. The .gbrjob KiCad writes says
+    # BoardThickness 1.2 and Finish "None"; this board is ordered at 1.0 mm with ENIG. It is
+    # excluded for that reason, and this is what notices if it -- or anything like it -- ever
+    # comes back. A vacuous pass is called out as vacuous.
+    want_mm = float(re.sub(r"[^\d.]", "", spec["thickness"]))
+    jobs = [n for n in up if n.lower().endswith(".gbrjob")]
+    if not jobs:
+        ok(f"nothing in the upload declares a board thickness, so the {spec['thickness']} on "
+           "the order form is uncontradicted (KiCad's .gbrjob says 1.2 mm and ENIG 'None', "
+           "which is why it is left out)")
+    else:
+        with zipfile.ZipFile(FAB_UPLOAD) as z:
+            bad = []
+            for n in jobs:
+                try:
+                    got = json.loads(z.read(n)).get("GeneralSpecs", {}).get("BoardThickness")
+                except ValueError:
+                    got = None
+                if got is not None and abs(float(got) - want_mm) > 0.001:
+                    bad.append(f"{n} says {got} mm")
+        if bad:
+            err("the upload zip contradicts the order form on thickness: " + "; ".join(bad)
+                + f" against MouseBiteLabs' {spec['thickness']} -- a fab that reads the job "
+                  "file instead of the form builds the wrong board")
+        else:
+            ok(f"every job file in the upload agrees with the {spec['thickness']} spec")
 
 
 
