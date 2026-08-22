@@ -69,6 +69,28 @@ GEN = ROOT / "pcbway-assembly" / "generated"
 OUT = ROOT / "pcbway-assembly" / "fab" / "agbm-02-cxc-pcbway.zip"
 MANIFEST = ROOT / "pcbway-assembly" / "fab" / "fab-manifest.json"
 
+# THE ZIP THAT ACTUALLY GOES IN PCBWAY'S "PCB FILE" BOX, AND WHY IT IS A SECOND FILE.
+# The full package above is the record: gerbers and drill in folders, plus the assembly
+# CSVs and the order sheet. PCBWay's file review rejected it with "there is no drill file
+# included in your design" -- with both .drl files present and valid Excellon, sitting in
+# drill/. Their intake reads the archive flat, so a drill file one directory down is a
+# drill file it never sees. The fix is not to argue: it is to hand them the shape every
+# fab house expects -- FABRICATION DATA ONLY, NO FOLDERS.
+UPLOAD = ROOT / "pcbway-assembly" / "fab" / "agbm-02-cxc-gerbers.zip"
+
+# The drill MAPS are deliberately not in the upload. They are human-readable plots of where
+# the holes are, they carry a .gbr extension, and a .gbr that is not a real layer is exactly
+# what makes a viewer report a layer count nobody can explain. They stay in the record.
+#
+# NEITHER IS THE .gbrjob, AND THAT ONE IS NOT TIDINESS. It declares BoardThickness 1.2 and
+# Finish "None"; this board is ordered at 1.0 mm with ENIG. Its layer identification is
+# redundant -- the Protel extensions already say which file is which -- so the only thing it
+# would add to the upload is two values that contradict the order form, in a file a fab's
+# intake may well read in preference to a human. Out it goes, and check [21] fails if any
+# file in the upload ever declares a thickness that disagrees with the spec again.
+_MAP_SUFFIX = "_map.gbr"
+_UPLOAD_EXCLUDE = (_MAP_SUFFIX, ".gbrjob")
+
 # Protel extensions, because every fab house on earth reads them without being told which
 # file is which. The inner layers are .g1/.g2 in KiCad's protel mapping.
 PLOT_LAYERS = ("F.Cu,In1.Cu,In2.Cu,B.Cu,"
@@ -489,6 +511,26 @@ def assembly_counts(board_text: str) -> dict:
             "bom_lines": len(bom), "unique_mpns": len({r["mpn"] for r in bom})}
 
 
+def npth_owners(board_text: str) -> list:
+    """[(ref, footprint, n_holes, diameter_mm)] for every part with non-plated holes.
+
+    WRITTEN BECAUSE THE SHEET GOT THIS WRONG. It said the NPTH file "carries the shell
+    mounting holes". It does not: the shell holes are cut out of Edge.Cuts by the router,
+    and the NPTH file's two 1.8 mm holes are the locating pegs on the underside of P3, the
+    CUI SJ-3524-SMT headphone jack. The conclusion was right -- the file is not optional --
+    but the reason was invented, and a fab told "these are enclosure holes" has been told
+    something false about a part it is about to drill around.
+    """
+    out = []
+    for fp in kisexp.footprints(board_text):
+        holes = [re.search(r"\(drill ([\d.]+)\)", blk) for blk in kisexp.pad_blocks(fp.body)
+                 if "np_thru_hole" in blk]
+        holes = [float(m.group(1)) for m in holes if m]
+        if holes:
+            out.append((fp.ref, fp.name.split(":")[-1], len(holes), min(holes), max(holes)))
+    return sorted(out)
+
+
 def order_sheet(board_text: str, members: dict) -> str:
     s = stackup(board_text)
     # COUNT WITH A CSV READER, NOT BY SPLITTING ON NEWLINES. The BOM's note column carries
@@ -533,6 +575,10 @@ def order_sheet(board_text: str, members: dict) -> str:
     n_uth, n_uth_named, uth_named = len(uth), len(named), ", ".join(named)
     front = [r for r, _, _, sd in a["fine_pitch"] if sd == "top"]
     front_refs = " and ".join(front) if len(front) < 3 else ", ".join(front)
+    npth_list = "".join(
+        f"\n    {r:5s} {nm:28s} {n} hole(s) at "
+        + (f"{lo:.2f} mm" if lo == hi else f"{lo:.2f}-{hi:.2f} mm")
+        for r, nm, n, lo, hi in npth_owners(board_text)) or "\n    (none)"
     fine_list = "".join(f"\n                            {r:5s} {nm:34s} {pt:.2f} mm  {sd}"
                         for r, nm, pt, sd in a["fine_pitch"])
     # Say WHY the two numbers differ rather than leaving a reader to wonder whether one of
@@ -603,6 +649,19 @@ BOARD
                           INSIDE footprints (SW1's switch shaft, VR2's wheel), so the
                           router has to follow Edge.Cuts, not the bounding box
 
+WHICH FILE YOU ACTUALLY UPLOAD
+  This archive is the RECORD. The file that goes in PCBWay's "PCB file" box is the other
+  one, agbm-02-cxc-gerbers.zip: the same gerbers and the same two drill files, FLAT, with
+  no folders and nothing but fabrication data in it.
+
+  That is not a preference. The first upload was this archive, and it came back as "there
+  is no drill file included in your design" -- with both .drl files present, valid Excellon,
+  sitting one directory down in drill/. Intake reads the archive flat. A drill file in a
+  folder is a drill file nobody sees.
+
+  The BOM and the position file go in the ASSEMBLY upload on the order form, not in the
+  PCB file. They are in assembly/ here so the record is complete.
+
 GERBERS ({len(gerbers)} files, RS-274X, 6-digit, Protel extensions)
   .GTL / .G1 / .G2 / .GBL ... copper, top to bottom
   .GTS / .GBS ............... solder mask
@@ -611,8 +670,10 @@ GERBERS ({len(gerbers)} files, RS-274X, 6-digit, Protel extensions)
   .GM1 ...................... board outline (Edge.Cuts)
 
 DRILL ({len(drills)} files, Excellon, millimetres)
-  PTH and NPTH are SEPARATE files. The NPTH file is not optional -- it carries the shell
-  mounting holes.
+  PTH and NPTH are SEPARATE files, and the NPTH file is NOT OPTIONAL:{npth_list}
+  Those are locating pegs on the underside of the part, not enclosure holes -- the shell
+  holes are cut out of Edge.Cuts by the router. Drop the NPTH file and the jack has nothing
+  to seat into.
 
 ASSEMBLY
   Side .................. both. Most of the fine-pitch work is on the BACK; {front_refs}
@@ -680,6 +741,36 @@ def digest(members: dict) -> str:
     return h.hexdigest()[:16]
 
 
+def upload_members(members: dict) -> dict:
+    """Fabrication data only, flattened to the archive root. Collisions are fatal.
+
+    Flattening is the whole point, so it has to be checked rather than assumed: two files
+    with the same basename in different folders would silently become one, and the one that
+    survived would be whichever sorted last. On this board there are none, and if a future
+    layer set ever introduced one this raises instead of shipping a package missing a layer.
+    """
+    out, seen = {}, {}
+    for k, v in members.items():
+        if not (k.startswith("gerbers/") or k.startswith("drill/")):
+            continue
+        if k.endswith(_UPLOAD_EXCLUDE):
+            continue
+        name = k.split("/")[-1]
+        if name in seen:
+            raise SystemExit(f"fab_package: flattening collides -- {seen[name]} and {k} "
+                             f"both become {name}. Rename one before shipping.")
+        seen[name] = k
+        out[name] = v
+    drills = [n for n in out if n.lower().endswith((".drl", ".drd", ".txt"))]
+    if not drills:
+        raise SystemExit("fab_package: the upload zip has no drill file, which is the exact "
+                         "thing PCBWay rejected it for")
+    if not any("NPTH" in n for n in drills):
+        raise SystemExit("fab_package: the upload zip has no NPTH drill file -- it carries "
+                         "P3's locating pegs and the jack cannot seat without them")
+    return out
+
+
 def write_zip(members: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
@@ -727,19 +818,36 @@ def main() -> int:
                   + (f" extra: {only_b}" if only_b else "")
                   + (f" changed: {diff}" if diff else ""))
             return 1
+        up = upload_members(members)
+        if not UPLOAD.exists():
+            print(f"fab_package: {UPLOAD.relative_to(ROOT)} has never been built")
+            return 1
+        with zipfile.ZipFile(UPLOAD) as z:
+            have_up = {n: z.read(n) for n in z.namelist()}
+        if digest(have_up) != digest(up):
+            print("fab_package: the shipped UPLOAD zip is NOT what this board plots to "
+                  f"(has {sorted(have_up)}, wants {sorted(up)})")
+            return 1
         print(f"ok: the shipped package is what this board plots to ({len(have)} members, "
-              f"content {d})")
+              f"content {d}); the flat upload zip matches too ({len(have_up)} members, "
+              f"content {digest(up)})")
         return 0
     write_zip(members, OUT)
+    up = upload_members(members)
+    write_zip(up, UPLOAD)
     MANIFEST.write_text(json.dumps(
         {"content": d,
          "members": sorted(members),
+         "upload_content": digest(up),
+         "upload_members": sorted(up),
          "source": _source_digest(),
          "kicad": subprocess.run(["kicad-cli", "version"], capture_output=True,
                                  text=True).stdout.strip()},
         indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="")
     print(f"wrote {OUT.relative_to(ROOT)} ({OUT.stat().st_size:,} bytes, "
           f"{len(members)} members, content {d})")
+    print(f"wrote {UPLOAD.relative_to(ROOT)} ({UPLOAD.stat().st_size:,} bytes, "
+          f"{len(up)} members, flat, content {digest(up)}) <- THIS is the PCB file upload")
     return 0
 
 
