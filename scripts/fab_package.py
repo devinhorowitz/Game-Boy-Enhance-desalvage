@@ -43,6 +43,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -377,9 +378,11 @@ _POLARISED = re.compile(r"tantalum|polari[sz]ed|\bLED\b|\bdiode\b", re.I)
 def _silk_points(fp):
     """Every silkscreen VERTEX in a footprint, text excluded. -> [(x, y)] local coords.
 
-    Text is excluded on purpose: the reference designator is silkscreen too, and it sits
-    off to one side of nearly every part. Counting it would make every footprint on the
-    board look asymmetric and the polarity test would never fire.
+    Text is excluded here because the reference designator is silkscreen too and sits off
+    to one side of nearly every part, so counting it would make every footprint look
+    asymmetric. That exclusion is safe ONLY because a separate pass reads polarity glyphs
+    off the board -- see polarity_risk(). It was not safe when this function was the whole
+    test, and it is the reason three marked capacitors were reported as unmarked.
     """
     out = []
     for m in re.finditer(r"\(fp_(\w+)\b", fp.body):
@@ -398,38 +401,108 @@ def _silk_points(fp):
     return sorted(out)
 
 
+# A polarity glyph is a "+" (or a "-"), drawn as free silkscreen text BESIDE a part rather
+# than inside its footprint -- which is how a designer marks polarity without editing a
+# shared library footprint. Anything further than this from the part belongs to another one.
+POLARITY_GLYPHS = ("+", "-")
+GLYPH_RADIUS_MM = 5.0
+
+
+def polarity_marks(board_text: str) -> list:
+    """[(glyph, x, y, layer)] -- every free silkscreen +/- on the board."""
+    out = []
+    for m in re.finditer(r"\n\t\(gr_text\b", board_text):
+        i, d = m.start() + 1, 0
+        for j in range(i, len(board_text)):
+            if board_text[j] == "(":
+                d += 1
+            elif board_text[j] == ")":
+                d -= 1
+                if d == 0:
+                    break
+        blk = board_text[i:j + 1]
+        t = re.search(r'\(gr_text\s+"([^"]*)"', blk)
+        at = re.search(r"\(at (-?[\d.]+) (-?[\d.]+)", blk)
+        lay = re.search(r'\(layer "([^"]+)"', blk)
+        if t and at and lay and t.group(1).strip() in POLARITY_GLYPHS:
+            out.append((t.group(1).strip(), float(at.group(1)), float(at.group(2)),
+                        lay.group(1)))
+    return out
+
+
+def _pad_globals(fp):
+    """{pad_number: (x, y)} in BOARD coordinates, footprint rotation applied."""
+    fx, fy, rot = fp.at
+    a = math.radians(-rot)
+    out = {}
+    for blk in kisexp.pad_blocks(fp.body):
+        num = re.match(r'\(pad "([^"]*)"', blk)
+        at = re.search(r"\(at (-?[\d.]+) (-?[\d.]+)", blk)
+        if num and at:
+            lx, ly = float(at.group(1)), float(at.group(2))
+            out[num.group(1)] = (fx + lx * math.cos(a) - ly * math.sin(a),
+                                 fy + lx * math.sin(a) + ly * math.cos(a))
+    return out
+
+
 def polarity_risk(board_text: str, described: dict) -> list:
-    """Placed parts that MUST go in one way round, on a land that does not say which.
+    """Polarised parts and how the board indicates which way round they go.
 
-    THIS IS THE FAILURE NOBODY SEES UNTIL THE BOARD IS POWERED. A pick-and-place takes its
-    orientation from the position file's rotation, and if that is read against the part's
-    own pin 1 the wrong way, a symmetric land accepts the part backwards without complaint
-    -- no DRC, no AOI signature, no visual tell. Reversed tantalums fail shorted.
+    -> [(ref, mpn, verdict, detail)] where verdict is "marked" or "UNMARKED".
 
-    So the test is the honest one: the part is polarised (per the distributor's own
-    description) AND both its pads and its silkscreen are mirror-symmetric, meaning the
-    board carries no recoverable indication of which end is which. D1/D2 and DL1/DL2 are
-    polarised too and do NOT appear here, because their silk is not symmetric -- the SOD
-    land draws a bracket around the cathode end and the LED land draws the diode triangle.
+    THE FIRST VERSION OF THIS ONLY LOOKED INSIDE THE FOOTPRINT, and reported CP1, CP2 and
+    CP3 as carrying no polarity mark at all. They carry one each: a "+" in free silkscreen
+    beside pin 1, 1.825 mm from it, and CP2's sits on the opposite side of the part because
+    CP2 is rotated 180 degrees. That is the normal way to mark polarity without editing a
+    shared library footprint, and a reader that only opens the footprint cannot see it.
+    The order sheet said "NO POLARITY MARK ANYWHERE ON THE BOARD" on the strength of it.
+
+    So the test now asks the question that actually matters. Not "is the land symmetric?"
+    -- it is, on every chip-scale polarised part ever made -- but "can the orientation be
+    recovered from the board?", and if it can, WHICH END the mark identifies. A "+" beside
+    the cathode is worse than no "+" at all, so that is an error here, not a pass.
     """
+    marks = polarity_marks(board_text)
     out = []
     for fp in kisexp.footprints(board_text):
-        if not fp.placed or fp.ref not in described:
+        if not fp.placed or fp.ref not in described or not fp.at:
             continue
         mpn, desc = described[fp.ref]
         if not _POLARISED.search(desc):
             continue
-        pads = _pad_geometry(fp)
-        if len(pads) != 2:
+        pads = _pad_globals(fp)
+        if len(pads) != 2 or "1" not in pads:
             continue
-        sizes = {tuple(re.findall(r"\(size ([\d.]+) ([\d.]+)\)", blk)[0])
-                 for blk in kisexp.pad_blocks(fp.body)
-                 if re.findall(r"\(size ([\d.]+) ([\d.]+)\)", blk)}
+        side = "B.SilkS" if fp.layer == "B.Cu" else "F.SilkS"
+        # SOURCE ONE: a glyph beside the part. SOURCE TWO: the footprint's own silkscreen
+        # drawn asymmetrically -- the bracket a SOD land puts round the cathode, the
+        # triangle-and-bar an LED land draws. Either one tells an assembler which way round
+        # the part goes, and a part needs only one of them. Checking just the second is
+        # what called three marked capacitors unmarked; checking just the first would call
+        # four marked diodes unmarked. Both, or the answer is wrong somewhere.
+        near = sorted(
+            ((math.dist((fp.at[0], fp.at[1]), (x, y)), g, x, y)
+             for g, x, y, lay in marks
+             if lay == side and math.dist((fp.at[0], fp.at[1]), (x, y)) <= GLYPH_RADIUS_MM),
+            key=lambda r: r[0])
         silk = _silk_points(fp)
-        land_symmetric = len(sizes) == 1
-        silk_symmetric = silk == sorted((-x, y) for x, y in silk)
-        if land_symmetric and silk_symmetric:
-            out.append((fp.ref, mpn, desc))
+        shaped = silk and silk != sorted((-x, y) for x, y in silk)
+        if near:
+            _d, glyph, gx, gy = near[0]
+            d1 = math.dist(pads["1"], (gx, gy))
+            d2 = math.dist(pads[sorted(k for k in pads if k != "1")[0]], (gx, gy))
+            anode = (glyph == "+" and d1 < d2) or (glyph == "-" and d2 < d1)
+            out.append((fp.ref, mpn, "marked" if anode else "UNMARKED",
+                        f"'{glyph}' on {side}, {d1:.2f} mm from pad 1, {d2:.2f} mm from pad 2"
+                        + ("" if anode else " -- THE MARK IS AT THE WRONG END")))
+        elif shaped:
+            out.append((fp.ref, mpn, "marked",
+                        f"the land's own silkscreen is asymmetric ({len(silk)} vertices, "
+                        "not mirror-equal) and shows which end is which"))
+        else:
+            out.append((fp.ref, mpn, "UNMARKED",
+                        f"no polarity glyph within {GLYPH_RADIUS_MM:.0f} mm on {side}, and "
+                        "the footprint's own silkscreen is mirror-symmetric"))
     return sorted(out)
 
 
@@ -549,9 +622,22 @@ def order_sheet(board_text: str, members: dict) -> str:
     f = fab_facts(board_text)
     a = assembly_counts(board_text)
     described = described_parts()
-    polar_list = "".join(
-        f"\n       {r:5s} {m:26s} {d.split(',')[0].strip()}"
-        for r, m, d in polarity_risk(board_text, described)) or "\n       (none)"
+    pol = polarity_risk(board_text, described)
+    unmarked = [r for r in pol if r[2] != "marked"]
+    # The sheet says whichever of these is TRUE, and the loud version is reserved for when
+    # something really is unmarked. An earlier revision printed the loud version
+    # unconditionally, on a board where every polarised part is marked -- which is how a
+    # fab ends up being told, in capitals, something the board contradicts.
+    if unmarked:
+        polar_head = ("PARTS THAT MUST GO IN ONE WAY ROUND AND THE BOARD DOES NOT SAY WHICH.\n"
+                      "     A machine reads the position file's rotation; if that is wrong these go\n"
+                      "     in backwards and nothing downstream catches it. Confirm before the run:")
+        polar_list = "".join(f"\n       {r:5s} {m:26s} {why}" for r, m, _v, why in unmarked)
+    else:
+        polar_head = (f"All {len(pol)} polarised part(s) on this board are marked, and the\n"
+                      "     mark is at the correct end of each. Nothing here needs a special\n"
+                      "     instruction -- this is the list so it can be checked against the board:")
+        polar_list = "".join(f"\n       {r:5s} {m:26s} {why}" for r, m, _v, why in pol)
     risk = order_risk()
     # The repo's own note on each of these runs to a paragraph of provenance -- which
     # revision closed which blocker, what a superseded sentence used to say. A fab does not
@@ -706,12 +792,11 @@ ASSEMBLY
                           Follow the paste layer.
 
 THINGS A HUMAN HAS TO TELL THEM
-  1. POLARISED PARTS ON A SYMMETRIC LAND WITH NO POLARITY MARK ANYWHERE ON THE BOARD.
-     If the line reads the rotation wrong these go in backwards, and nothing on the board
-     says so -- no DRC, no AOI signature, no visual tell, and a reversed tantalum fails
-     shorted. Confirm orientation before the run:{polar_list}
-     Every OTHER polarised part on this board IS marked and needs no special instruction:
-     D1/D2 have a bracket drawn round the cathode end and DL1/DL2 carry the diode triangle.
+  1. POLARITY. {polar_head}{polar_list}
+     CP1-CP3 are the ones to confirm on a first article anyway: they are 100 uF tantalums,
+     they fail SHORTED when reversed, and the land underneath them is symmetric -- so if the
+     rotation in the position file is ever read against the wrong end, the silkscreen "+" is
+     the only thing that disagrees, and no electrical test before power-on will catch it.
   2. Parts on the do-not-populate list are not all jumpers and test pads. P1 (cartridge
      slot) and P4 (link port) are real parts the builder fits by hand afterwards.
   3. U1's land takes a SALVAGED AGB CPU and is not on the BOM at all, because no

@@ -2056,25 +2056,44 @@ def check_fab_package():
            f"{n} BGA/QFP agrees with the board ({len(counts['smd'])} SMD, "
            f"{len(counts['through_hole'])} through-hole, {counts['unique_mpns']} unique MPN(s))")
 
-    # THE ONE INSTRUCTION THE PACKAGE CANNOT ENCODE. CP1-CP3 are polarised tantalums on a
-    # mirror-symmetric land with mirror-symmetric silk: the board carries no indication of
-    # which end is which, so a line that reads the rotation the wrong way fits all three
-    # backwards and nothing catches it -- not DRC, not AOI, not a visual check. Reversed
-    # tantalums fail shorted. The sheet is the only place that warning can live, so it has
-    # to NAME every such part, and the naming has to come from the board rather than from
-    # a sentence somebody typed once.
-    risky = fab_package.polarity_risk(board(), fab_package.described_parts())
-    unnamed = [r for r, _m, _d in risky if r not in sheet]
-    if unnamed:
-        err("ORDER.txt does not name polarised part(s) that the board gives no polarity "
-            "mark for: " + ", ".join(unnamed) + " -- a machine cannot recover the "
-            "orientation and nothing downstream catches it being wrong")
-    elif not risky:
-        note("no placed part is both polarised and unmarked -- nothing to warn about")
+    # POLARITY, AND THE READER THAT COULD NOT SEE IT. The first version of this check read
+    # silkscreen only from INSIDE each footprint and reported CP1-CP3 as carrying no polarity
+    # mark at all. They carry one each -- a "+" in free silkscreen beside pin 1, and CP2's is
+    # on the other side of the part because CP2 is rotated 180 degrees. The order sheet
+    # stated the opposite, in capitals, to a fab. So this now checks BOTH sources a board can
+    # use, and proves it can still see both before believing either answer.
+    pol = fab_package.polarity_risk(board(), fab_package.described_parts())
+    by_glyph = [r for r in pol if r[2] == "marked" and r[3].startswith("'")]
+    by_land = [r for r in pol if r[2] == "marked" and not r[3].startswith("'")]
+    unmarked = [r for r in pol if r[2] != "marked"]
+    if not pol:
+        err("no polarised part was recognised on this board at all -- CP1-CP3 are tantalums "
+            "and D1/D2/DL1/DL2 are diodes, so the description reader has gone blind")
+    elif not by_glyph:
+        err("no polarity mark was found in free silkscreen anywhere -- CP1-CP3 each carry a "
+            "'+' beside pin 1, so the board-level reader has gone blind and any 'unmarked' "
+            "verdict below cannot be trusted")
+    elif not by_land:
+        err("no polarised part was recognised by its own land silkscreen -- D1/D2 draw a "
+            "bracket round the cathode and DL1/DL2 a diode triangle, so the footprint "
+            "reader has gone blind")
+    elif unmarked:
+        # NOT a substring test against the sheet. An earlier version asked whether each
+        # unmarked refdes appeared anywhere in ORDER.txt -- and every one of them does,
+        # because the sheet lists all seven polarised parts by name. Two mutation cases
+        # passed on that basis while the defect they injected went unreported. The invariant
+        # that matters is about the BOARD: today every polarised part on it is marked at the
+        # correct end, so any part that stops being marked is a regression, and the sheet
+        # staying in step is what the package digest above already guarantees.
+        err(f"{len(unmarked)} polarised part(s) have no usable polarity mark: "
+            + "; ".join(f"{r} ({w})" for r, _m, _v, w in unmarked)
+            + " -- a machine takes its orientation from the position file, and if that is "
+              "read against the wrong end nothing downstream catches it")
     else:
-        ok(f"the order sheet names all {len(risky)} polarised part(s) the board gives no "
-           f"polarity mark for ({', '.join(r for r, _m, _d in risky)}), and every other "
-           "polarised part on the board carries one")
+        ok(f"all {len(pol)} polarised part(s) are marked at the correct end -- "
+           f"{len(by_glyph)} by a silkscreen glyph beside pin 1 "
+           f"({', '.join(r for r, _m, _v, _w in by_glyph)}) and {len(by_land)} by the land's "
+           f"own asymmetric silkscreen ({', '.join(r for r, _m, _v, _w in by_land)})")
 
     # PCBWAY REJECTED THE FIRST UPLOAD FOR HAVING "no drill file" WHILE HOLDING TWO VALID
     # EXCELLON FILES -- in drill/. Their intake reads the archive flat, so a drill file one
