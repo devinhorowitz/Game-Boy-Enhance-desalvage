@@ -604,6 +604,24 @@ def npth_owners(board_text: str) -> list:
     return sorted(out)
 
 
+def copper_layer_map(members: dict) -> list:
+    """[(position, filename, side)] for every copper plot, read from the files themselves.
+
+    Gerber X2 makes each plot state where it belongs -- %TF.FileFunction,Copper,L1,Top*% --
+    so the stack order is not something this sheet has to be told and cannot get wrong. The
+    Protel extension agrees independently (.gtl top, .g1/.g2 inner, .gbl bottom), which is
+    the cross-check: if the two ever disagreed, one of them is a renaming accident.
+    """
+    out = []
+    for name, data in members.items():
+        if not name.startswith("gerbers/"):
+            continue
+        m = re.search(rb"%TF\.FileFunction,Copper,L(\d+),(\w+)\*%", data)
+        if m:
+            out.append((int(m.group(1)), name.split("/")[-1], m.group(2).decode()))
+    return sorted(out)
+
+
 def order_sheet(board_text: str, members: dict) -> str:
     s = stackup(board_text)
     # COUNT WITH A CSV READER, NOT BY SPLITTING ON NEWLINES. The BOM's note column carries
@@ -616,6 +634,22 @@ def order_sheet(board_text: str, members: dict) -> str:
     n_bom = _rows("agbm-02-cxc-pcbway-assembly.csv")
     n_dnp = _rows("agbm-02-cxc-not-populated.csv")
     gerbers = sorted(k.split("/")[-1] for k in members if k.startswith("gerbers/"))
+    cmap = copper_layer_map(members)
+    layer_map = "".join(
+        f"\n    L{pos}  {'top   ' if side == 'Top' else 'bottom' if side == 'Bot' else 'inner '}"
+        f"  {fn}" for pos, fn, side in cmap) or "\n    (no copper plot declared its layer)"
+    polarity = "POSITIVE" if all(
+        b"%TF.FilePolarity,Positive*%" in members[k] for k in members
+        if k.startswith("gerbers/") and k.lower().endswith((".gtl", ".g1", ".g2", ".gbl"))
+    ) else "NOT ALL POSITIVE -- CHECK BEFORE ORDERING"
+    # Counted, not remembered: an inner layer that became a solid plane would otherwise
+    # leave this sentence asserting tracks that are no longer there.
+    import collections as _c
+    _seg = _c.Counter(l for *_x, l, _n in geom.collect(board_text)[0])
+    pos_of = {fn: pos for pos, fn, _sd in cmap}
+    inner_tracks = "\n".join(
+        f"    L{pos}  {_seg.get(lay, 0):5d} track segment(s)"
+        for lay, pos in (("In1.Cu", 2), ("In2.Cu", 3)))
     drills = sorted(k.split("/")[-1] for k in members if k.startswith("drill/"))
     spec = order_spec()
     st = stackup(board_text)
@@ -749,11 +783,20 @@ WHICH FILE YOU ACTUALLY UPLOAD
   PCB file. They are in assembly/ here so the record is complete.
 
 GERBERS ({len(gerbers)} files, RS-274X, 6-digit, Protel extensions)
-  .GTL / .G1 / .G2 / .GBL ... copper, top to bottom
   .GTS / .GBS ............... solder mask
   .GTO / .GBO ............... silkscreen
   .GTP / .GBP ............... solder paste (stencil)
   .GM1 ...................... board outline (Edge.Cuts)
+
+  COPPER LAYER ORDER, L1 at the top of the stack:{layer_map}
+  Nothing has to be mapped by hand. Every copper plot NAMES its own position in a Gerber X2
+  attribute (%TF.FileFunction,Copper,L1,Top*%), so a viewer that reads X2 assigns all four
+  by itself, and the Protel extensions say the same thing a second way. If a tool ever
+  shows a different order, the files are the tiebreaker.
+
+  NEITHER INNER LAYER IS A SOLID PLANE. They carry pours AND signal:
+{inner_tracks}
+  All four copper plots are {polarity} -- no negative-plane convention anywhere in this set.
 
 DRILL ({len(drills)} files, Excellon, millimetres)
   PTH and NPTH are SEPARATE files, and the NPTH file is NOT OPTIONAL:{npth_list}

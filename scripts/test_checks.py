@@ -492,6 +492,23 @@ def main():
         extra_cases += 1
         extra_failed += _polarity_case(_label, _fn, _want)
 
+    # The layer map is only worth having if it tracks the files. Swap two copper plots'
+    # declared positions and the sheet's table is silently wrong about which file is L2.
+    def _swap_two_layer_positions(members, man):
+        a = next(k for k in members if k.lower().endswith(".g1"))
+        members[a] = members[a].replace(b"Copper,L2,Inr", b"Copper,L3,Inr")
+
+    def _strip_a_layer_attribute(members, man):
+        a = next(k for k in members if k.lower().endswith(".gtl"))
+        members[a] = members[a].replace(b"%TF.FileFunction,Copper,L1,Top*%", b"")
+
+    for _l, _f in (("[21] two copper plots declare the same layer position",
+                    _swap_two_layer_positions),
+                   ("[21] a copper plot stops declaring its layer position",
+                    _strip_a_layer_attribute)):
+        extra_cases += 1
+        extra_failed += _fab_case(_l, _f)
+
     # THE CASE THIS WHOLE SECOND ZIP EXISTS FOR. PCBWay rejected the first upload for
     # having "no drill file" while it held two valid Excellon files -- one directory down,
     # in drill/. Put a file back in a folder and [21] has to catch it, because the symptom
